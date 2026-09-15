@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768764285403",
+    "project_id": "turismap-2026",
+    "storage_bucket": "turismap-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768764285403:android:a669a2be3e891b8b6317fe",
+        "android_client_info": {
+          "package_name": "com.turismap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAb1vb3YqQO5iZfMMG8m_Q3W9gc_Mf5qpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
