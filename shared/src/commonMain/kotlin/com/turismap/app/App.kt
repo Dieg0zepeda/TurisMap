@@ -1,175 +1,96 @@
 package com.turismap.app
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.turismap.app.components.FigmaBottomBar
+import com.turismap.app.screens.DetalleExperienciaScreen
+import com.turismap.app.screens.MapaScreenFigma
+import com.turismap.app.theme.GrisFondo
+import com.turismap.app.screens.PerfilScreen
+import com.turismap.app.screens.GuiaScreen
 
 @Composable
 fun App() {
+    var selectedIndex by remember { mutableStateOf(1) } // Tab Mapa activo
+    var verDetalleExperiencia by remember { mutableStateOf(false) }
+
     MaterialTheme {
         Scaffold(
-            topBar = { TurisMapTopBar() },
-            bottomBar = { SmoothNavBar() }
+            bottomBar = {
+                if (!verDetalleExperiencia) {
+                    FigmaBottomBar(
+                        selectedIndex = selectedIndex,
+                        onTabSelected = { selectedIndex = it }
+                    )
+                }
+            }
         ) { paddingValues ->
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp)
+                    .background(GrisFondo)
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    FeaturedDestinationCard()
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TurisMapTopBar() {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(text = "Ruta de las Flores", style = MaterialTheme.typography.titleMedium)
-        },
-        navigationIcon = {
-            IconButton(onClick = { /* Acción del menú */ }) {
-                Text("☰") // Menú hamburguesa temporal
-            }
-        },
-        actions = {
-            IconButton(onClick = { /* Acción de búsqueda */ }) {
-                Text("🔍") // Lupa temporal
-            }
-        }
-    )
-}
-
-@Composable
-fun FeaturedDestinationCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(280.dp),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.DarkGray)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)),
-                            startY = 200f
+                AnimatedContent(
+                    targetState = verDetalleExperiencia,
+                    transitionSpec = {
+                        if (targetState) {
+                            (slideInVertically(animationSpec = tween(350)) { it / 2 } + fadeIn(animationSpec = tween(350)))
+                                .togetherWith(fadeOut(animationSpec = tween(200)))
+                        } else {
+                            fadeIn(animationSpec = tween(200))
+                                .togetherWith(slideOutVertically(animationSpec = tween(350)) { it / 2 } + fadeOut(animationSpec = tween(200)))
+                        }
+                    },
+                    label = "DetalleTransition"
+                ) { enDetalle ->
+                    if (enDetalle) {
+                        DetalleExperienciaScreen(
+                            onVolver = { verDetalleExperiencia = false }
                         )
-                    )
-            )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(20.dp)
-            ) {
-                Surface(
-                    color = Color(0xFFB75C4C), // Color terracota
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        text = "Featured Destination",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
+                    } else {
+                        AnimatedContent(
+                            targetState = selectedIndex,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(250)).togetherWith(fadeOut(animationSpec = tween(200)))
+                            },
+                            label = "TabsTransition"
+                        ) { targetTab ->
+                            when (targetTab) {
+                                0 -> ExplorarScreen()
+                                1 -> MapaScreenFigma(
+                                    onAbrirDetalle = { verDetalleExperiencia = true }
+                                )
+                                2 -> GuiaScreen()
+                                3 -> PerfilScreen()
+                            }
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Discover Ataco",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Immerse yourself in vibrant murals, artisanal coffee, and cobblestone charm.",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp
-                )
             }
         }
     }
 }
 
+// Pantallas auxiliares temporales
 @Composable
-fun SmoothNavBar() {
-    var selectedIndex by remember { mutableStateOf(0) }
-
-    // Emojis temporales en lugar de ImageVector para evitar el error de Icons
-    val items = listOf("🧭", "🗺️", "🍽️", "👤")
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(Color.White),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        items.forEachIndexed { index, iconText ->
-            NavItem(
-                iconText = iconText,
-                isSelected = selectedIndex == index,
-                onClick = { selectedIndex = index }
-            )
-        }
-    }
-}
-
-@Composable
-fun NavItem(iconText: String, isSelected: Boolean, onClick: () -> Unit) {
-    // Animación de salto hacia arriba
-    val yOffset by animateDpAsState(
-        targetValue = if (isSelected) (-20).dp else 0.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "yOffset"
-    )
-
-    Box(
-        modifier = Modifier
-            .offset(y = yOffset)
-            .size(50.dp)
-            .clip(CircleShape)
-            .background(if (isSelected) Color(0xFF4A148C) else Color.Transparent)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        // En lugar de un Icon, usamos un Text para el emoji
-        Text(
-            text = iconText,
-            fontSize = 24.sp
-        )
+fun ExplorarScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Explorar Screen")
     }
 }
