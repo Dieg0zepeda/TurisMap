@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,17 @@ import com.turismap.app.theme.*
 
 @Composable
 fun PerfilScreen() {
+    // Variable única: cualquier nombre que pongas aquí calculará sus iniciales automáticamente
+    val nombreUsuario = "Diego Dubón"
+    val iniciales = remember(nombreUsuario) {
+        nombreUsuario
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .map { it.first().uppercase() }
+            .joinToString("")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -91,7 +103,7 @@ fun PerfilScreen() {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "CH",
+                    text = iniciales,
                     color = Color.White,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
@@ -101,7 +113,7 @@ fun PerfilScreen() {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Camila Henríquez",
+                text = nombreUsuario,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A202C)
@@ -110,7 +122,7 @@ fun PerfilScreen() {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Exploradora de Montaña · 14 Pueblos Visitados",
+                text = "Explorador de Montaña · 14 Pueblos Visitados",
                 fontSize = 13.sp,
                 color = GrisTextoSecundario
             )

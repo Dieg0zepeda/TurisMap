@@ -23,6 +23,7 @@ import com.turismap.app.screens.MapaScreenFigma
 import com.turismap.app.theme.GrisFondo
 import com.turismap.app.screens.PerfilScreen
 import com.turismap.app.screens.GuiaScreen
+import com.turismap.app.screens.ExplorarScreen
 
 @Composable
 fun App() {
@@ -84,13 +85,5 @@ fun App() {
                 }
             }
         }
-    }
-}
-
-// Pantallas auxiliares temporales
-@Composable
-fun ExplorarScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Explorar Screen")
     }
 }
