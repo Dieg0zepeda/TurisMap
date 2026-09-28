@@ -1,39 +1,35 @@
 package com.turismap.app
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.turismap.app.components.FigmaBottomBar
-import com.turismap.app.screens.DetalleExperienciaScreen
-import com.turismap.app.screens.MapaScreenFigma
-import com.turismap.app.theme.GrisFondo
-import com.turismap.app.screens.PerfilScreen
-import com.turismap.app.screens.GuiaScreen
 import com.turismap.app.screens.ExplorarScreen
+import com.turismap.app.screens.DetalleAtacoScreen
+import com.turismap.app.screens.DetalleApanecaScreen
+import com.turismap.app.screens.DetalleJuayuaScreen
+import com.turismap.app.screens.DetalleSalcoatitanScreen
+import com.turismap.app.screens.DetalleNahuizalcoScreen
+import com.turismap.app.screens.GuiaScreen
+import com.turismap.app.screens.MapaScreen
+import com.turismap.app.screens.PerfilScreen
 
 @Composable
 fun App() {
-    var selectedIndex by remember { mutableStateOf(1) } // Tab Mapa activo
-    var verDetalleExperiencia by remember { mutableStateOf(false) }
+    var selectedIndex by remember { mutableStateOf(0) }
+    var puebloSeleccionado by remember { mutableStateOf<String?>(null) } // Solo guardamos el nombre
 
     MaterialTheme {
         Scaffold(
             bottomBar = {
-                if (!verDetalleExperiencia) {
+                if (puebloSeleccionado == null) {
                     FigmaBottomBar(
                         selectedIndex = selectedIndex,
                         onTabSelected = { selectedIndex = it }
@@ -41,45 +37,26 @@ fun App() {
                 }
             }
         ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(GrisFondo)
-            ) {
-                AnimatedContent(
-                    targetState = verDetalleExperiencia,
-                    transitionSpec = {
-                        if (targetState) {
-                            (slideInVertically(animationSpec = tween(350)) { it / 2 } + fadeIn(animationSpec = tween(350)))
-                                .togetherWith(fadeOut(animationSpec = tween(200)))
-                        } else {
-                            fadeIn(animationSpec = tween(200))
-                                .togetherWith(slideOutVertically(animationSpec = tween(350)) { it / 2 } + fadeOut(animationSpec = tween(200)))
-                        }
-                    },
-                    label = "DetalleTransition"
-                ) { enDetalle ->
-                    if (enDetalle) {
-                        DetalleExperienciaScreen(
-                            onVolver = { verDetalleExperiencia = false }
-                        )
-                    } else {
-                        AnimatedContent(
-                            targetState = selectedIndex,
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(250)).togetherWith(fadeOut(animationSpec = tween(200)))
-                            },
-                            label = "TabsTransition"
-                        ) { targetTab ->
-                            when (targetTab) {
-                                0 -> ExplorarScreen()
-                                1 -> MapaScreenFigma(
-                                    onAbrirDetalle = { verDetalleExperiencia = true }
-                                )
-                                2 -> GuiaScreen()
-                                3 -> PerfilScreen()
-                            }
+            Box(modifier = Modifier.padding(paddingValues)) {
+
+                // Enrutador manual (Abre la pantalla quemada según el nombre)
+                when (puebloSeleccionado) {
+                    "Concepción de Ataco", "Ataco" -> DetalleAtacoScreen { puebloSeleccionado = null }
+                    "Apaneca" -> DetalleApanecaScreen { puebloSeleccionado = null }
+                    "Juayúa" -> DetalleJuayuaScreen { puebloSeleccionado = null }
+                    "Salcoatitán" -> DetalleSalcoatitanScreen { puebloSeleccionado = null }
+                    "Nahuizalco" -> DetalleNahuizalcoScreen { puebloSeleccionado = null }
+
+                    null -> {
+                        // Vista Principal
+                        when (selectedIndex) {
+                            0 -> ExplorarScreen(
+                                onPuebloClick = { pueblo -> puebloSeleccionado = pueblo.nombre }
+                            )
+
+                            1 -> MapaScreen(onAbrirDetalle = {})
+                            2 -> GuiaScreen()
+                            3 -> PerfilScreen()
                         }
                     }
                 }

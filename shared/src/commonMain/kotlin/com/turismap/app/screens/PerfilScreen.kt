@@ -30,7 +30,7 @@ import com.turismap.app.theme.*
 @Composable
 fun PerfilScreen() {
     // Variable única: cualquier nombre que pongas aquí calculará sus iniciales automáticamente
-    val nombreUsuario = "Diego Dubón"
+    val nombreUsuario = "marvin figueria"
     val iniciales = remember(nombreUsuario) {
         nombreUsuario
             .split(" ")

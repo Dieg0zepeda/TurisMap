@@ -10,9 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,59 +23,39 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.*
 
-// Modelos de datos para la pantalla Explorar
-data class PuebloDestacado(
-    val nombre: String,
-    val departamento: String,
-    val atraccionPrincipal: String
-)
-
-data class ExperienciaRuta(
-    val titulo: String,
-    val ubicacion: String,
-    val duracion: String,
-    val calificacion: String,
-    val etiqueta: String
-)
+// --- Modelos de datos ---
+data class Pueblo(val nombre: String, val descripcion: String, val etiqueta: String)
+data class ExperienciaCard(val titulo: String, val descripcion: String, val precio: String)
 
 @Composable
-fun ExplorarScreen() {
+fun ExplorarScreen(
+    onPuebloClick: (Pueblo) -> Unit = {}
+) {
     val pueblos = remember {
         listOf(
-            PuebloDestacado("Juayúa", "Sonsonate", "Cascadas Los Chorros"),
-            PuebloDestacado("Ataco", "Ahuachapán", "Murales y Telares"),
-            PuebloDestacado("Apaneca", "Ahuachapán", "Café de Altura y Laberinto"),
-            PuebloDestacado("Nahuizalco", "Sonsonate", "Artesanías de Mimbre"),
-            PuebloDestacado("Salcoatitán", "Sonsonate", "Plaza de la Yuca")
+            Pueblo("Apaneca", "1,450 msnm", "Elevación"),
+            Pueblo("Juayúa", "Cascadas de la Calera y feria gastronómica.", "Naturaleza"),
+            Pueblo("Salcoatitán", "Cuna de la yuca frita y el café artesanal.", "Gastronomía"),
+            Pueblo("Nahuizalco", "Mercado nocturno y artesanías de mimbre.", "Cultura")
         )
     }
 
-    val experiencias = remember {
+    val experienciasDestacadas = remember {
         listOf(
-            ExperienciaRuta(
-                titulo = "Tour del Café y Catanas",
-                ubicacion = "Apaneca · Finca San Antonio",
-                duracion = "3 horas",
-                calificacion = "4.9",
-                etiqueta = "Aventura"
+            ExperienciaCard(
+                "Finca San Antonio El Portezuelo",
+                "Balcón panorámico con vistas al volcán de Izalco.",
+                "Desde $4.50 / persona"
             ),
-            ExperienciaRuta(
-                titulo = "Ruta de los Murales Iluminados",
-                ubicacion = "Concepción de Ataco · Centro",
-                duracion = "1.5 horas",
-                calificacion = "4.8",
-                etiqueta = "Cultura"
-            ),
-            ExperienciaRuta(
-                titulo = "Caminata Cascada Los Chorros de la Calera",
-                ubicacion = "Juayúa · Sendero Ecológico",
-                duracion = "2 horas",
-                calificacion = "4.9",
-                etiqueta = "Naturaleza"
+            ExperienciaCard(
+                "Café Entre Nubes y Mirador",
+                "Café de altura rodeado de neblina y pinos.",
+                "Desde $3.50 / persona"
             )
         )
     }
@@ -87,7 +67,7 @@ fun ExplorarScreen() {
             .background(GrisFondo)
             .padding(bottom = 24.dp)
     ) {
-        // 1. Header superior
+        // --- 1. Header superior (Se mantiene igual, está excelente) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,232 +110,237 @@ fun ExplorarScreen() {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 2. Banner Hero Destacado
+        // --- 2. Tarjeta Destacada "Descubre Ataco" (Ajustada al Figma) ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(280.dp) // Tarjeta alta como en el diseño
                 .padding(horizontal = 16.dp)
-                .shadow(elevation = 6.dp, shape = RoundedCornerShape(18.dp)),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = VerdePrimario)
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp)).clickable { onPuebloClick(Pueblo("Concepción de Ataco", "Destino Destacado", "Murales")) },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = VerdePrimario) // Aquí irá la imagen de fondo luego
+
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color.White.copy(alpha = 0.2f)
-                ) {
-                    Text(
-                        text = "EVENTO DE TEMPORADA · CA-8 KM 82",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        letterSpacing = 0.8.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Festival Gastronómico de Juayúa",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Simulación del gradiente oscuro en la parte inferior para que el texto resalte
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f))
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Prueba la gastronomía tradicional salvadoreña al aire libre en la plaza central este fin de semana.",
-                    fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    lineHeight = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = { },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(20.dp)
                 ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = "DESTINO DESTACADO",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
-                        text = "Ver detalles de ruta",
-                        fontSize = 12.sp,
+                        text = "Descubre Ataco",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Concepción de Ataco",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. Sección "Pueblos de la Cordillera"
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "PUEBLOS DE LA CORDILLERA",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = GrisTextoSecundario,
-                letterSpacing = 1.sp
-            )
-            Text(
-                text = "5 Destinos",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = VerdePrimario
-            )
-        }
+        // --- 3. Carrusel Horizontal "Explora la Ruta" (Ajustado al Figma) ---
+        Text(
+            text = "Explora la Ruta",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF1A202C),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         LazyRow(
-            modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(pueblos) { pueblo ->
-                Surface(
+                Card(
                     modifier = Modifier
-                        .width(170.dp)
-                        .clickable { }
-                        .shadow(elevation = 3.dp, shape = RoundedCornerShape(14.dp)),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
+                        .width(140.dp)
+                        .height(180.dp)
+                        .clickable { onPuebloClick(pueblo) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = VerdePrimario,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Área de la imagen superior
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(90.dp)
+                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
+                        ) {
+                            // Badge superior izquierdo (Elevación / Naturaleza)
+                            Surface(
+                                modifier = Modifier.padding(8.dp),
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color.White.copy(alpha = 0.9f)
+                            ) {
+                                Text(
+                                    text = pueblo.etiqueta,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VerdePrimario,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        // Textos de la tarjeta
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Text(
                                 text = pueblo.nombre,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1A202C)
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = pueblo.descripcion,
+                                fontSize = 12.sp,
+                                color = GrisTextoSecundario,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = pueblo.departamento,
-                            fontSize = 11.sp,
-                            color = GrisTextoSecundario
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = pueblo.atraccionPrincipal,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TerracotaAcento,
-                            maxLines = 1
-                        )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(26.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // 4. Sección "Rutas y Experiencias Recomendadas"
+        // --- 4. Sección "Experiencias Destacadas" (Tarjetas Verticales del Figma) ---
         Text(
-            text = "EXPERIENCIAS RECOMENDADAS",
-            fontSize = 12.sp,
+            text = "Experiencias Destacadas",
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = GrisTextoSecundario,
-            letterSpacing = 1.sp,
+            color = Color(0xFF1A202C),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            experiencias.forEach { item ->
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { }
-                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(14.dp)),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
+            experienciasDestacadas.forEach { experiencia ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column {
+                        // Área de imagen ancha
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(VerdePrimario.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .height(140.dp)
+                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = VerdePrimario,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            // Botón de favoritos (corazón)
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .size(32.dp),
+                                shape = CircleShape,
+                                color = Color.White
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.FavoriteBorder,
+                                        contentDescription = "Guardar",
+                                        tint = TerracotaAcento,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
+                        // Contenido de la tarjeta de experiencia
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = item.titulo,
-                                fontSize = 14.sp,
+                                text = experiencia.titulo,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1A202C)
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${item.ubicacion} · ${item.duracion}",
-                                fontSize = 11.sp,
+                                text = experiencia.descripcion,
+                                fontSize = 14.sp,
                                 color = GrisTextoSecundario
                             )
-                        }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                tint = TerracotaAcento,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Text(
-                                text = item.calificacion,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2D3748)
-                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Fila inferior: Precio y Botón "Ver Menú"
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = experiencia.precio,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TerracotaAcento
+                                )
+
+                                Button(
+                                    onClick = { },
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFEDF2F7), // Gris claro
+                                        contentColor = VerdePrimario
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "Ver Menú",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

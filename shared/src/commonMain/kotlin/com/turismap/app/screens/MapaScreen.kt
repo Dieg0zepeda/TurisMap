@@ -26,7 +26,7 @@ import com.turismap.app.components.FigmaTopHeader
 import com.turismap.app.theme.*
 
 @Composable
-fun MapaScreenFigma(onAbrirDetalle: () -> Unit) {
+fun MapaScreen(onAbrirDetalle: () -> Unit) {
     var categoriaSeleccionada by remember { mutableStateOf(CategoriaLugar.TODOS) }
     var lugarSeleccionado by remember {
         mutableStateOf<LugarTuristico?>(
