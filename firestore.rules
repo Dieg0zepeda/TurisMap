@@ -1,0 +1,25 @@
+// Archivo: firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+    function isAuth() { return request.auth != null; }
+
+    match /lugares/{lugarId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /usuarios/{userId} {
+      allow read, update, create: if isAuth() && request.auth.uid == userId;
+      allow delete: if isAdmin();
+
+      match /historial_rutas/{rutaId} {
+        allow read, write: if isAuth() && request.auth.uid == userId;
+      }
+    }
+  }
+}
