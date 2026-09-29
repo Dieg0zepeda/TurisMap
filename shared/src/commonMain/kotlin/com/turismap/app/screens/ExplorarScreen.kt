@@ -10,40 +10,31 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.models.Lugar
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 
-// --- Modelos de datos ---
-data class Pueblo(val nombre: String, val descripcion: String, val etiqueta: String)
 data class ExperienciaCard(val titulo: String, val descripcion: String, val precio: String)
 
 @Composable
 fun ExplorarScreen(
-    onPuebloClick: (Pueblo) -> Unit = {}
+    onLugarClick: (Lugar) -> Unit = {}
 ) {
-    val pueblos = remember {
-        listOf(
-            Pueblo("Apaneca", "1,450 msnm", "Elevación"),
-            Pueblo("Juayúa", "Cascadas de la Calera y feria gastronómica.", "Naturaleza"),
-            Pueblo("Salcoatitán", "Cuna de la yuca frita y el café artesanal.", "Gastronomía"),
-            Pueblo("Nahuizalco", "Mercado nocturno y artesanías de mimbre.", "Cultura")
-        )
-    }
+    val lugares = remember { LugaresRepository.obtenerTodos() }
+    val lugarDestacado = remember { LugaresRepository.obtenerPorId("ataco") ?: lugares.firstOrNull() }
 
     val experienciasDestacadas = remember {
         listOf(
@@ -67,7 +58,6 @@ fun ExplorarScreen(
             .background(GrisFondo)
             .padding(bottom = 24.dp)
     ) {
-        // --- 1. Header superior (Se mantiene igual, está excelente) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,67 +100,66 @@ fun ExplorarScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // --- 2. Tarjeta Destacada "Descubre Ataco" (Ajustada al Figma) ---
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp) // Tarjeta alta como en el diseño
-                .padding(horizontal = 16.dp)
-                .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp)).clickable { onPuebloClick(Pueblo("Concepción de Ataco", "Destino Destacado", "Murales")) },
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = VerdePrimario) // Aquí irá la imagen de fondo luego
+        if (lugarDestacado != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .padding(horizontal = 16.dp)
+                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
+                    .clickable { onLugarClick(lugarDestacado) },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = VerdePrimario)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f))
+                    )
 
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Simulación del gradiente oscuro en la parte inferior para que el texto resalte
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
-                )
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(20.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color.White.copy(alpha = 0.2f)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(20.dp)
                     ) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color.White.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = "DESTINO DESTACADO",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                letterSpacing = 0.8.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
-                            text = "DESTINO DESTACADO",
-                            fontSize = 10.sp,
+                            text = "Descubre ${lugarDestacado.nombre.split(" ").last()}",
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            letterSpacing = 0.8.sp
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = lugarDestacado.nombre,
+                            fontSize = 14.sp,
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Descubre Ataco",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Concepción de Ataco",
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 3. Carrusel Horizontal "Explora la Ruta" (Ajustado al Figma) ---
         Text(
             text = "Explora la Ruta",
             fontSize = 18.sp,
@@ -185,32 +174,31 @@ fun ExplorarScreen(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(pueblos) { pueblo ->
+            items(lugares) { lugar ->
                 Card(
                     modifier = Modifier
                         .width(140.dp)
                         .height(180.dp)
-                        .clickable { onPuebloClick(pueblo) },
+                        .clickable { onLugarClick(lugar) },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Área de la imagen superior
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(90.dp)
-                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
+                                .background(Color(0xFFE2E8F0))
                         ) {
-                            // Badge superior izquierdo (Elevación / Naturaleza)
                             Surface(
                                 modifier = Modifier.padding(8.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 color = Color.White.copy(alpha = 0.9f)
                             ) {
+                                val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta ?: "Destino"
                                 Text(
-                                    text = pueblo.etiqueta,
+                                    text = etiqueta,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = VerdePrimario,
@@ -219,17 +207,18 @@ fun ExplorarScreen(
                             }
                         }
 
-                        // Textos de la tarjeta
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = pueblo.nombre,
+                                text = lugar.nombre,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1A202C)
+                                color = Color(0xFF1A202C),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = pueblo.descripcion,
+                                text = lugar.subtitulo,
                                 fontSize = 12.sp,
                                 color = GrisTextoSecundario,
                                 maxLines = 2,
@@ -243,7 +232,6 @@ fun ExplorarScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 4. Sección "Experiencias Destacadas" (Tarjetas Verticales del Figma) ---
         Text(
             text = "Experiencias Destacadas",
             fontSize = 18.sp,
@@ -268,14 +256,12 @@ fun ExplorarScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column {
-                        // Área de imagen ancha
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(140.dp)
-                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
+                                .background(Color(0xFFE2E8F0))
                         ) {
-                            // Botón de favoritos (corazón)
                             Surface(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -295,7 +281,6 @@ fun ExplorarScreen(
                             }
                         }
 
-                        // Contenido de la tarjeta de experiencia
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = experiencia.titulo,
@@ -312,7 +297,6 @@ fun ExplorarScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Fila inferior: Precio y Botón "Ver Menú"
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -329,7 +313,7 @@ fun ExplorarScreen(
                                     onClick = { },
                                     shape = RoundedCornerShape(20.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFEDF2F7), // Gris claro
+                                        containerColor = Color(0xFFEDF2F7),
                                         contentColor = VerdePrimario
                                     ),
                                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)

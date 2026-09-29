@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.LugarTuristico
+import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.*
 
 @Composable
@@ -125,7 +125,7 @@ fun FigmaSearchBar(modifier: Modifier = Modifier) {
 
 @Composable
 fun FigmaPoiCard(
-    lugar: LugarTuristico,
+    lugar: Lugar,
     onVerMas: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -147,7 +147,7 @@ fun FigmaPoiCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = lugar.descripcion.uppercase(),
+                    text = lugar.subtitulo.uppercase(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = GrisTextoSecundario,

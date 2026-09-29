@@ -15,33 +15,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.CategoriaLugar
-import com.turismap.app.Coordenada
-import com.turismap.app.LugarTuristico
-import com.turismap.app.LugaresRepository
 import com.turismap.app.MapaTuristico
 import com.turismap.app.components.FigmaPoiCard
 import com.turismap.app.components.FigmaSearchBar
 import com.turismap.app.components.FigmaTopHeader
+import com.turismap.app.data.models.CategoriaLugar
+import com.turismap.app.data.models.Lugar
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 
 @Composable
 fun MapaScreen(onAbrirDetalle: () -> Unit) {
     var categoriaSeleccionada by remember { mutableStateOf(CategoriaLugar.TODOS) }
-    var lugarSeleccionado by remember {
-        mutableStateOf<LugarTuristico?>(
-            LugarTuristico(
-                id = "finca_albania",
-                nombre = "Mirador & Finca Café Albania",
-                categoria = CategoriaLugar.MIRADOR,
-                descripcion = "Apaneca · CA-8 KM 87 · A 15 min de Juayúa",
-                ubicacion = Coordenada(13.8682, -89.8021),
-                calificacion = 4.9
-            )
-        )
-    }
 
-    val todosLosLugares = remember { LugaresRepository.obtenerLugaresAtaco() }
+    // Obtenemos los lugares desde el nuevo repositorio centralizado
+    val todosLosLugares = remember { LugaresRepository.obtenerTodos() }
+
+    // Inicializamos el lugar seleccionado con el primero de la lista (o nulo)
+    var lugarSeleccionado by remember { mutableStateOf<Lugar?>(todosLosLugares.firstOrNull()) }
+
     val lugaresFiltrados = remember(categoriaSeleccionada) {
         if (categoriaSeleccionada == CategoriaLugar.TODOS) {
             todosLosLugares

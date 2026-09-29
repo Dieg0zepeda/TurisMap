@@ -5,13 +5,12 @@ sealed class Pantalla(val ruta: String) {
     object Mapa : Pantalla("mapa")
     object Guia : Pantalla("guia")
     object Perfil : Pantalla("perfil")
-    
-    object DetalleAtaco : Pantalla("detalle_ataco")
-    object DetalleApaneca : Pantalla("detalle_apaneca")
-    object DetalleJuayua : Pantalla("detalle_juayua")
-    object DetalleSalcoatitan : Pantalla("detalle_salcoatitan")
-    object DetalleNahuizalco : Pantalla("detalle_nahuizalco")
-    
+
+    // RUTA DINÁMICA
+    object DetalleLugar : Pantalla("detalle_lugar/{lugarId}") {
+        fun crearRuta(lugarId: String) = "detalle_lugar/$lugarId"
+    }
+
     object DetalleExperiencia : Pantalla("detalle_experiencia")
     object InicioSesion : Pantalla("inicio_sesion")
 }

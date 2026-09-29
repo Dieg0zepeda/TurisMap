@@ -12,12 +12,13 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
+import com.turismap.app.data.models.Lugar
 import com.google.maps.android.compose.rememberCameraPositionState
 
 @Composable
 actual fun MapaTuristico(
-    lugares: List<LugarTuristico>,
-    onLugarClick: (LugarTuristico) -> Unit,
+    lugares: List<Lugar>,
+    onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {
     val ataco = LatLng(13.8697, -89.8486)
@@ -59,12 +60,11 @@ actual fun MapaTuristico(
         uiSettings = mapUiSettings
     ) {
         lugares.forEach { lugar ->
+            // Asumiendo que usas Google Maps Compose
             Marker(
-                state = MarkerState(
-                    position = LatLng(lugar.ubicacion.latitud, lugar.ubicacion.longitud)
-                ),
+                state = MarkerState(position = LatLng(lugar.ubicacionCoordenadas.latitud, lugar.ubicacionCoordenadas.longitud)),
                 title = lugar.nombre,
-                snippet = lugar.descripcion,
+                snippet = lugar.subtitulo, // Antes era descripcion
                 onClick = {
                     onLugarClick(lugar)
                     false

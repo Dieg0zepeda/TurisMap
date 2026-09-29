@@ -7,8 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.screens.*
 
 @Composable
@@ -23,7 +26,7 @@ fun TurisMapNavHost(
     } else {
         modificador
     }
-    
+
     NavHost(
         navController = controladorNavegacion,
         startDestination = destinoInicial,
@@ -33,100 +36,50 @@ fun TurisMapNavHost(
         composable(Pantalla.Explorar.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 ExplorarScreen(
-                    onPuebloClick = { pueblo ->
-                        when (pueblo.nombre) {
-                            "Concepción de Ataco", "Ataco" -> controladorNavegacion.navigate(Pantalla.DetalleAtaco.ruta)
-                            "Apaneca" -> controladorNavegacion.navigate(Pantalla.DetalleApaneca.ruta)
-                            "Juayúa" -> controladorNavegacion.navigate(Pantalla.DetalleJuayua.ruta)
-                            "Salcoatitán" -> controladorNavegacion.navigate(Pantalla.DetalleSalcoatitan.ruta)
-                            "Nahuizalco" -> controladorNavegacion.navigate(Pantalla.DetalleNahuizalco.ruta)
-                        }
+                    onLugarClick = { lugar ->
+                        controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
                     }
                 )
             }
         }
-        
-        composable(Pantalla.Mapa.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                MapaScreen(onAbrirDetalle = {})
+
+        composable(Pantalla.Mapa.ruta) { Box(modifier = Modifier.fillMaxSize()) { MapaScreen(onAbrirDetalle = {}) } }
+        composable(Pantalla.Guia.ruta) { Box(modifier = Modifier.fillMaxSize()) { GuiaScreen() } }
+        composable(Pantalla.Perfil.ruta) { Box(modifier = Modifier.fillMaxSize()) { PerfilScreen() } }
+
+        // NAVEGACIÓN DINÁMICA DE DETALLE
+        composable(
+            route = Pantalla.DetalleLugar.ruta,
+            arguments = listOf(navArgument("lugarId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val lugarId = backStackEntry.arguments?.getString("lugarId") ?: return@composable
+            val lugarCompleto = LugaresRepository.obtenerPorId(lugarId)
+
+            if (lugarCompleto != null) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    DetalleLugarScreen(
+                        lugar = lugarCompleto,
+                        onBackClick = { controladorNavegacion.popBackStack() }
+                    )
+                }
             }
         }
-        
-        composable(Pantalla.Guia.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                GuiaScreen()
-            }
-        }
-        
-        composable(Pantalla.Perfil.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                PerfilScreen()
-            }
-        }
-        
-        // Screens de detalles de pueblos
-        composable(Pantalla.DetalleAtaco.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                DetalleAtacoScreen(
-                    onBackClick = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-        
-        composable(Pantalla.DetalleApaneca.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                DetalleApanecaScreen(
-                    onBackClick = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-        
-        composable(Pantalla.DetalleJuayua.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                DetalleJuayuaScreen(
-                    onBackClick = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-        
-        composable(Pantalla.DetalleSalcoatitan.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                DetalleSalcoatitanScreen(
-                    onBackClick = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-        
-        composable(Pantalla.DetalleNahuizalco.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                DetalleNahuizalcoScreen(
-                    onBackClick = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-        
-        // Screen de detalle de experiencia
+
         composable(Pantalla.DetalleExperiencia.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
-                DetalleExperienciaScreen(
-                    onVolver = { controladorNavegacion.popBackStack() }
-                )
+                DetalleExperienciaScreen(onVolver = { controladorNavegacion.popBackStack() })
             }
         }
-        
-        // Screen de inicio de sesión
+
         composable(Pantalla.InicioSesion.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PantallaInicioSesion(
                     onLoginExitoso = {
-                        // TODO: PT2026-29 - Navegación condicional basada en auth
                         controladorNavegacion.navigate(Pantalla.Explorar.ruta) {
                             popUpTo(Pantalla.InicioSesion.ruta) { inclusive = true }
                         }
                     },
-                    onNavegarARegistro = {
-                        // TODO: Implementar RegisterScreen
-                    }
+                    onNavegarARegistro = {}
                 )
             }
         }
