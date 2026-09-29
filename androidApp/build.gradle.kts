@@ -11,15 +11,26 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
+
+
 dependencies {
     implementation(project(":shared"))
 
     implementation(libs.androidx.activity.compose)
-
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
-    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
-    implementation("com.google.firebase:firebase-firestore")
+
+    // Firebase (BOM y servicios sin versión directa)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+
+    // Navegación
+    // implementation(libs.androidx.navigation.compose)
+
+    // Koin
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
 }
 
 android {

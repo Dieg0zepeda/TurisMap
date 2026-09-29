@@ -60,6 +60,9 @@ kotlin {
 
             // Soporte para iconos vectoriales oficiales
             implementation(compose.materialIconsExtended)
+
+            // Navegación Multiplatform para App.kt y TurisMapNavHost
+            implementation(libs.navigation.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

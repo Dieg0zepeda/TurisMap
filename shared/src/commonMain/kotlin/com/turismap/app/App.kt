@@ -1,66 +1,79 @@
 package com.turismap.app
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.turismap.app.components.FigmaBottomBar
-import com.turismap.app.screens.ExplorarScreen
-import com.turismap.app.screens.DetalleAtacoScreen
-import com.turismap.app.screens.DetalleApanecaScreen
-import com.turismap.app.screens.DetalleJuayuaScreen
-import com.turismap.app.screens.DetalleSalcoatitanScreen
-import com.turismap.app.screens.DetalleNahuizalcoScreen
-import com.turismap.app.screens.GuiaScreen
-import com.turismap.app.screens.MapaScreen
-import com.turismap.app.screens.PerfilScreen
+import com.turismap.app.navegacion.Pantalla
+import com.turismap.app.navegacion.TurisMapNavHost
 
 @Composable
 fun App() {
-    var selectedIndex by remember { mutableStateOf(0) }
-    var puebloSeleccionado by remember { mutableStateOf<String?>(null) } // Solo guardamos el nombre
+    val controladorNavegacion = rememberNavController()
+
+    // Observador reactivo del estado de navegación
+    val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
+    val rutaActual = navBackStackEntry?.destination?.route
+
+    // Rutas con visibilidad de barra inferior
+    val rutasConBarra = listOf(
+        Pantalla.Explorar.ruta,
+        Pantalla.Mapa.ruta,
+        Pantalla.Guia.ruta,
+        Pantalla.Perfil.ruta
+    )
+    val mostrarBarraInferior = rutaActual == null || rutaActual in rutasConBarra
+
+    // Sincronización del índice activo según la ruta actual de la pila
+    val indiceSeleccionado = when (rutaActual) {
+        Pantalla.Explorar.ruta -> 0
+        Pantalla.Mapa.ruta -> 1
+        Pantalla.Guia.ruta -> 2
+        Pantalla.Perfil.ruta -> 3
+        else -> 0
+    }
 
     MaterialTheme {
         Scaffold(
             bottomBar = {
-                if (puebloSeleccionado == null) {
+                if (mostrarBarraInferior) {
                     FigmaBottomBar(
-                        selectedIndex = selectedIndex,
-                        onTabSelected = { selectedIndex = it }
+                        selectedIndex = indiceSeleccionado,
+                        onTabSelected = { indice ->
+                            val destino = when (indice) {
+                                0 -> Pantalla.Explorar.ruta
+                                1 -> Pantalla.Mapa.ruta
+                                2 -> Pantalla.Guia.ruta
+                                3 -> Pantalla.Perfil.ruta
+                                else -> Pantalla.Explorar.ruta
+                            }
+
+                            controladorNavegacion.navigate(destino) {
+                                // Usamos el 'route' del destino inicial, o hacemos fallback a la ruta de Explorar
+                                val rutaInicio = controladorNavegacion.graph.findStartDestination().route ?: Pantalla.Explorar.ruta
+
+                                popUpTo(route = rutaInicio) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     )
                 }
             }
         ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-
-                // Enrutador manual (Abre la pantalla quemada según el nombre)
-                when (puebloSeleccionado) {
-                    "Concepción de Ataco", "Ataco" -> DetalleAtacoScreen { puebloSeleccionado = null }
-                    "Apaneca" -> DetalleApanecaScreen { puebloSeleccionado = null }
-                    "Juayúa" -> DetalleJuayuaScreen { puebloSeleccionado = null }
-                    "Salcoatitán" -> DetalleSalcoatitanScreen { puebloSeleccionado = null }
-                    "Nahuizalco" -> DetalleNahuizalcoScreen { puebloSeleccionado = null }
-
-                    null -> {
-                        // Vista Principal
-                        when (selectedIndex) {
-                            0 -> ExplorarScreen(
-                                onPuebloClick = { pueblo -> puebloSeleccionado = pueblo.nombre }
-                            )
-
-                            1 -> MapaScreen(onAbrirDetalle = {})
-                            2 -> GuiaScreen()
-                            3 -> PerfilScreen()
-                        }
-                    }
-                }
-            }
+            TurisMapNavHost(
+                controladorNavegacion = controladorNavegacion,
+                modificador = Modifier.padding(paddingValues),
+                mostrarBarraInferior = mostrarBarraInferior
+            )
         }
     }
 }
