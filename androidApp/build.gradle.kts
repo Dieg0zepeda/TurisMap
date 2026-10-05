@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
-    id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
 }
 
 kotlin {
@@ -11,7 +11,6 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
-
 
 dependencies {
     implementation(project(":shared"))

@@ -3,7 +3,14 @@ package com.turismap.app.navegacion
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -11,6 +18,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.screens.*
 
@@ -53,12 +61,25 @@ fun TurisMapNavHost(
             arguments = listOf(navArgument("lugarId") { type = NavType.StringType })
         ) { backStackEntry ->
             val lugarId = backStackEntry.arguments?.getString("lugarId") ?: return@composable
-            val lugarCompleto = LugaresRepository.obtenerPorId(lugarId)
 
-            if (lugarCompleto != null) {
-                Box(modifier = Modifier.fillMaxSize()) {
+            // 1. Estados para manejar la asincronía y el renderizado
+            var lugarCompleto by remember { mutableStateOf<Lugar?>(null) }
+            var cargando by remember { mutableStateOf(true) }
+
+            // 2. LaunchedEffect crea una corrutina para llamar a funciones suspend
+            LaunchedEffect(key1 = lugarId) {
+                cargando = true
+                lugarCompleto = LugaresRepository.obtenerPorId(lugarId)
+                cargando = false
+            }
+
+            // 3. Lógica de renderizado condicional
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (cargando) {
+                    CircularProgressIndicator() // Muestra un spinner de carga mientras consulta Firebase
+                } else if (lugarCompleto != null) {
                     DetalleLugarScreen(
-                        lugar = lugarCompleto,
+                        lugar = lugarCompleto!!,
                         onBackClick = { controladorNavegacion.popBackStack() }
                     )
                 }

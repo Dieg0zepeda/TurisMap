@@ -1,15 +1,16 @@
 package com.turismap.app.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.LugaresRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class LugaresViewModel : ViewModel() {
 
-    // Estado reactivo que la UI (Screens) observará
     private val _lugares = MutableStateFlow<List<Lugar>>(emptyList())
     val lugares: StateFlow<List<Lugar>> = _lugares.asStateFlow()
 
@@ -18,8 +19,9 @@ class LugaresViewModel : ViewModel() {
     }
 
     private fun cargarLugares() {
-        // Por ahora usa el Mock local.
-        // En PT2026-47 esto se cambiará por una llamada a Firestore
-        _lugares.value = LugaresRepository.obtenerTodos()
+        // Envolvemos la petición asíncrona (suspend) en el scope del ViewModel
+        viewModelScope.launch {
+            _lugares.value = LugaresRepository.obtenerTodos()
+        }
     }
 }

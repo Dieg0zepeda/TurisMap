@@ -28,13 +28,18 @@ import com.turismap.app.theme.*
 fun MapaScreen(onAbrirDetalle: () -> Unit) {
     var categoriaSeleccionada by remember { mutableStateOf(CategoriaLugar.TODOS) }
 
-    // Obtenemos los lugares desde el nuevo repositorio centralizado
-    val todosLosLugares = remember { LugaresRepository.obtenerTodos() }
+    // 1. Estados para manejar la asincronía de Firestore
+    var todosLosLugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
+    var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
 
-    // Inicializamos el lugar seleccionado con el primero de la lista (o nulo)
-    var lugarSeleccionado by remember { mutableStateOf<Lugar?>(todosLosLugares.firstOrNull()) }
+    // 2. Petición asíncrona dentro del ciclo de vida de Compose
+    LaunchedEffect(Unit) {
+        val lugaresDb = LugaresRepository.obtenerTodos()
+        todosLosLugares = lugaresDb
+        lugarSeleccionado = lugaresDb.firstOrNull()
+    }
 
-    val lugaresFiltrados = remember(categoriaSeleccionada) {
+    val lugaresFiltrados = remember(categoriaSeleccionada, todosLosLugares) {
         if (categoriaSeleccionada == CategoriaLugar.TODOS) {
             todosLosLugares
         } else {

@@ -47,6 +47,10 @@ kotlin {
             // Google Maps para Jetpack Compose en Android
             implementation("com.google.maps.android:maps-compose:4.4.1")
             implementation("com.google.android.gms:play-services-maps:19.0.0")
+
+            // Firebase integrado usando la referencia completa de dependencias del proyecto
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.firestore)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
