@@ -24,6 +24,9 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
 
+    // Coil para cargar imágenes
+    implementation(libs.coil.compose)
+
     // Navegación
     // implementation(libs.androidx.navigation.compose)
 

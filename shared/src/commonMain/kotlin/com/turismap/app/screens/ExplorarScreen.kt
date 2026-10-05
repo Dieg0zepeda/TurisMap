@@ -1,5 +1,7 @@
 package com.turismap.app.screens
 
+import androidx.compose.ui.layout.ContentScale
+import com.turismap.app.components.RemoteImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -42,6 +44,24 @@ fun ExplorarScreen(
         cargando = true
         lugares = LugaresRepository.obtenerTodos()
         lugarDestacado = LugaresRepository.obtenerPorId("ataco") ?: lugares.firstOrNull()
+        
+        // Debug: Log URLs de imágenes
+        println("=== DEBUG IMÁGENES ===")
+        println("Total lugares: ${lugares.size}")
+        lugares.forEach { lugar ->
+            println("Lugar: ${lugar.nombre}")
+            lugar.atractivos.forEach { atractivo ->
+                println("  - Atractivo: ${atractivo.titulo}, URL: ${atractivo.imagenUrl}")
+            }
+        }
+        if (lugarDestacado != null) {
+            println("Lugar destacado: ${lugarDestacado!!.nombre}")
+            lugarDestacado!!.atractivos.forEach { atractivo ->
+                println("  - Atractivo destacado: ${atractivo.titulo}, URL: ${atractivo.imagenUrl}")
+            }
+        }
+        println("=== FIN DEBUG ===")
+        
         cargando = false
     }
 
@@ -127,6 +147,22 @@ fun ExplorarScreen(
                     colors = CardDefaults.cardColors(containerColor = VerdePrimario)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
+
+                        // INTEGRACIÓN REMOTE IMAGE: Fondo de Lugar Destacado
+                        val urlImagenDestacado = lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
+                        println("DEBUG URL DESTACADO: $urlImagenDestacado")
+                        if (urlImagenDestacado.isNotEmpty()) {
+                            RemoteImage(
+                                url = urlImagenDestacado,
+                                contentDescription = "Fondo de ${lugarDestacado!!.nombre}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            println("DEBUG: URL de imagen destacado está vacía")
+                        }
+
+                        // Filtro oscuro superpuesto
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -206,6 +242,20 @@ fun ExplorarScreen(
                                     .height(90.dp)
                                     .background(Color(0xFFE2E8F0))
                             ) {
+                                // INTEGRACIÓN REMOTE IMAGE: Miniatura de la lista
+                                val urlImagen = lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
+                                println("DEBUG URL LISTA [${lugar.nombre}]: $urlImagen")
+                                if (urlImagen.isNotEmpty()) {
+                                    RemoteImage(
+                                        url = urlImagen,
+                                        contentDescription = lugar.nombre,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    println("DEBUG: URL de imagen lista [${lugar.nombre}] está vacía")
+                                }
+
                                 Surface(
                                     modifier = Modifier.padding(8.dp),
                                     shape = RoundedCornerShape(6.dp),

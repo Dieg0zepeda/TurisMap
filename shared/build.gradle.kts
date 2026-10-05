@@ -51,6 +51,9 @@ kotlin {
             // Firebase integrado usando la referencia completa de dependencias del proyecto
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.firestore)
+            
+            // Coil para cargar imágenes en Android
+            implementation(libs.coil.compose)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
