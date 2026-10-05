@@ -54,6 +54,9 @@ kotlin {
             
             // Coil para cargar imágenes en Android
             implementation(libs.coil.compose)
+            
+            // Google Play Services Location para obtener ubicación del usuario
+            implementation("com.google.android.gms:play-services-location:21.1.0")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
