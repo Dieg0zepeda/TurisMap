@@ -1,5 +1,6 @@
 package com.turismap.app.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,26 +23,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.municipio_apaneca
+import turismap.shared.generated.resources.municipio_ataco
+import turismap.shared.generated.resources.municipio_juayua
+import turismap.shared.generated.resources.municipio_nahuizalco
+import turismap.shared.generated.resources.municipio_salcoatitan
+
+// import com.turismap.app.generated.resources.Res
+// import com.turismap.app.generated.resources.*
 
 // --- Modelos de datos ---
-data class Pueblo(val nombre: String, val descripcion: String, val etiqueta: String)
-data class ExperienciaCard(val titulo: String, val descripcion: String, val precio: String)
+data class Pueblo(
+    val nombre: String,
+    val descripcion: String,
+    val etiqueta: String,
+    val imagen: DrawableResource // Agregamos la propiedad para la imagen
+)
+data class ExperienciaCard(
+    val titulo: String,
+    val descripcion: String,
+    val precio: String,
+    val imagen: DrawableResource // Agregamos la propiedad para la imagen
+)
 
 @Composable
 fun ExplorarScreen(
     onPuebloClick: (Pueblo) -> Unit = {}
 ) {
+    // Lista de pueblos conectada a las imágenes de Res.drawable
     val pueblos = remember {
         listOf(
-            Pueblo("Apaneca", "1,450 msnm", "Elevación"),
-            Pueblo("Juayúa", "Cascadas de la Calera y feria gastronómica.", "Naturaleza"),
-            Pueblo("Salcoatitán", "Cuna de la yuca frita y el café artesanal.", "Gastronomía"),
-            Pueblo("Nahuizalco", "Mercado nocturno y artesanías de mimbre.", "Cultura")
+            Pueblo("Apaneca", "1,450 msnm", "Elevación", Res.drawable.municipio_apaneca),
+            Pueblo("Juayúa", "Cascadas de la Calera y feria gastronómica.", "Naturaleza", Res.drawable.municipio_juayua),
+            Pueblo("Salcoatitán", "Cuna de la yuca frita y el café artesanal.", "Gastronomía", Res.drawable.municipio_salcoatitan),
+            Pueblo("Nahuizalco", "Mercado nocturno y artesanías de mimbre.", "Cultura", Res.drawable.municipio_nahuizalco)
         )
     }
 
@@ -50,12 +74,14 @@ fun ExplorarScreen(
             ExperienciaCard(
                 "Finca San Antonio El Portezuelo",
                 "Balcón panorámico con vistas al volcán de Izalco.",
-                "Desde $4.50 / persona"
+                "Desde $4.50 / persona",
+                Res.drawable.municipio_ataco // Reemplazar cuando tengas foto de la finca
             ),
             ExperienciaCard(
                 "Café Entre Nubes y Mirador",
                 "Café de altura rodeado de neblina y pinos.",
-                "Desde $3.50 / persona"
+                "Desde $3.50 / persona",
+                Res.drawable.municipio_apaneca // Reemplazar cuando tengas foto del café
             )
         )
     }
@@ -67,7 +93,7 @@ fun ExplorarScreen(
             .background(GrisFondo)
             .padding(bottom = 24.dp)
     ) {
-        // --- 1. Header superior (Se mantiene igual, está excelente) ---
+        // --- 1. Header superior ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,23 +136,36 @@ fun ExplorarScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // --- 2. Tarjeta Destacada "Descubre Ataco" (Ajustada al Figma) ---
+        // --- 2. Tarjeta Destacada "Descubre Ataco" ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp) // Tarjeta alta como en el diseño
+                .height(280.dp)
                 .padding(horizontal = 16.dp)
-                .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp)).clickable { onPuebloClick(Pueblo("Concepción de Ataco", "Destino Destacado", "Murales")) },
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
+                .clickable { onPuebloClick(Pueblo("Concepción de Ataco", "Destino Destacado", "Murales", Res.drawable.municipio_ataco)) },
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = VerdePrimario) // Aquí irá la imagen de fondo luego
-
+            colors = CardDefaults.cardColors(containerColor = VerdePrimario)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Simulación del gradiente oscuro en la parte inferior para que el texto resalte
+                // AGREGADO: Imagen de fondo real para Ataco
+                Image(
+                    painter = painterResource(Res.drawable.municipio_ataco),
+                    contentDescription = "Fondo de Concepción de Ataco",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Gradiente oscuro para que el texto resalte
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                startY = 300f
+                            )
+                        )
                 )
 
                 Column(
@@ -170,7 +209,7 @@ fun ExplorarScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 3. Carrusel Horizontal "Explora la Ruta" (Ajustado al Figma) ---
+        // --- 3. Carrusel Horizontal "Explora la Ruta" ---
         Text(
             text = "Explora la Ruta",
             fontSize = 18.sp,
@@ -201,9 +240,16 @@ fun ExplorarScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(90.dp)
-                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
                         ) {
-                            // Badge superior izquierdo (Elevación / Naturaleza)
+                            // AGREGADO: Imagen real del municipio para el carrusel
+                            Image(
+                                painter = painterResource(pueblo.imagen),
+                                contentDescription = pueblo.nombre,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Badge superior izquierdo
                             Surface(
                                 modifier = Modifier.padding(8.dp),
                                 shape = RoundedCornerShape(6.dp),
@@ -243,7 +289,7 @@ fun ExplorarScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 4. Sección "Experiencias Destacadas" (Tarjetas Verticales del Figma) ---
+        // --- 4. Sección "Experiencias Destacadas" ---
         Text(
             text = "Experiencias Destacadas",
             fontSize = 18.sp,
@@ -273,9 +319,16 @@ fun ExplorarScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(140.dp)
-                                .background(Color(0xFFE2E8F0)) // Simulación de imagen
                         ) {
-                            // Botón de favoritos (corazón)
+                            // AGREGADO: Imagen real para la experiencia
+                            Image(
+                                painter = painterResource(experiencia.imagen),
+                                contentDescription = experiencia.titulo,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Botón de favoritos
                             Surface(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -295,7 +348,7 @@ fun ExplorarScreen(
                             }
                         }
 
-                        // Contenido de la tarjeta de experiencia
+                        // Contenido de la tarjeta
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = experiencia.titulo,
@@ -312,7 +365,7 @@ fun ExplorarScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Fila inferior: Precio y Botón "Ver Menú"
+                            // Fila inferior
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -329,7 +382,7 @@ fun ExplorarScreen(
                                     onClick = { },
                                     shape = RoundedCornerShape(20.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFEDF2F7), // Gris claro
+                                        containerColor = Color(0xFFEDF2F7),
                                         contentColor = VerdePrimario
                                     ),
                                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -346,5 +399,7 @@ fun ExplorarScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(80.dp)) // Espacio para BottomBar
     }
 }

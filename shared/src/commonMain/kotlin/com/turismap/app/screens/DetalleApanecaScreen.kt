@@ -1,6 +1,7 @@
 package com.turismap.app.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,49 +14,65 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.data.repository.MunicipioBD
 import com.turismap.app.theme.*
-
-// Descomentar cuando agregues las imágenes
-// import androidx.compose.foundation.Image
-// import androidx.compose.ui.layout.ContentScale
-// import org.jetbrains.compose.resources.painterResource
-// import turismap.composeapp.generated.resources.Res
-// import turismap.composeapp.generated.resources.tu_foto
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.laberinto
+import turismap.shared.generated.resources.laguna_verde
+import turismap.shared.generated.resources.ninfas
+import turismap.shared.generated.resources.tirolina
+import turismap.shared.generated.resources.titulo
 
 @Composable
 fun DetalleApanecaScreen(
     onBackClick: () -> Unit = {}
 ) {
+
+    // 1. Variables de estado y repositorio
+    var municipioBD by remember { mutableStateOf<MunicipioBD?>(null) }
+    val repositorio = LugaresRepository
+
+    // 2. Efecto para cargar los datos de "apaneca" al abrir la pantalla
+    LaunchedEffect(Unit) {
+        municipioBD = repositorio.obtenerMunicipioPorId("apaneca")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(GrisFondo)
             .verticalScroll(rememberScrollState())
     ) {
-        // --- 1. CABECERA (Imagen y Botones Flotantes) ---
+        // --- 1. CABECERA ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
-                .background(Color(0xFF8BA896)) // Simulación de imagen de Apaneca
+                .background(Color(0xFF8BA896))
         ) {
-            // ---> AQUI VA LA FOTO PRINCIPAL DE APANECA <---
-            /*
             Image(
-                painter = painterResource(Res.drawable.foto_principal_apaneca),
+                painter = painterResource(Res.drawable.titulo), // Imagen temporal
                 contentDescription = "Apaneca",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            */
 
             Row(
                 modifier = Modifier
@@ -64,33 +81,28 @@ fun DetalleApanecaScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.9f),
+                    shape = CircleShape, color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier.size(40.dp).clickable { onBackClick() }
-                ) {
-                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.padding(8.dp), tint = Color(0xFF1A202C))
-                }
+                ) { Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.padding(8.dp), tint = Color(0xFF1A202C)) }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
-                        Icon(imageVector = Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
+                        Icon(Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
                     }
                     Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
-                        Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = "Guardar", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
+                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Guardar", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
                     }
                 }
             }
 
-            // Etiqueta de la Ruta
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = 0.9f),
                 modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 15.dp, vertical = 6.dp)) {
-                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = VerdePrimario, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(9.dp))
-                    Text(text = "Ruta de las Flores · CA-8 Km 87", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = VerdePrimario, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Ruta de las Flores · CA-8", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
                 }
             }
         }
@@ -98,119 +110,114 @@ fun DetalleApanecaScreen(
         // --- 2. TARJETA PRINCIPAL DE INFORMACIÓN ---
         Column(modifier = Modifier.offset(y = (-20).dp)) {
             Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                modifier = Modifier.fillMaxWidth(), color = Color.White, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    // Ubicación
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Ahuachapán Sur · El Salvador", fontSize = 12.sp, color = GrisTextoSecundario)
+                        Text("Ahuachapán Sur · El Salvador", fontSize = 12.sp, color = GrisTextoSecundario)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Título y Subtítulo
-                    Text(text = "Apaneca", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
+                    // TÍTULO DESDE FIREBASE
+                    Text(municipioBD?.nombre ?: "Cargando...", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "La cumbre más fresca de la cordillera y senderos de niebla", fontSize = 14.sp, color = GrisTextoSecundario)
+                    Text("La ciudad más alta y fresca de El Salvador", fontSize = 14.sp, color = GrisTextoSecundario)
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Estadísticas (Altura, Clima, Rating)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "1,470 msnm", fontSize = 12.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            // ELEVACIÓN DESDE FIREBASE
+                            Text(municipioBD?.elevacion ?: "...", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "16°C · Clima de Montaña", fontSize = 12.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            // CLIMA DESDE FIREBASE
+                            Text(municipioBD?.clima ?: "...", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "4.9", fontSize = 12.sp, fontWeight = FontWeight.Bold) // Sin cantidad de reseñas en este diseño
+                            // CALIFICACIÓN DESDE FIREBASE
+                            Text(municipioBD?.calificacion?.toString() ?: "0.0", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Historia y Esencia
-                    Text(text = "Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                    Text("Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
                     Spacer(modifier = Modifier.height(12.dp))
+                    // HISTORIA DESDE FIREBASE
                     Text(
-                        text = "El municipio más alto de la Ruta de las Flores, cuna de vientos frescos que acarician lagunas en cráteres extintos y fincas de café de estirpe mundial entre bosques de cipreses.",
+                        text = municipioBD?.historia ?: "Cargando historia...",
                         fontSize = 14.sp, lineHeight = 22.sp, color = GrisTextoSecundario
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Mejor Temporada
                     Surface(shape = RoundedCornerShape(12.dp), color = VerdePrimario.copy(alpha = 0.05f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.DateRange, contentDescription = null, tint = VerdePrimario)
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = VerdePrimario)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(text = "MEJOR TEMPORADA", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
-                                Text(text = "Noviembre a Marzo · Clima despejado y vientos alisios", fontSize = 13.sp, color = Color(0xFF1A202C))
+                                Text("MEJOR TEMPORADA", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                                // TEMPORADA DESDE FIREBASE
+                                Text(municipioBD?.mejorTemporadaDesc ?: "Cargando...", fontSize = 13.sp, color = Color(0xFF1A202C))
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // --- 3. ATRACTIVOS IMPERDIBLES ---
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
-                        Text(text = "5 Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                        Text("Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                        Text("4 Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
                     }
+                    Text("Lo que no te puedes perder en tu recorrido", fontSize = 13.sp, color = GrisTextoSecundario)
                 }
             }
 
-            // Carrusel Horizontal de Atractivos
+            // --- 3. CARRUSEL DE ATRACTIVOS ---
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.offset(y = (-20).dp)
             ) {
-                // Atractivo 1: Laberinto de Cipreses
                 item {
-                    AtractivoApanecaCard(
-                        etiqueta = "Aventura & Ocio",
-                        titulo = "Laberinto de Cipreses",
-                        descripcion = "El laberinto natural más grande de Centroamérica en Finca Albania.",
-                        accion = "Ver atracción →"
-                    )
-                }
-                // Atractivo 2: Laguna Verde
-                item {
-                    AtractivoApanecaCard(
-                        etiqueta = "Senderismo",
-                        titulo = "Laguna Verde",
-                        descripcion = "Cráter volcánico rodeado de senderos ecológicos y leyendas locales.",
-                        accion = "Ver recorrido →"
+                    AtractivoCardApaneca(
+                        etiqueta = "Aventura", etiquetaColor = TerracotaAcento,
+                        titulo = "Laberinto de Apaneca", descripcion = "El laberinto verde más grande de Centroamérica, ideal para un reto en familia.",
+                        accion = "Ver recorrido →",
+                        imagenRes = Res.drawable.laberinto
                     )
                 }
                 item {
-                    AtractivoApanecaCard(
-                        etiqueta = "Ecoturismo",
-                        titulo = "Laguna las Ninfas",
-                        descripcion = "Espejo de agua rodeado de flores\n" +
-                                "acuáticas y bosque de niebla.",
-                        accion = "Ver recorrido →"
+                    AtractivoCardApaneca(
+                        etiqueta = "Naturaleza", etiquetaColor = VerdePrimario,
+                        titulo = "Laguna Verde", descripcion = "Un místico cráter volcánico rodeado de neblina y abundante vegetación fría.",
+                        accion = "Cómo llegar →",
+                        imagenRes = Res.drawable.laguna_verde
                     )
                 }
                 item {
-                    AtractivoApanecaCard(
-                        etiqueta = "Adrenalina",
-                        titulo = "Canopy & Tirolina",
-                        descripcion = "Vuelos panorámicos sobre el dosel de\n" +
-                                "la cordillera.",
-                        accion = "Ver Tour →"
+                    AtractivoCardApaneca(
+                        etiqueta = "Deportes", etiquetaColor = TerracotaAcento,
+                        titulo = "Tirolesa (Canopy)", descripcion = "Vuela sobre las copas de los árboles y los cafetales en un recorrido extremo.",
+                        accion = "Ver precios →",
+                        imagenRes = Res.drawable.tirolina
+                    )
+                }
+                item {
+                    AtractivoCardApaneca(
+                        etiqueta = "Reserva", etiquetaColor = VerdePrimario,
+                        titulo = "Laguna de las Ninfas", descripcion = "Un remanso de paz cubierto por hermosas ninfas acuáticas en flor.",
+                        accion = "Explorar →",
+                        imagenRes = Res.drawable.ninfas
                     )
                 }
             }
@@ -221,68 +228,58 @@ fun DetalleApanecaScreen(
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = VerdePrimario) // Verde oscuro 0xFF1B4934
+                colors = CardDefaults.cardColors(containerColor = VerdePrimario)
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text(text = "DIRECTORIO LOCAL ACTIVO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.7f), letterSpacing = 1.sp)
+                    Text("DIRECTORIO COMUNITARIO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.7f), letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "¿Planeas tu visita a Apaneca?", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("¿Planeas tu visita a Apaneca?", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Explora 32 alojamientos de montaña, cafeterías de café bourbon y centros de aventura certificados.", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), lineHeight = 18.sp)
+                    Text("Explora hostales de montaña, parques de aventura y restaurantes típicos.", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), lineHeight = 18.sp)
 
                     Spacer(modifier = Modifier.height(20.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        DirectorioApanecaIcono(icono = Icons.Default.LocalCafe, texto = "11 Cafés de\nAltura")
-                        DirectorioApanecaIcono(icono = Icons.Default.Home, texto = "9 Glampings &\nCabañas")
+                        DirectorioIconoApaneca(icono = Icons.Default.Terrain, texto = "6 Parques\nde Aventura")
+                        DirectorioIconoApaneca(icono = Icons.Default.Home, texto = "15 Cabañas\ny Hostales")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        DirectorioApanecaIcono(icono = Icons.Default.Restaurant, texto = "7 Restaurantes")
-                        DirectorioApanecaIcono(icono = Icons.Default.DirectionsWalk, texto = "5 Operadores")
+                        DirectorioIconoApaneca(icono = Icons.Default.Restaurant, texto = "10 Comedores\nLocales")
+                        DirectorioIconoApaneca(icono = Icons.Default.LocalCafe, texto = "8 Cafeterías\nde Altura")
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = { },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento), // Botón terracota
-                        shape = RoundedCornerShape(12.dp)
+                        onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento), shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(text = "Ver Guía de Comercio y Ocio →", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Ver Guía de Comercio y Ocio →", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- 5. UBICACIÓN Y ENTORNO ---
+            // --- 5. UBICACIÓN Y MAPA ---
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Ubicación y Entorno", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
-                    Text(text = "Sierra de Apaneca", fontSize = 12.sp, color = GrisTextoSecundario)
+                    Text("Ubicación y Entorno", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                    Text("Ruta de las Flores", fontSize = 12.sp, color = GrisTextoSecundario)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
                     modifier = Modifier.fillMaxWidth().height(180.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE2E8F0)) // Mapa simulado
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE2E8F0))
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                        // ---> AQUI VA LA FOTO DEL MAPA DE APANECA <---
-                        /*
-                        Image(
-                            painter = painterResource(Res.drawable.mapa_apaneca),
-                            contentDescription = "Mapa Apaneca",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        */
+
                         Surface(modifier = Modifier.fillMaxWidth().padding(12.dp), shape = RoundedCornerShape(12.dp), color = Color.White) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "Carretera CA-8 · Acceso pavimentado en cordillera\nA 90 min de San Salvador · Vía Sonsonate o Ahuachapán", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1A202C))
+                                Text("Carretera CA-8 · Elevación máxima", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1A202C))
                             }
                         }
                     }
@@ -291,19 +288,19 @@ fun DetalleApanecaScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(13.dp), border = BorderStroke(1.dp, VerdePrimario), colors = ButtonDefaults.outlinedButtonColors(contentColor = VerdePrimario)
+                        shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, VerdePrimario), colors = ButtonDefaults.outlinedButtonColors(contentColor = VerdePrimario)
                     ) {
-                        Icon(imageVector = Icons.Default.Place, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Ver en Mapa", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.Place, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(9.dp))
+                        Text("Ver en Mapa", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(11.dp), colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento)
+                        shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento)
                     ) {
-                        Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Guardar Viaje", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Icon(Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(9.dp))
+                        Text("Guardar Viaje", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -312,9 +309,9 @@ fun DetalleApanecaScreen(
     }
 }
 
-// --- Componentes Reutilizables Locales para Apaneca ---
+// Componentes privados para evitar conflictos con el archivo de Ataco
 @Composable
-fun AtractivoApanecaCard(etiqueta: String, titulo: String, descripcion: String, accion: String) {
+private fun AtractivoCardApaneca(etiqueta: String, etiquetaColor: Color, titulo: String, descripcion: String, accion: String, imagenRes: DrawableResource) {
     Card(
         modifier = Modifier.width(200.dp).height(240.dp),
         shape = RoundedCornerShape(16.dp),
@@ -323,41 +320,37 @@ fun AtractivoApanecaCard(etiqueta: String, titulo: String, descripcion: String, 
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFE2E8F0))) {
-                // ---> AQUI VA LA FOTO DEL ATRACTIVO (Laberinto/Laguna) <---
-                /*
                 Image(
-                    painter = painterResource(Res.drawable.foto_atractivo_apaneca),
+                    painter = painterResource(imagenRes),
                     contentDescription = titulo,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                */
                 Surface(
-                    shape = RoundedCornerShape(16.dp), // Etiqueta más redondeada como en Apaneca
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.padding(10.dp).align(Alignment.TopStart) // Arriba a la izquierda
+                    shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(10.dp).align(Alignment.TopEnd)
                 ) {
-                    Text(text = etiqueta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    Text(etiqueta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = etiquetaColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                Text(titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = descripcion, fontSize = 12.sp, color = GrisTextoSecundario, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(descripcion, fontSize = 12.sp, color = GrisTextoSecundario, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.weight(1f))
-                Text(text = accion, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TerracotaAcento)
+                Text(accion, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TerracotaAcento)
             }
         }
     }
 }
 
 @Composable
-fun DirectorioApanecaIcono(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String) {
+private fun DirectorioIconoApaneca(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(130.dp)) {
         Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.15f), modifier = Modifier.size(36.dp)) {
-            Icon(imageVector = icono, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
+            Icon(icono, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
         }
         Spacer(modifier = Modifier.width(10.dp))
-        Text(text = texto, fontSize = 12.sp, color = Color.White, lineHeight = 16.sp)
+        Text(texto, fontSize = 12.sp, color = Color.White, lineHeight = 16.sp)
     }
 }

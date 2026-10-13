@@ -18,6 +18,7 @@ import com.turismap.app.screens.DetalleJuayuaScreen
 import com.turismap.app.screens.DetalleSalcoatitanScreen
 import com.turismap.app.screens.DetalleNahuizalcoScreen
 import com.turismap.app.screens.GuiaScreen
+import com.turismap.app.screens.LoginScreen
 import com.turismap.app.screens.MapaScreen
 import com.turismap.app.screens.PerfilScreen
 
@@ -26,41 +27,54 @@ fun App() {
     var selectedIndex by remember { mutableStateOf(0) }
     var puebloSeleccionado by remember { mutableStateOf<String?>(null) } // Solo guardamos el nombre
 
+    // ---> AGREGADO: Variable para controlar si mostramos Login o la App <---
+    var usuarioAutenticado by remember { mutableStateOf(false) }
+
     MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                if (puebloSeleccionado == null) {
-                    FigmaBottomBar(
-                        selectedIndex = selectedIndex,
-                        onTabSelected = { selectedIndex = it }
-                    )
+
+        // ---> AGREGADO: Condición inicial <---
+        if (!usuarioAutenticado) {
+            // Mostramos el Login primero
+            LoginScreen(
+                onLoginExitoso = { usuarioAutenticado = true }
+            )
+        } else {
+            // ---> TU CÓDIGO ORIGINAL INTACTO <---
+            Scaffold(
+                bottomBar = {
+                    if (puebloSeleccionado == null) {
+                        FigmaBottomBar(
+                            selectedIndex = selectedIndex,
+                            onTabSelected = { selectedIndex = it }
+                        )
+                    }
                 }
-            }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
 
-                // Enrutador manual (Abre la pantalla quemada según el nombre)
-                when (puebloSeleccionado) {
-                    "Concepción de Ataco", "Ataco" -> DetalleAtacoScreen { puebloSeleccionado = null }
-                    "Apaneca" -> DetalleApanecaScreen { puebloSeleccionado = null }
-                    "Juayúa" -> DetalleJuayuaScreen { puebloSeleccionado = null }
-                    "Salcoatitán" -> DetalleSalcoatitanScreen { puebloSeleccionado = null }
-                    "Nahuizalco" -> DetalleNahuizalcoScreen { puebloSeleccionado = null }
+                    // Enrutador manual (Abre la pantalla quemada según el nombre)
+                    when (puebloSeleccionado) {
+                        "Concepción de Ataco", "Ataco" -> DetalleAtacoScreen { puebloSeleccionado = null }
+                        "Apaneca" -> DetalleApanecaScreen { puebloSeleccionado = null }
+                        "Juayúa" -> DetalleJuayuaScreen { puebloSeleccionado = null }
+                        "Salcoatitán" -> DetalleSalcoatitanScreen { puebloSeleccionado = null }
+                        "Nahuizalco" -> DetalleNahuizalcoScreen { puebloSeleccionado = null }
 
-                    null -> {
-                        // Vista Principal
-                        when (selectedIndex) {
-                            0 -> ExplorarScreen(
-                                onPuebloClick = { pueblo -> puebloSeleccionado = pueblo.nombre }
-                            )
+                        null -> {
+                            // Vista Principal
+                            when (selectedIndex) {
+                                0 -> ExplorarScreen(
+                                    onPuebloClick = { pueblo -> puebloSeleccionado = pueblo.nombre }
+                                )
 
-                            1 -> MapaScreen(onAbrirDetalle = {})
-                            2 -> GuiaScreen()
-                            3 -> PerfilScreen()
+                                1 -> MapaScreen(onAbrirDetalle = {})
+                                2 -> GuiaScreen()
+                                3 -> PerfilScreen()
+                            }
                         }
                     }
                 }
             }
-        }
+        } // FIN DEL ELSE
     }
 }

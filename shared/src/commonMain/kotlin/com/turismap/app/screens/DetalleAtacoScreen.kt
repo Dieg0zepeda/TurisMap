@@ -1,6 +1,7 @@
 package com.turismap.app.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,23 +18,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.atzumpa
+import turismap.shared.generated.resources.farolitos
+import turismap.shared.generated.resources.mirador
+import turismap.shared.generated.resources.murales
+import turismap.shared.generated.resources.telares
+import turismap.shared.generated.resources.titulo
+import turismap.shared.generated.resources.titulo_ataco
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
-// Descomentar cuando agregues las imágenes
-// import androidx.compose.foundation.Image
-// import androidx.compose.ui.layout.ContentScale
-// import org.jetbrains.compose.resources.painterResource
-// import turismap.composeapp.generated.resources.Res
-// import turismap.composeapp.generated.resources.tu_foto
 
 @Composable
 fun DetalleAtacoScreen(
     onBackClick: () -> Unit = {}
 ) {
+    // 1. Preparamos el espacio en memoria para guardar los datos de Firebase
+    var municipioBD by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<com.turismap.app.data.repository.MunicipioBD?>(null)
+    }
+
+    // 2. Llamamos a nuestro Repositorio (El mesero)
+    // 2. Llamamos a nuestro Repositorio (El mesero)
+    val repositorio = com.turismap.app.data.repository.LugaresRepository
+
+    // 3. Efecto que se ejecuta automáticamente al abrir la pantalla
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        // Traemos el documento con ID "ataco" que creaste en Firebase
+        municipioBD = repositorio.obtenerMunicipioPorId("ataco")
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,18 +66,16 @@ fun DetalleAtacoScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
-                .background(Color(0xFF8BA896)) // Fondo mientras cargas la foto
+                .height(250.dp)
+                .background(Color(0xFF8BA896))
         ) {
-            // ---> AQUI VA LA FOTO PRINCIPAL DEL MUNICIPIO <---
-            /*
+            // Foto principal del municipio
             Image(
-                painter = painterResource(Res.drawable.foto_principal_ataco),
+                painter = painterResource(Res.drawable.titulo_ataco),
                 contentDescription = "Ataco",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            */
 
             Row(
                 modifier = Modifier
@@ -102,8 +122,7 @@ fun DetalleAtacoScreen(
                         Text("Ahuachapán Sur · El Salvador", fontSize = 12.sp, color = GrisTextoSecundario)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    Text("Concepción de Ataco", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
+                    Text(municipioBD?.nombre ?: "Cargando...", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("Cuna de telares artesanales y café de altura", fontSize = 14.sp, color = GrisTextoSecundario)
 
@@ -113,12 +132,12 @@ fun DetalleAtacoScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("1,260 msnm", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            Text(municipioBD?.elevacion ?: "---", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("19°C · Fresco", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            Text(municipioBD?.clima ?: "---", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
@@ -169,14 +188,16 @@ fun DetalleAtacoScreen(
                     AtractivoCard(
                         etiqueta = "Arte Colonial", etiquetaColor = TerracotaAcento,
                         titulo = "Murales & Empedrado", descripcion = "Fachadas llenas de folclor popular y pasajes fotogénicos.",
-                        accion = "Ver recorrido →"
+                        accion = "Ver recorrido →",
+                        imagenRes = Res.drawable.murales
                     )
                 }
                 item {
                     AtractivoCard(
                         etiqueta = "Naturaleza", etiquetaColor = VerdePrimario,
                         titulo = "Fincas & Miradores", descripcion = "Cata de café de especialidad y vistas a la serranía.",
-                        accion = "Ver fincas →"
+                        accion = "Ver fincas →",
+                        imagenRes = Res.drawable.mirador
                     )
                 }
                 item {
@@ -185,7 +206,8 @@ fun DetalleAtacoScreen(
                         titulo = "Telares de Palanca", descripcion = "Talleres familiares donde se elaboran\n" +
                                 "textiles típicos con técnicas\n" +
                                 "centenarias.",
-                        accion = "Ver talleres →"
+                        accion = "Ver talleres →",
+                        imagenRes = Res.drawable.telares
                     )
                 }
                 item {
@@ -194,7 +216,8 @@ fun DetalleAtacoScreen(
                         titulo = "Piscinas de Atzumpa", descripcion = "Aguas de manantial cristalinas y\n" +
                                 "senderos rodeados de densa\n" +
                                 "vegetación.\n",
-                        accion = "Cómo llegar →"
+                        accion = "Cómo llegar →",
+                        imagenRes = Res.drawable.atzumpa
                     )
                 }
                 item {
@@ -202,7 +225,8 @@ fun DetalleAtacoScreen(
                         etiqueta = "Septiembre 7", etiquetaColor = VerdePrimario,
                         titulo = "Fiesta de Farolitos", descripcion = "Mágica noche donde miles de velas\n" +
                                 "artesanales iluminan las calles.",
-                        accion = "Ver Festividad →"
+                        accion = "Ver Festividad →",
+                        imagenRes = Res.drawable.farolitos
                     )
                 }
 
@@ -260,15 +284,7 @@ fun DetalleAtacoScreen(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFE2E8F0))
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                        // ---> AQUI VA LA FOTO DEL MAPA ESTÁTICO <---
-                        /*
-                        Image(
-                            painter = painterResource(Res.drawable.mapa_ataco),
-                            contentDescription = "Mapa Ataco",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        */
+
 
                         Surface(modifier = Modifier.fillMaxWidth().padding(12.dp), shape = RoundedCornerShape(12.dp), color = Color.White) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -306,7 +322,7 @@ fun DetalleAtacoScreen(
 
 // Componentes reutilizables
 @Composable
-fun AtractivoCard(etiqueta: String, etiquetaColor: Color, titulo: String, descripcion: String, accion: String) {
+fun AtractivoCard(etiqueta: String, etiquetaColor: Color, titulo: String, descripcion: String, accion: String, imagenRes: DrawableResource) {
     Card(
         modifier = Modifier.width(200.dp).height(240.dp),
         shape = RoundedCornerShape(16.dp),
@@ -315,15 +331,13 @@ fun AtractivoCard(etiqueta: String, etiquetaColor: Color, titulo: String, descri
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFE2E8F0))) {
-                // ---> AQUI VA LA FOTO DEL ATRACTIVO <---
-                /*
+
                 Image(
-                    painter = painterResource(Res.drawable.foto_atractivo),
+                    painter = painterResource(imagenRes),
                     contentDescription = titulo,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                */
 
                 Surface(
                     shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.9f),

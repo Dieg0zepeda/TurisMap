@@ -18,11 +18,11 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.CategoriaLugar
 import com.turismap.app.Coordenada
 import com.turismap.app.LugarTuristico
-import com.turismap.app.LugaresRepository
 import com.turismap.app.MapaTuristico
 import com.turismap.app.components.FigmaPoiCard
 import com.turismap.app.components.FigmaSearchBar
 import com.turismap.app.components.FigmaTopHeader
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 
 @Composable

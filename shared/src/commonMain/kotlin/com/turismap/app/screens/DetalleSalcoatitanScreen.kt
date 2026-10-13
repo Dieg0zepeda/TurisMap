@@ -13,6 +13,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.data.repository.MunicipioBD
 import com.turismap.app.theme.*
 
 // Descomentar al añadir imágenes:
@@ -34,6 +41,15 @@ import com.turismap.app.theme.*
 fun DetalleSalcoatitanScreen(
     onBackClick: () -> Unit = {}
 ) {
+    // 1. Variables de estado y repositorio
+    var municipioBD by remember { mutableStateOf<MunicipioBD?>(null) }
+    val repositorio = LugaresRepository
+
+    // 2. Efecto para cargar los datos de "salcoatitan"
+    LaunchedEffect(Unit) {
+        municipioBD = repositorio.obtenerMunicipioPorId("salcoatitan")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -109,7 +125,8 @@ fun DetalleSalcoatitanScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(text = "Salcoatitán", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
+                    // TÍTULO DESDE FIREBASE
+                    Text(text = municipioBD?.nombre ?: "Cargando...", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = "Tierra del quetzalcóatl, ceiba ancestral y la mejor yuca frita", fontSize = 14.sp, color = GrisTextoSecundario)
 
@@ -120,17 +137,20 @@ fun DetalleSalcoatitanScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "1,045 msnm", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            // ELEVACIÓN DESDE FIREBASE
+                            Text(text = municipioBD?.elevacion ?: "...", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "20°C · Templado", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            // CLIMA DESDE FIREBASE
+                            Text(text = municipioBD?.clima ?: "...", fontSize = 13.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "4.7 (740)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            // CALIFICACIÓN DESDE FIREBASE
+                            Text(text = municipioBD?.calificacion?.toString() ?: "0.0", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -138,8 +158,9 @@ fun DetalleSalcoatitanScreen(
 
                     Text(text = "📖 Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
                     Spacer(modifier = Modifier.height(12.dp))
+                    // HISTORIA DESDE FIREBASE
                     Text(
-                        text = "Tranquilo enclave colonial custodiado por una ceiba de más de 400 años. Aquí nació la primera plantación de café en el país y hoy es parada obligada para deleitarse con la auténtica yuca con chicharrón servida en hoja de huerta.",
+                        text = municipioBD?.historia ?: "Cargando historia...",
                         fontSize = 14.sp, lineHeight = 22.sp, color = GrisTextoSecundario
                     )
 
@@ -151,7 +172,8 @@ fun DetalleSalcoatitanScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(text = "TRADICIÓN POPULAR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
-                                Text(text = "Fiesta de la Yuca · Degustación típica todos los fines de semana", fontSize = 13.sp, color = Color(0xFF1A202C))
+                                // TEMPORADA/TRADICIÓN DESDE FIREBASE
+                                Text(text = municipioBD?.mejorTemporadaDesc ?: "Cargando...", fontSize = 13.sp, color = Color(0xFF1A202C))
                             }
                         }
                     }
@@ -303,8 +325,9 @@ fun DetalleSalcoatitanScreen(
     }
 }
 
+// Se agregaron como private para evitar conflictos con los otros archivos de pantalla
 @Composable
-fun AtractivoSalcoatitanCard(etiqueta: String, titulo: String, descripcion: String, accion: String) {
+private fun AtractivoSalcoatitanCard(etiqueta: String, titulo: String, descripcion: String, accion: String) {
     Card(
         modifier = Modifier.width(200.dp).height(240.dp),
         shape = RoundedCornerShape(16.dp),
@@ -342,7 +365,7 @@ fun AtractivoSalcoatitanCard(etiqueta: String, titulo: String, descripcion: Stri
 }
 
 @Composable
-fun DirectorioIconoSalcoatitan(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String) {
+private fun DirectorioIconoSalcoatitan(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(130.dp)) {
         Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.15f), modifier = Modifier.size(36.dp)) {
             Icon(imageVector = icono, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
