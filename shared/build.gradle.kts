@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 kotlin {
@@ -73,6 +74,10 @@ kotlin {
 
             // Navegación Multiplatform para App.kt y TurisMapNavHost
             implementation(libs.navigation.compose)
+            
+            // Serialización JSON y Firebase Firestore (de la rama)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+            implementation("dev.gitlive:firebase-firestore:1.11.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -1,7 +1,6 @@
 package com.turismap.app.screens
 
-import androidx.compose.ui.layout.ContentScale
-import com.turismap.app.components.RemoteImage
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,48 +19,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.municipio_apaneca
+import turismap.shared.generated.resources.municipio_ataco
 
-data class ExperienciaCard(val titulo: String, val descripcion: String, val precio: String)
+data class ExperienciaCard(
+    val titulo: String,
+    val descripcion: String,
+    val precio: String,
+    val imagen: DrawableResource
+)
 
 @Composable
 fun ExplorarScreen(
     onLugarClick: (Lugar) -> Unit = {}
 ) {
-    // 1. Estados reactivos para la carga asíncrona
+    // Estados reactivos para la carga asíncrona
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var lugarDestacado by remember { mutableStateOf<Lugar?>(null) }
     var cargando by remember { mutableStateOf(true) }
 
-    // 2. Ejecutar la llamada a la base de datos al inicializar la pantalla
+    // Ejecutar la llamada a la base de datos al inicializar la pantalla
     LaunchedEffect(Unit) {
         cargando = true
         lugares = LugaresRepository.obtenerTodos()
         lugarDestacado = LugaresRepository.obtenerPorId("ataco") ?: lugares.firstOrNull()
-        
-        // Debug: Log URLs de imágenes
-        println("=== DEBUG IMÁGENES ===")
-        println("Total lugares: ${lugares.size}")
-        lugares.forEach { lugar ->
-            println("Lugar: ${lugar.nombre}")
-            lugar.atractivos.forEach { atractivo ->
-                println("  - Atractivo: ${atractivo.titulo}, URL: ${atractivo.imagenUrl}")
-            }
-        }
-        if (lugarDestacado != null) {
-            println("Lugar destacado: ${lugarDestacado!!.nombre}")
-            lugarDestacado!!.atractivos.forEach { atractivo ->
-                println("  - Atractivo destacado: ${atractivo.titulo}, URL: ${atractivo.imagenUrl}")
-            }
-        }
-        println("=== FIN DEBUG ===")
-        
         cargando = false
     }
 
@@ -70,17 +63,19 @@ fun ExplorarScreen(
             ExperienciaCard(
                 "Finca San Antonio El Portezuelo",
                 "Balcón panorámico con vistas al volcán de Izalco.",
-                "Desde $4.50 / persona"
+                "Desde $4.50 / persona",
+                Res.drawable.municipio_ataco
             ),
             ExperienciaCard(
                 "Café Entre Nubes y Mirador",
                 "Café de altura rodeado de neblina y pinos.",
-                "Desde $3.50 / persona"
+                "Desde $3.50 / persona",
+                Res.drawable.municipio_apaneca
             )
         )
     }
 
-    // 3. Renderizado condicional basado en el estado de carga
+    // Renderizado condicional basado en el estado de carga
     if (cargando) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = VerdePrimario)
@@ -147,10 +142,8 @@ fun ExplorarScreen(
                     colors = CardDefaults.cardColors(containerColor = VerdePrimario)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-
                         // INTEGRACIÓN REMOTE IMAGE: Fondo de Lugar Destacado
                         val urlImagenDestacado = lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
-                        println("DEBUG URL DESTACADO: $urlImagenDestacado")
                         if (urlImagenDestacado.isNotEmpty()) {
                             RemoteImage(
                                 url = urlImagenDestacado,
@@ -158,15 +151,18 @@ fun ExplorarScreen(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
-                        } else {
-                            println("DEBUG: URL de imagen destacado está vacía")
                         }
 
-                        // Filtro oscuro superpuesto
+                        // Gradiente oscuro para que el texto resalte
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f))
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                        startY = 300f
+                                    )
+                                )
                         )
 
                         Column(
@@ -240,11 +236,9 @@ fun ExplorarScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(90.dp)
-                                    .background(Color(0xFFE2E8F0))
                             ) {
                                 // INTEGRACIÓN REMOTE IMAGE: Miniatura de la lista
                                 val urlImagen = lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
-                                println("DEBUG URL LISTA [${lugar.nombre}]: $urlImagen")
                                 if (urlImagen.isNotEmpty()) {
                                     RemoteImage(
                                         url = urlImagen,
@@ -252,8 +246,6 @@ fun ExplorarScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
-                                } else {
-                                    println("DEBUG: URL de imagen lista [${lugar.nombre}] está vacía")
                                 }
 
                                 Surface(
@@ -325,8 +317,15 @@ fun ExplorarScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(140.dp)
-                                    .background(Color(0xFFE2E8F0))
                             ) {
+                                // AGREGADO: Imagen real para la experiencia
+                                Image(
+                                    painter = painterResource(experiencia.imagen),
+                                    contentDescription = experiencia.titulo,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
                                 Surface(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -395,6 +394,8 @@ fun ExplorarScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(80.dp)) // Espacio para BottomBar
         }
     }
 }
