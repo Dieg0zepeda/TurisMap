@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.CategoriaLugar
-import com.turismap.app.Coordenada
-import com.turismap.app.LugarTuristico
+import com.turismap.app.data.models.CategoriaLugar
+import com.turismap.app.data.models.Coordenada
+import com.turismap.app.data.models.Lugar
 import com.turismap.app.MapaTuristico
 import com.turismap.app.components.FigmaPoiCard
 import com.turismap.app.components.FigmaSearchBar
@@ -28,21 +28,19 @@ import com.turismap.app.theme.*
 @Composable
 fun MapaScreen(onAbrirDetalle: () -> Unit) {
     var categoriaSeleccionada by remember { mutableStateOf(CategoriaLugar.TODOS) }
-    var lugarSeleccionado by remember {
-        mutableStateOf<LugarTuristico?>(
-            LugarTuristico(
-                id = "finca_albania",
-                nombre = "Mirador & Finca Café Albania",
-                categoria = CategoriaLugar.MIRADOR,
-                descripcion = "Apaneca · CA-8 KM 87 · A 15 min de Juayúa",
-                ubicacion = Coordenada(13.8682, -89.8021),
-                calificacion = 4.9
-            )
-        )
+
+    // 1. Estados para manejar la asincronía de Firestore
+    var todosLosLugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
+    var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
+
+    // 2. Petición asíncrona dentro del ciclo de vida de Compose
+    LaunchedEffect(Unit) {
+        val lugaresDb = LugaresRepository.obtenerTodos()
+        todosLosLugares = lugaresDb
+        lugarSeleccionado = lugaresDb.firstOrNull()
     }
 
-    val todosLosLugares = remember { LugaresRepository.obtenerLugaresAtaco() }
-    val lugaresFiltrados = remember(categoriaSeleccionada) {
+    val lugaresFiltrados = remember(categoriaSeleccionada, todosLosLugares) {
         if (categoriaSeleccionada == CategoriaLugar.TODOS) {
             todosLosLugares
         } else {
