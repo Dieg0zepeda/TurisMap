@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.data.repository.FirebaseRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.data.repository.UsuarioBD
 
@@ -53,7 +53,7 @@ fun PerfilScreen(
 
     LaunchedEffect(idUsuarioActual) {
         if (idUsuarioActual != null) {
-            usuarioBD = LugaresRepository.obtenerUsuarioPorId(idUsuarioActual)
+            usuarioBD = FirebaseRepository.obtenerUsuarioPorId(idUsuarioActual)
         }
         estaCargando = false
     }
@@ -148,7 +148,74 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- 4. SECCIONES DE CONFIGURACIÓN ---
+            // --- 4. Banner TurisMap Negocios ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = verdeEsmeralda)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.White.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "TurisMap Negocios",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Promociona tu negocio en la Ruta",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.85f),
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = terracota),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = "Registrar mi comercio",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- 5. SECCIONES DE CONFIGURACIÓN ---
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
                 Text("PERSONALIZACIÓN", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))

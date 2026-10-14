@@ -1,15 +1,15 @@
 package com.turismap.app.data.repository
 
-import com.turismap.app.LugarTuristico
+import com.turismap.app.data.models.Lugar
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.serialization.Serializable
 
 // ==========================================
-// 1. MODELOS DE DATOS
+// 1. MODELOS DE DATOS ADICIONALES (Firebase)
 // ==========================================
 
-// Modelo para los municipios de la Ruta de las Flores
+// Modelo para los municipios de la Ruta de las Flores (Firebase)
 @Serializable
 data class MunicipioBD(
     val nombre: String = "",
@@ -21,7 +21,7 @@ data class MunicipioBD(
     val imagenes: List<String> = emptyList()
 )
 
-// Modelo para el Perfil de Usuario
+// Modelo para el Perfil de Usuario (Firebase)
 @Serializable
 data class UsuarioBD(
     val nombre: String = "",
@@ -36,7 +36,17 @@ data class UsuarioBD(
 // 2. EL REPOSITORIO (Gestor de Base de Datos)
 // ==========================================
 
-object LugaresRepository {
+// Contrato KMP puro - implementación en Android
+expect object LugaresRepository {
+    suspend fun obtenerTodos(): List<Lugar>
+    suspend fun obtenerPorId(id: String): Lugar?
+}
+
+// ==========================================
+// 3. FUNCIONES ADICIONALES PARA FIREBASE
+// ==========================================
+
+object FirebaseRepository {
 
     // Conexión a la base de datos Firestore
     private val firestore = Firebase.firestore
@@ -87,12 +97,5 @@ object LugaresRepository {
             println("Error al obtener el municipio específico: ${e.message}")
             null
         }
-    }
-
-    // --- FUNCIONES TEMPORALES ---
-
-    // Función temporal para arreglar el mapa interactivo
-    fun obtenerLugaresAtaco(): List<LugarTuristico> {
-        return emptyList()
     }
 }
