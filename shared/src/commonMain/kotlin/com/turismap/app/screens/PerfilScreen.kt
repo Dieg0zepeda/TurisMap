@@ -20,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.data.repository.UsuarioBD
@@ -86,8 +88,6 @@ fun PerfilScreen(
     val cantidadFavoritos = usuarioBD?.favoritos?.size?.toString() ?: "0"
 
     // Variables para las fotos
-    val tieneFotoPortada = !usuarioBD?.fotoPortada.isNullOrBlank()
-    val tieneFotoPerfil = !usuarioBD?.fotoPerfil.isNullOrBlank()
 
     // --- VARIABLES INTERACTIVAS ---
     var idiomaSeleccionado by remember { mutableStateOf("Español") }
@@ -100,6 +100,8 @@ fun PerfilScreen(
     var mostrarDialogoApariencia by remember { mutableStateOf(false) }
     var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
     var mostrarOpcionesFoto by remember { mutableStateOf(false) }
+    var mostrarFormularioComercio by remember { mutableStateOf(false) }
+    var urlFotoTemporal by remember { mutableStateOf("") }
     var tipoFotoSeleccionada by remember { mutableStateOf("perfil") } // "perfil" o "portada"
     var cerrandoSesion by remember { mutableStateOf(false) }
 
@@ -123,11 +125,26 @@ fun PerfilScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(220.dp)
-                        // Si hay URL de foto, simulamos que se carga mostrando un color distinto
-                        .background(if (tieneFotoPortada) Color(0xFF2E6349) else verdeEsmeralda)
-                        .clickable { tipoFotoSeleccionada = "portada"; mostrarOpcionesFoto = true }
+                        .background(verdeEsmeralda)
+                        .clickable {
+                            tipoFotoSeleccionada = "portada"
+                            urlFotoTemporal = usuarioBD?.fotoPortada.orEmpty()
+                            mostrarOpcionesFoto = true
+                        }
                 ) {
-                    IconButton(onClick = { tipoFotoSeleccionada = "portada"; mostrarOpcionesFoto = true }, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape).size(36.dp)) {
+                    usuarioBD?.fotoPortada?.takeIf { it.startsWith("https://", true) }?.let { url ->
+                        RemoteImage(
+                            url = url,
+                            contentDescription = "Foto de portada",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    IconButton(onClick = {
+                        tipoFotoSeleccionada = "portada"
+                        urlFotoTemporal = usuarioBD?.fotoPortada.orEmpty()
+                        mostrarOpcionesFoto = true
+                    }, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape).size(36.dp)) {
                         Icon(Icons.Default.PhotoCamera, contentDescription = "Cambiar Portada", tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
@@ -138,13 +155,26 @@ fun PerfilScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            // Si hay foto de perfil, cambiamos el fondo para simularla
-                            .background(if (tieneFotoPerfil) Color.DarkGray else Color.LightGray)
+                            .background(Color.LightGray)
                             .border(4.dp, fondoApp, CircleShape)
-                            .clickable { tipoFotoSeleccionada = "perfil"; mostrarOpcionesFoto = true },
+                            .clickable {
+                                tipoFotoSeleccionada = "perfil"
+                                urlFotoTemporal = usuarioBD?.fotoPerfil.orEmpty()
+                                mostrarOpcionesFoto = true
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = "Foto de perfil", modifier = Modifier.size(72.dp), tint = Color.White)
+                        val fotoPerfil = usuarioBD?.fotoPerfil?.takeIf { it.startsWith("https://", true) }
+                        if (fotoPerfil != null) {
+                            RemoteImage(
+                                url = fotoPerfil,
+                                contentDescription = "Foto de perfil",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(Icons.Default.Person, contentDescription = "Foto de perfil", modifier = Modifier.size(72.dp), tint = Color.White)
+                        }
                     }
                     // Botón flotante para editar nombre
                     Box(modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-4).dp, y = (-4).dp).size(40.dp).background(terracota, CircleShape).border(2.dp, fondoApp, CircleShape).clickable { mostrarDialogoEditar = true }, contentAlignment = Alignment.Center) {
@@ -215,7 +245,7 @@ fun PerfilScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = { },
+                        onClick = { mostrarFormularioComercio = true },
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = terracota),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
@@ -315,26 +345,49 @@ fun PerfilScreen(
                 title = { Text(tituloDialogo, fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
                 text = {
                     Column {
-                        Row(modifier = Modifier.fillMaxWidth().clickable {
-                            coroutineScope.launch { snackbarHostState.showSnackbar("Abriendo Galería (Requiere Firebase Storage para guardar)") }
-                            mostrarOpcionesFoto = false
-                        }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = verdeEsmeralda)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Elegir de la Galería", color = colorTextoPrincipal)
-                        }
-                        HorizontalDivider(color = colorDivisor)
-                        Row(modifier = Modifier.fillMaxWidth().clickable {
-                            coroutineScope.launch { snackbarHostState.showSnackbar("Abriendo Cámara (Requiere permisos)") }
-                            mostrarOpcionesFoto = false
-                        }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = verdeEsmeralda)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Tomar Foto", color = colorTextoPrincipal)
-                        }
+                        Text("Usa una URL HTTPS pública. La app no sube archivos ni utiliza Firebase Storage.")
+                        OutlinedTextField(
+                            value = urlFotoTemporal,
+                            onValueChange = { urlFotoTemporal = it },
+                            label = { Text("URL de imagen") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
                     }
                 },
-                confirmButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = terracota) } }
+                confirmButton = {
+                    TextButton(onClick = {
+                        coroutineScope.launch {
+                            try {
+                                UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", urlFotoTemporal)
+                                usuarioBD = if (tipoFotoSeleccionada == "perfil") {
+                                    usuarioBD?.copy(fotoPerfil = urlFotoTemporal.trim())
+                                } else {
+                                    usuarioBD?.copy(fotoPortada = urlFotoTemporal.trim())
+                                }
+                                mostrarOpcionesFoto = false
+                                snackbarHostState.showSnackbar("Imagen actualizada.")
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar la imagen.")
+                            }
+                        }
+                    }) { Text("Guardar", color = verdeEsmeralda) }
+                },
+                dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = terracota) } }
+            )
+        }
+
+        if (mostrarFormularioComercio) {
+            ComercioSolicitudDialog(
+                onDismiss = { mostrarFormularioComercio = false },
+                onSubmitted = {
+                    mostrarFormularioComercio = false
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Solicitud enviada. Un administrador debe revisarla antes de publicarse.")
+                    }
+                }
             )
         }
 

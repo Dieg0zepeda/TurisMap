@@ -11,6 +11,8 @@ sealed class Pantalla(val ruta: String) {
         fun crearRuta(lugarId: String) = "detalle_lugar/$lugarId"
     }
 
-    object DetalleExperiencia : Pantalla("detalle_experiencia")
+    object DetalleExperiencia : Pantalla("detalle_experiencia/{comercioId}") {
+        fun crearRuta(comercioId: String) = "detalle_experiencia/$comercioId"
+    }
     object InicioSesion : Pantalla("inicio_sesion")
 }

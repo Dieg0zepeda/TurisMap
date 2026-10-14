@@ -52,6 +52,16 @@ object UsuarioRepository {
         usuario.updateProfile(displayName = nombre)
     }
 
+    suspend fun actualizarFoto(perfil: Boolean, url: String) {
+        val uid = obtenerIdUsuarioActual()
+            ?: throw IllegalStateException("Inicia sesión para actualizar tus fotos.")
+        require(url.isBlank() || url.startsWith("https://", ignoreCase = true)) {
+            "La imagen debe ser una URL HTTPS pública."
+        }
+        val campo = if (perfil) "fotoPerfil" else "fotoPortada"
+        firestore.collection("usuarios").document(uid).update(campo to url.trim())
+    }
+
     suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException("Inicia sesión para guardar lugares favoritos.")

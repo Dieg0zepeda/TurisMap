@@ -50,10 +50,11 @@ Un comercio pertenece a una cuenta y permanece pendiente hasta que un administra
 | `estado` | String: `pendiente` o `publicado` |
 | `precioDesde`, `calificacionPromedio` | Number |
 | `cantidadResenas` | Number entero |
-| `servicios`, `imagenUrls` | Array de String |
+| `servicios`, `imagenUrls` | Array de String; las imágenes, si se usan, son URL HTTPS públicas (no se utiliza Firebase Storage) |
+| `destacado` | Boolean administrado exclusivamente por un administrador |
 | `creadoEn`, `actualizadoEn` | Timestamp |
 
-Los visitantes pueden leer comercios publicados. El propietario autenticado puede crear un comercio propio en estado `pendiente` y editar sus datos sin cambiar propietario ni estado. Solo un administrador puede publicarlo o eliminarlo.
+Los visitantes pueden leer comercios publicados. La app consulta con los filtros `estado == "publicado"` y, para experiencias, también `destacado == true`. El propietario autenticado puede crear un comercio propio en estado `pendiente` y editar sus datos sin cambiar propietario, estado ni indicador de destacado. Solo un administrador puede publicarlo, destacarlo o eliminarlo; la aprobación inicial se realiza desde Firebase Console. Los campos `calificacionPromedio` y `cantidadResenas` no se actualizan desde el cliente.
 
 ## `resenas/{resenaId}`
 
@@ -66,7 +67,7 @@ Se usa un documento por usuario y destino para evitar reseñas duplicadas. El ID
 | `calificacion` | Integer de 1 a 5 |
 | `creadoEn`, `actualizadoEn` | Timestamp |
 
-Las reseñas se pueden leer públicamente. Un usuario autenticado puede crear o editar solo su propia reseña; no puede reseñar su propio comercio. El promedio y el conteo agregados en `lugares` o `comercios` deben actualizarse desde un entorno confiable (por ejemplo, Cloud Functions), no desde el cliente.
+Las reseñas se pueden leer públicamente. Un usuario autenticado puede crear o editar solo su propia reseña; no puede reseñar su propio comercio. La interfaz calcula el promedio a partir de las reseñas obtenidas para ese comercio; el promedio y el conteo agregados en `lugares` o `comercios` deben actualizarse desde un entorno confiable (por ejemplo, Cloud Functions), no desde el cliente.
 
 ## Reglas de cliente
 

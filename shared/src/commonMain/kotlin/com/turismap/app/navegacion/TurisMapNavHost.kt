@@ -54,6 +54,9 @@ fun TurisMapNavHost(
                 ExplorarScreen(
                     onLugarClick = { lugar ->
                         controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
+                    },
+                    onComercioClick = { comercioId ->
+                        controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
                     }
                 )
             }
@@ -68,7 +71,13 @@ fun TurisMapNavHost(
                 )
             }
         }
-        composable(Pantalla.Guia.ruta) { Box(modifier = Modifier.fillMaxSize()) { GuiaScreen() } }
+        composable(Pantalla.Guia.ruta) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                GuiaScreen(onComercioClick = { comercioId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                })
+            }
+        }
         composable(Pantalla.Perfil.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PerfilScreen(onCerrarSesionClick = onCerrarSesion)
@@ -175,9 +184,16 @@ fun TurisMapNavHost(
             }
         }
 
-        composable(Pantalla.DetalleExperiencia.ruta) {
+        composable(
+            route = Pantalla.DetalleExperiencia.ruta,
+            arguments = listOf(navArgument("comercioId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val comercioId = backStackEntry.arguments?.getString("comercioId") ?: return@composable
             Box(modifier = Modifier.fillMaxSize()) {
-                DetalleExperienciaScreen(onVolver = { controladorNavegacion.popBackStack() })
+                DetalleExperienciaScreen(
+                    comercioId = comercioId,
+                    onVolver = { controladorNavegacion.popBackStack() }
+                )
             }
         }
 

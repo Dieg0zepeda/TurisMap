@@ -80,6 +80,7 @@ service cloud.firestore {
         signedIn()
         && request.resource.data.propietarioUid == request.auth.uid
         && request.resource.data.estado == 'pendiente'
+        && request.resource.data.get('destacado', false) == false
         && request.resource.data.get('calificacionPromedio', 0) == 0
         && request.resource.data.get('cantidadResenas', 0) == 0
         && request.resource.data.keys().hasAll([
@@ -105,6 +106,7 @@ service cloud.firestore {
           'precioDesde',
           'servicios',
           'imagenUrls',
+          'destacado',
           'calificacionPromedio',
           'cantidadResenas',
           'estado',

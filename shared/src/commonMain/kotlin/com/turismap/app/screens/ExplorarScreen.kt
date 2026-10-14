@@ -1,6 +1,5 @@
 package com.turismap.app.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,25 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
+import com.turismap.app.data.repository.Comercio
+import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
-import turismap.shared.generated.resources.Res
-import turismap.shared.generated.resources.municipio_apaneca
-import turismap.shared.generated.resources.municipio_ataco
-
-data class ExperienciaCard(
-    val titulo: String,
-    val descripcion: String,
-    val precio: String,
-    val imagen: DrawableResource
-)
 
 @Composable
 fun ExplorarScreen(
-    onLugarClick: (Lugar) -> Unit = {}
+    onLugarClick: (Lugar) -> Unit = {},
+    onComercioClick: (String) -> Unit = {}
 ) {
     // Estados reactivos para la carga asíncrona
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
@@ -52,6 +42,7 @@ fun ExplorarScreen(
     var cargando by remember { mutableStateOf(true) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     var intentoCarga by remember { mutableStateOf(0) }
+    var experienciasDestacadas by remember { mutableStateOf<List<Comercio>>(emptyList()) }
 
     LaunchedEffect(intentoCarga) {
         cargando = true
@@ -59,6 +50,7 @@ fun ExplorarScreen(
         try {
             lugares = LugaresRepository.obtenerTodos()
             lugarDestacado = lugares.firstOrNull { it.id == "ataco" } ?: lugares.firstOrNull()
+            experienciasDestacadas = ComercioRepository.obtenerDestacados()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -66,23 +58,6 @@ fun ExplorarScreen(
         } finally {
             cargando = false
         }
-    }
-
-    val experienciasDestacadas = remember {
-        listOf(
-            ExperienciaCard(
-                "Finca San Antonio El Portezuelo",
-                "Balcón panorámico con vistas al volcán de Izalco.",
-                "Desde $4.50 / persona",
-                Res.drawable.municipio_ataco
-            ),
-            ExperienciaCard(
-                "Café Entre Nubes y Mirador",
-                "Café de altura rodeado de neblina y pinos.",
-                "Desde $3.50 / persona",
-                Res.drawable.municipio_apaneca
-            )
-        )
     }
 
     // Renderizado condicional basado en el estado de carga
@@ -318,99 +293,48 @@ fun ExplorarScreen(
                 color = Color(0xFF1A202C),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                experienciasDestacadas.forEach { experiencia ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                            ) {
-                                // AGREGADO: Imagen real para la experiencia
-                                Image(
-                                    painter = painterResource(experiencia.imagen),
-                                    contentDescription = experiencia.titulo,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(12.dp)
-                                        .size(32.dp),
-                                    shape = CircleShape,
-                                    color = Color.White
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.FavoriteBorder,
-                                            contentDescription = "Guardar",
-                                            tint = TerracotaAcento,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = experiencia.titulo,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1A202C)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = experiencia.descripcion,
-                                    fontSize = 14.sp,
-                                    color = GrisTextoSecundario
-                                )
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = experiencia.precio,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TerracotaAcento
+            if (experienciasDestacadas.isEmpty()) {
+                Text(
+                    "Aún no hay experiencias destacadas publicadas.",
+                    color = GrisTextoSecundario,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    experienciasDestacadas.forEach { experiencia ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                onComercioClick(experiencia.id)
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                experiencia.imagenUrls.firstOrNull { it.startsWith("https://") }?.let { url ->
+                                    RemoteImage(
+                                        url = url,
+                                        contentDescription = experiencia.nombre,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxWidth().height(150.dp)
                                     )
-
-                                    Button(
-                                        onClick = { },
-                                        shape = RoundedCornerShape(20.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFEDF2F7),
-                                            contentColor = VerdePrimario
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = "Ver Menú",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                    Spacer(Modifier.height(12.dp))
                                 }
+                                Text(experiencia.nombre, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(4.dp))
+                                Text(experiencia.descripcion, color = GrisTextoSecundario)
+                                experiencia.precioDesde?.let {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Desde $it", color = TerracotaAcento, fontWeight = FontWeight.SemiBold)
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = { onComercioClick(experiencia.id) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario)
+                                ) { Text("Ver detalle") }
                             }
                         }
                     }
