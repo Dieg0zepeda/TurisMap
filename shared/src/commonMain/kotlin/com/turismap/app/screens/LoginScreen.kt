@@ -29,9 +29,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.repository.AutenticacionRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
- import turismap.shared.generated.resources.Res
- import turismap.shared.generated.resources.logo_turismap
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.logo_turismap
 
 @Composable
 fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
@@ -46,11 +49,13 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var recordarMe by remember { mutableStateOf(false) }
     var mostrarVentanaRegistro by remember { mutableStateOf(false) }
-    // Estados para errores de validación
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var mensajeError by remember { mutableStateOf<String?>(null) }
+    var cargando by remember { mutableStateOf(false) }
+    var restablecimientoEnviado by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Función de validación (Ahora usa Kotlin puro para KMP)
     fun validarFormulario(): Boolean {
@@ -66,8 +71,8 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
             isValid = false
         }
 
-        if (password.isBlank()) {
-            passwordError = "La contraseña es requerida"
+        if (password.length < 6) {
+            passwordError = "La contraseña debe tener al menos 6 caracteres"
             isValid = false
         }
 
@@ -212,81 +217,80 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
                 Text(text = passwordError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
             }
         }
+        mensajeError?.let { mensaje ->
+            Text(mensaje, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+        }
+        if (restablecimientoEnviado) {
+            Text("Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.", color = verdeOscuro, fontSize = 13.sp)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Recordarme y Olvidé contraseña
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = recordarMe,
-                    onCheckedChange = { recordarMe = it },
-                    colors = CheckboxDefaults.colors(checkedColor = verdeOscuro)
-                )
-                Text("Recordarme", fontSize = 12.sp, color = grisTexto)
+        // Recuperación de contraseña
+        Text(
+            text = "¿Olvidaste tu contraseña?",
+            fontSize = 13.sp,
+            color = terracota,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.align(Alignment.End).clickable {
+                if (!esEmailValido(email)) {
+                    emailError = "Ingresa un correo válido para restablecer tu contraseña"
+                } else {
+                    cargando = true
+                    mensajeError = null
+                    coroutineScope.launch {
+                        try {
+                            AutenticacionRepository.enviarRestablecimientoContrasena(email)
+                            restablecimientoEnviado = true
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            mensajeError = error.message ?: "No se pudo solicitar el restablecimiento."
+                        } finally {
+                            cargando = false
+                        }
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                fontSize = 13.sp,
-                color = terracota,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { /* Lógica recuperar contraseña */ }
-            )
-        }
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Botón Ingresar
         Button(
             onClick = {
-                if (validarFormulario()) {
-                    onLoginExitoso()
+                if (validarFormulario() && !cargando) {
+                    cargando = true
+                    mensajeError = null
+                    coroutineScope.launch {
+                        try {
+                            AutenticacionRepository.iniciarSesion(email, password)
+                            onLoginExitoso()
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            mensajeError = error.message ?: "No se pudo iniciar sesión."
+                        } finally {
+                            cargando = false
+                        }
+                    }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            enabled = !cargando
         ) {
-            Text("Ingresar a la Ruta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+            if (cargando) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("Ingresar a la Ruta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+            }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 4. Opciones Alternativas
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
-            Text(" o continúa con ", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp))
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Botones Google / Apple
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            BotonAlternativo(icono = Icons.Default.Email, texto = "Google", modifier = Modifier.weight(1f))
-            BotonAlternativo(icono = Icons.Default.PhoneIphone, texto = "Apple", modifier = Modifier.weight(1f))
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Botón Biométrico
-        BotonAlternativo(icono = Icons.Default.Fingerprint, texto = "Ingreso biométrico (Face ID / Huella)", modifier = Modifier.fillMaxWidth())
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -313,7 +317,7 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
                 onDismiss = { mostrarVentanaRegistro = false }, // Para cerrar si tocan afuera
                 onRegistroExitoso = {
                     mostrarVentanaRegistro = false
-                    onLoginExitoso() // Si crea cuenta, lo mandamos directo a la app
+                    onLoginExitoso()
                 }
             )
         }
@@ -321,28 +325,6 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
 
 }
 
-
-
-@Composable
-fun BotonAlternativo(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = { /* Acción */ },
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE0E0E0))
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Icon(icono, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(texto, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Black)
-        }
-    }
-}
 
 
 // Validación usando Regex de Kotlin (Compatible con KMP)
@@ -364,6 +346,9 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var aceptoTerminos by remember { mutableStateOf(false) }
+    var cargando by remember { mutableStateOf(false) }
+    var mensajeError by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Intereses (Chips)
     var interesCascadas by remember { mutableStateOf(false) }
@@ -461,22 +446,50 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 Text("Acepto los Términos y Condiciones", fontSize = 12.sp, color = grisTexto)
             }
 
+            mensajeError?.let { error ->
+                Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Botón Crear Cuenta
             Button(
                 onClick = {
-                    if (nombre.isNotBlank() && email.isNotBlank() && password.isNotBlank() && aceptoTerminos) {
-                        onRegistroExitoso()
+                    if (!cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos) {
+                        cargando = true
+                        mensajeError = null
+                        val intereses = buildList {
+                            if (interesCascadas) add("Cascadas")
+                            if (interesCafe) add("Fincas de Café")
+                            if (interesArtesanias) add("Artesanías")
+                            if (interesMiradores) add("Miradores")
+                        }
+                        coroutineScope.launch {
+                            try {
+                                AutenticacionRepository.registrar(nombre, email, password, intereses)
+                                onRegistroExitoso()
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                mensajeError = error.message ?: "No se pudo crear la cuenta."
+                            } finally {
+                                cargando = false
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                enabled = !cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos
             ) {
-                Text("Crear Cuenta Gratis", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                if (cargando) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                } else {
+                    Text("Crear Cuenta Gratis", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                }
             }
         }
     }

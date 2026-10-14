@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -24,20 +25,27 @@ import com.turismap.app.components.FigmaSearchBar
 import com.turismap.app.components.FigmaTopHeader
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
+import kotlinx.coroutines.CancellationException
 
 @Composable
-fun MapaScreen(onAbrirDetalle: () -> Unit) {
+fun MapaScreen(onAbrirDetalle: (Lugar) -> Unit) {
     var categoriaSeleccionada by remember { mutableStateOf(CategoriaLugar.TODOS) }
-
-    // 1. Estados para manejar la asincronía de Firestore
     var todosLosLugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
+    var errorCarga by remember { mutableStateOf<String?>(null) }
+    var intentoCarga by remember { mutableStateOf(0) }
 
-    // 2. Petición asíncrona dentro del ciclo de vida de Compose
-    LaunchedEffect(Unit) {
-        val lugaresDb = LugaresRepository.obtenerTodos()
-        todosLosLugares = lugaresDb
-        lugarSeleccionado = lugaresDb.firstOrNull()
+    LaunchedEffect(intentoCarga) {
+        errorCarga = null
+        try {
+            val lugaresDb = LugaresRepository.obtenerTodos()
+            todosLosLugares = lugaresDb
+            lugarSeleccionado = lugaresDb.firstOrNull()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            errorCarga = error.message ?: "No se pudieron cargar los lugares del mapa."
+        }
     }
 
     val lugaresFiltrados = remember(categoriaSeleccionada, todosLosLugares) {
@@ -54,6 +62,19 @@ fun MapaScreen(onAbrirDetalle: () -> Unit) {
             onLugarClick = { lugar -> lugarSeleccionado = lugar },
             modifier = Modifier.fillMaxSize()
         )
+
+        if (errorCarga != null) {
+            Column(
+                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(errorCarga ?: "No se pudieron cargar los lugares del mapa.")
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(onClick = { intentoCarga++ }) {
+                    Text("Reintentar")
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -99,7 +120,7 @@ fun MapaScreen(onAbrirDetalle: () -> Unit) {
         lugarSeleccionado?.let { lugar ->
             FigmaPoiCard(
                 lugar = lugar,
-                onVerMas = onAbrirDetalle,
+                onVerMas = { onAbrirDetalle(lugar) },
                 onClose = { lugarSeleccionado = null },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

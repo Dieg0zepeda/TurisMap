@@ -1,5 +1,8 @@
 package com.turismap.app.data.models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DirectorioStats(
     val tituloGeneral: String = "",
     val descripcionGeneral: String = "",

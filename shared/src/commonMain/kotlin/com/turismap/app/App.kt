@@ -16,10 +16,12 @@ import com.turismap.app.components.FigmaBottomBar
 import com.turismap.app.navegacion.Pantalla
 import com.turismap.app.navegacion.TurisMapNavHost
 import com.turismap.app.screens.LoginScreen
+import com.turismap.app.data.repository.AutenticacionRepository
 
 @Composable
 fun App() {
     val controladorNavegacion = rememberNavController()
+    var usuarioAutenticado by remember { mutableStateOf(AutenticacionRepository.usuarioActual != null) }
 
     // Observador reactivo del estado de navegación
     val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
@@ -43,12 +45,8 @@ fun App() {
         else -> 0
     }
 
-    // Variable para controlar si mostramos Login o la App
-    var usuarioAutenticado by remember { mutableStateOf(false) }
-
     MaterialTheme {
         if (!usuarioAutenticado) {
-            // Mostramos el Login primero
             LoginScreen(
                 onLoginExitoso = { usuarioAutenticado = true }
             )
@@ -85,7 +83,8 @@ fun App() {
                 TurisMapNavHost(
                     controladorNavegacion = controladorNavegacion,
                     modificador = Modifier.padding(paddingValues),
-                    mostrarBarraInferior = mostrarBarraInferior
+                    mostrarBarraInferior = mostrarBarraInferior,
+                    onCerrarSesion = { usuarioAutenticado = false }
                 )
             }
         }

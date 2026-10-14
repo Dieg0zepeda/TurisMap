@@ -24,9 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.turismap.app.data.repository.FirebaseRepository
+import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.data.repository.UsuarioBD
+import kotlinx.coroutines.CancellationException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,20 +48,42 @@ fun PerfilScreen(
     // --- CONEXIÓN A FIREBASE (REAL) ---
     var usuarioBD by remember { mutableStateOf<UsuarioBD?>(null) }
     var estaCargando by remember { mutableStateOf(true) }
+    var visitas by remember { mutableStateOf(0) }
+    var errorPerfil by remember { mutableStateOf<String?>(null) }
 
     // Extraemos el ID dinámico de la sesión actual
     val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
 
     LaunchedEffect(idUsuarioActual) {
-        if (idUsuarioActual != null) {
-            usuarioBD = FirebaseRepository.obtenerUsuarioPorId(idUsuarioActual)
+        estaCargando = true
+        errorPerfil = null
+        try {
+            if (idUsuarioActual == null) {
+                errorPerfil = "No hay una sesión autenticada."
+            } else {
+                UsuarioRepository.asegurarPerfil(
+                    email = AutenticacionRepository.usuarioActual?.email.orEmpty(),
+                    nombre = AutenticacionRepository.usuarioActual?.displayName.orEmpty()
+                )
+                usuarioBD = UsuarioRepository.obtenerUsuarioPorId(idUsuarioActual)
+                    ?: throw IllegalStateException("No se encontró el perfil del usuario.")
+                visitas = UsuarioRepository.contarVisitas(idUsuarioActual)
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            errorPerfil = error.message ?: "No se pudo cargar el perfil."
+        } finally {
+            estaCargando = false
         }
-        estaCargando = false
     }
 
-    val nombreMostrar = usuarioBD?.nombre ?: if (estaCargando) "Cargando..." else "Usuario no conectado"
-    val correoMostrar = usuarioBD?.correo ?: if (estaCargando) "Cargando..." else "Inicia sesión para ver tu perfil"
-    val cantidadFavoritos = if (usuarioBD?.favoritos.isNullOrBlank()) "0" else usuarioBD?.favoritos ?: "0"
+    val nombreMostrar = usuarioBD?.nombre?.takeIf { it.isNotBlank() }
+        ?: if (estaCargando) "Cargando..." else "Usuario"
+    val correoMostrar = usuarioBD?.email?.takeIf { it.isNotBlank() }
+        ?: AutenticacionRepository.usuarioActual?.email
+        ?: if (estaCargando) "Cargando..." else "Correo no disponible"
+    val cantidadFavoritos = usuarioBD?.favoritos?.size?.toString() ?: "0"
 
     // Variables para las fotos
     val tieneFotoPortada = !usuarioBD?.fotoPortada.isNullOrBlank()
@@ -78,6 +101,7 @@ fun PerfilScreen(
     var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
     var mostrarOpcionesFoto by remember { mutableStateOf(false) }
     var tipoFotoSeleccionada by remember { mutableStateOf("perfil") } // "perfil" o "portada"
+    var cerrandoSesion by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -135,6 +159,7 @@ fun PerfilScreen(
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = nombreMostrar, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorTextoPrincipal, modifier = Modifier.padding(horizontal = 16.dp))
                 Text(text = correoMostrar, fontSize = 14.sp, color = colorTextoSecundario, modifier = Modifier.padding(top = 4.dp))
+                errorPerfil?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -142,8 +167,7 @@ fun PerfilScreen(
             // --- 3. ESTADÍSTICAS ---
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 ItemEstadistica(valor = cantidadFavoritos, etiqueta = "Favoritos", colorEtiqueta = terracota, colorTexto = colorTextoPrincipal)
-                ItemEstadistica(valor = "5", etiqueta = "Metas", colorEtiqueta = verdeEsmeralda, colorTexto = colorTextoPrincipal)
-                ItemEstadistica(valor = "8", etiqueta = "Visitas", colorEtiqueta = colorTextoPrincipal, colorTexto = colorTextoPrincipal)
+                ItemEstadistica(valor = visitas.toString(), etiqueta = "Visitas", colorEtiqueta = colorTextoPrincipal, colorTexto = colorTextoPrincipal)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -248,19 +272,34 @@ fun PerfilScreen(
                 // --- BOTÓN CERRAR SESIÓN REAL ---
                 OutlinedButton(
                     onClick = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Cerrando sesión...")
-                            UsuarioRepository.cerrarSesion() // Limpia la sesión en Firebase
-                            onCerrarSesionClick() // Navega fuera del perfil
+                        if (!cerrandoSesion) {
+                            cerrandoSesion = true
+                            coroutineScope.launch {
+                                try {
+                                    AutenticacionRepository.cerrarSesion()
+                                    onCerrarSesionClick()
+                                } catch (error: CancellationException) {
+                                    throw error
+                                } catch (error: Exception) {
+                                    snackbarHostState.showSnackbar(error.message ?: "No se pudo cerrar la sesión.")
+                                } finally {
+                                    cerrandoSesion = false
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = terracota),
-                    border = BorderStroke(2.dp, terracota), shape = RoundedCornerShape(16.dp)
+                    border = BorderStroke(2.dp, terracota), shape = RoundedCornerShape(16.dp),
+                    enabled = !cerrandoSesion
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Cerrar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (cerrandoSesion) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = terracota)
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Cerrar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(40.dp))
@@ -356,7 +395,6 @@ fun PerfilScreen(
 
         if (mostrarDialogoEditar) {
             var tempNombre by remember { mutableStateOf(nombreMostrar) }
-            var tempCorreo by remember { mutableStateOf(correoMostrar) }
             AlertDialog(
                 onDismissRequest = { mostrarDialogoEditar = false },
                 containerColor = fondoTarjeta,
@@ -364,17 +402,23 @@ fun PerfilScreen(
                 text = {
                     Column {
                         OutlinedTextField(value = tempNombre, onValueChange = { tempNombre = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(value = tempCorreo, onValueChange = { tempCorreo = it }, label = { Text("Correo Electrónico") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
                     }
                 },
                 confirmButton = {
                     Button(onClick = {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Se guardará en Firebase: $tempNombre")
-                            mostrarDialogoEditar = false
+                            try {
+                                UsuarioRepository.actualizarPerfil(tempNombre.trim())
+                                usuarioBD = usuarioBD?.copy(nombre = tempNombre.trim())
+                                mostrarDialogoEditar = false
+                                snackbarHostState.showSnackbar("Perfil actualizado.")
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar el perfil.")
+                            }
                         }
-                    }, colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
+                    }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
                 },
                 dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = terracota) } }
             )

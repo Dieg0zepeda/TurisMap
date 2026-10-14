@@ -28,6 +28,7 @@ import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import turismap.shared.generated.resources.Res
@@ -49,13 +50,22 @@ fun ExplorarScreen(
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var lugarDestacado by remember { mutableStateOf<Lugar?>(null) }
     var cargando by remember { mutableStateOf(true) }
+    var errorCarga by remember { mutableStateOf<String?>(null) }
+    var intentoCarga by remember { mutableStateOf(0) }
 
-    // Ejecutar la llamada a la base de datos al inicializar la pantalla
-    LaunchedEffect(Unit) {
+    LaunchedEffect(intentoCarga) {
         cargando = true
-        lugares = LugaresRepository.obtenerTodos()
-        lugarDestacado = LugaresRepository.obtenerPorId("ataco") ?: lugares.firstOrNull()
-        cargando = false
+        errorCarga = null
+        try {
+            lugares = LugaresRepository.obtenerTodos()
+            lugarDestacado = lugares.firstOrNull { it.id == "ataco" } ?: lugares.firstOrNull()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            errorCarga = error.message ?: "No se pudieron cargar los destinos."
+        } finally {
+            cargando = false
+        }
     }
 
     val experienciasDestacadas = remember {
@@ -79,6 +89,18 @@ fun ExplorarScreen(
     if (cargando) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = VerdePrimario)
+        }
+    } else if (errorCarga != null) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(errorCarga ?: "No se pudieron cargar los destinos.", color = Color(0xFF1A202C))
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(onClick = { intentoCarga++ }) {
+                Text("Reintentar")
+            }
         }
     } else {
         Column(

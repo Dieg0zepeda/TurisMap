@@ -27,4 +27,6 @@ Requisitos del Sistema
 1. Entorno de desarrollo [Android Studio](https://developer.android.com/studio) (Se requiere versión Iguana o superior).
 2. Para la compilación del binario en iOS, se requiere el sistema operativo macOS con el entorno **Xcode** instalado.
 3. Herramienta de línea de comandos [KDoctor](https://github.com/Kotlin/kdoctor) para la verificación y validación del entorno Multiplatform.
+4. Para iOS, instalar CocoaPods. Desde la carpeta `iosApp`, ejecutar `pod install` y abrir `iosApp.xcworkspace` en Xcode. La app requiere `GoogleService-Info.plist` en el bundle; el arranque configura Firebase antes de crear la interfaz.
 
+Las reglas y el esquema de Firestore para lugares, perfiles, historial, comercios y reseñas están descritos en `DATABASE_SCHEMA.md` y `firestore.rules`. Publica las reglas actualizadas en el proyecto Firebase antes de probar escrituras.

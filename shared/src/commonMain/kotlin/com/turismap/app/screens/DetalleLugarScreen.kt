@@ -28,7 +28,10 @@ import com.turismap.app.theme.*
 @Composable
 fun DetalleLugarScreen(
     lugar: Lugar,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    favoritoGuardado: Boolean = false,
+    favoritoCargando: Boolean = false,
+    onToggleFavorito: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -52,8 +55,19 @@ fun DetalleLugarScreen(
                     Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
                         Icon(Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
                     }
-                    Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Guardar", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
+                    Surface(
+                        onClick = onToggleFavorito,
+                        enabled = !favoritoCargando,
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            if (favoritoGuardado) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (favoritoGuardado) "Quitar de favoritos" else "Guardar en favoritos",
+                            modifier = Modifier.padding(10.dp),
+                            tint = if (favoritoGuardado) TerracotaAcento else Color(0xFF1A202C)
+                        )
                     }
                 }
             }

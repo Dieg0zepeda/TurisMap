@@ -5,19 +5,32 @@ import com.google.firebase.firestore.firestore
 import com.turismap.app.data.models.Lugar
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
-// 'actual' inyecta este código nativo de Android para cumplir el contrato de commonMain
 actual object LugaresRepository {
 
     actual suspend fun obtenerTodos(): List<Lugar> = suspendCancellableCoroutine { continuation ->
         Firebase.firestore.collection("lugares")
             .get()
             .addOnSuccessListener { snapshot ->
-                val lugares = snapshot.toObjects(Lugar::class.java)
-                continuation.resume(lugares)
+                if (continuation.isActive) {
+                    try {
+                        continuation.resume(
+                            snapshot.documents.mapNotNull { document ->
+                                document.toObject(Lugar::class.java)?.copy(id = document.id)
+                            }
+                        )
+                    } catch (error: Exception) {
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(error)
+                        }
+                    }
+                }
             }
-            .addOnFailureListener {
-                continuation.resume(emptyList())
+            .addOnFailureListener { error ->
+                if (continuation.isActive) {
+                    continuation.resumeWithException(error)
+                }
             }
     }
 
@@ -25,11 +38,20 @@ actual object LugaresRepository {
         Firebase.firestore.collection("lugares").document(id)
             .get()
             .addOnSuccessListener { document ->
-                val lugar = document.toObject(Lugar::class.java)
-                continuation.resume(lugar)
+                if (continuation.isActive) {
+                    try {
+                        continuation.resume(document.toObject(Lugar::class.java)?.copy(id = document.id))
+                    } catch (error: Exception) {
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(error)
+                        }
+                    }
+                }
             }
-            .addOnFailureListener {
-                continuation.resume(null)
+            .addOnFailureListener { error ->
+                if (continuation.isActive) {
+                    continuation.resumeWithException(error)
+                }
             }
     }
 }

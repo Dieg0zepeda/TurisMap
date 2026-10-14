@@ -1,12 +1,31 @@
-// Archivo: firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAdmin() {
-      return request.auth != null &&
-             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    function signedIn() {
+      return request.auth != null;
     }
-    function isAuth() { return request.auth != null; }
+
+    function ownsUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    function validReviewTarget(data) {
+      return (
+          data.tipoDestino == 'lugar'
+          && exists(/databases/$(database)/documents/lugares/$(data.destinoId))
+        ) || (
+          data.tipoDestino == 'comercio'
+          && exists(/databases/$(database)/documents/comercios/$(data.destinoId))
+          && get(/databases/$(database)/documents/comercios/$(data.destinoId)).data.estado == 'publicado'
+          && get(/databases/$(database)/documents/comercios/$(data.destinoId)).data.propietarioUid != request.auth.uid
+        );
+    }
 
     match /lugares/{lugarId} {
       allow read: if true;
@@ -14,12 +33,167 @@ service cloud.firestore {
     }
 
     match /usuarios/{userId} {
-      allow read, update, create: if isAuth() && request.auth.uid == userId;
+      allow read: if ownsUser(userId) || isAdmin();
+      allow create: if ownsUser(userId)
+        && request.resource.data.rol == 'viajero'
+        && request.resource.data.keys().hasAll(['email', 'rol'])
+        && request.resource.data.keys().hasOnly([
+          'email',
+          'rol',
+          'nombre',
+          'favoritos',
+          'intereses',
+          'fotoPerfil',
+          'fotoPortada',
+          'preferencias'
+        ]);
+      allow update: if isAdmin() || (
+        ownsUser(userId)
+        && request.resource.data.rol == resource.data.rol
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'nombre',
+          'favoritos',
+          'intereses',
+          'fotoPerfil',
+          'fotoPortada',
+          'preferencias'
+        ])
+      );
       allow delete: if isAdmin();
 
-      match /historial_rutas/{rutaId} {
-        allow read, write: if isAuth() && request.auth.uid == userId;
+      match /historial_rutas/{visitaId} {
+        allow read, delete: if ownsUser(userId);
+        allow create, update: if ownsUser(userId)
+          && request.resource.data.keys().hasAll(['lugarId', 'fechaVisita', 'tipoInteraccion'])
+          && request.resource.data.lugarId is string
+          && request.resource.data.fechaVisita is timestamp
+          && request.resource.data.tipoInteraccion is string;
       }
+    }
+
+    match /comercios/{comercioId} {
+      allow read: if resource.data.estado == 'publicado'
+        || isAdmin()
+        || (signedIn() && resource.data.propietarioUid == request.auth.uid);
+      allow create: if isAdmin() || (
+        signedIn()
+        && request.resource.data.propietarioUid == request.auth.uid
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.get('calificacionPromedio', 0) == 0
+        && request.resource.data.get('cantidadResenas', 0) == 0
+        && request.resource.data.keys().hasAll([
+          'propietarioUid',
+          'lugarId',
+          'nombre',
+          'descripcion',
+          'categoria',
+          'estado',
+          'creadoEn',
+          'actualizadoEn'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'propietarioUid',
+          'lugarId',
+          'nombre',
+          'descripcion',
+          'categoria',
+          'direccion',
+          'telefono',
+          'sitioWeb',
+          'horario',
+          'precioDesde',
+          'servicios',
+          'imagenUrls',
+          'calificacionPromedio',
+          'cantidadResenas',
+          'estado',
+          'creadoEn',
+          'actualizadoEn'
+        ])
+        && request.resource.data.lugarId is string
+        && exists(/databases/$(database)/documents/lugares/$(request.resource.data.lugarId))
+        && request.resource.data.nombre is string
+        && request.resource.data.descripcion is string
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.actualizadoEn == request.time
+      );
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.propietarioUid == request.auth.uid
+        && request.resource.data.propietarioUid == resource.data.propietarioUid
+        && request.resource.data.estado == resource.data.estado
+        && request.resource.data.actualizadoEn == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lugarId',
+          'nombre',
+          'descripcion',
+          'categoria',
+          'direccion',
+          'telefono',
+          'sitioWeb',
+          'horario',
+          'precioDesde',
+          'servicios',
+          'imagenUrls',
+          'actualizadoEn'
+        ])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /resenas/{resenaId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.usuarioUid == request.auth.uid
+        && resenaId == request.resource.data.tipoDestino
+          + '_' + request.resource.data.destinoId
+          + '_' + request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'tipoDestino',
+          'destinoId',
+          'usuarioUid',
+          'calificacion',
+          'comentario',
+          'creadoEn',
+          'actualizadoEn'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'tipoDestino',
+          'destinoId',
+          'usuarioUid',
+          'calificacion',
+          'comentario',
+          'creadoEn',
+          'actualizadoEn'
+        ])
+        && request.resource.data.tipoDestino in ['lugar', 'comercio']
+        && request.resource.data.calificacion is int
+        && request.resource.data.calificacion >= 1
+        && request.resource.data.calificacion <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 2000
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.actualizadoEn == request.time
+        && validReviewTarget(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.usuarioUid == request.auth.uid
+        && request.resource.data.usuarioUid == resource.data.usuarioUid
+        && request.resource.data.tipoDestino == resource.data.tipoDestino
+        && request.resource.data.destinoId == resource.data.destinoId
+        && request.resource.data.creadoEn == resource.data.creadoEn
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'calificacion',
+          'comentario',
+          'actualizadoEn'
+        ])
+        && request.resource.data.calificacion is int
+        && request.resource.data.calificacion >= 1
+        && request.resource.data.calificacion <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 2000
+        && request.resource.data.actualizadoEn == request.time;
+      allow delete: if signedIn() && resource.data.usuarioUid == request.auth.uid;
     }
   }
 }
