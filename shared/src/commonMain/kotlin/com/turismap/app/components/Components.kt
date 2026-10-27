@@ -131,51 +131,94 @@ fun FigmaPoiCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        onClick = onVerMas,
         modifier = modifier
             .fillMaxWidth()
-            .shadow(elevation = 10.dp, shape = RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp)),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(18.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = lugar.subtitulo.uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = GrisTextoSecundario,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = lugar.nombre,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A202C)
-                )
-            }
-
-            Surface(
-                onClick = onClose,
-                modifier = Modifier.size(36.dp),
-                shape = CircleShape,
-                color = GrisFondo
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
-                        tint = GrisTextoSecundario,
-                        modifier = Modifier.size(18.dp)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = VerdePrimario.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = lugar.categoria.etiqueta.uppercase(),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VerdePrimario,
+                        letterSpacing = 0.5.sp
                     )
                 }
+
+                Surface(
+                    onClick = onClose,
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = GrisFondo
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = GrisTextoSecundario,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = lugar.nombre,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A202C)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = lugar.subtitulo,
+                fontSize = 13.sp,
+                color = GrisTextoSecundario,
+                maxLines = 2,
+                lineHeight = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                onClick = onVerMas,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario),
+                contentPadding = PaddingValues(vertical = 11.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Place,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(17.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Explorar destino",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
         }
     }
