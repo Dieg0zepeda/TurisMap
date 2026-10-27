@@ -26,8 +26,8 @@ data class Comercio(
     val imagenUrls: List<String> = emptyList(),
     val estado: String = "pendiente",
     val destacado: Boolean = false,
-    @SerialName("calificacionPromedio") val calificacionPromedio: Double = 0.0,
-    @SerialName("cantidadResenas") val cantidadResenas: Int = 0,
+    @SerialName("calificacionPromedio") val calificacionPromedio: Double? = 0.0,
+    @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,
     val actualizadoEn: Timestamp? = null
 )

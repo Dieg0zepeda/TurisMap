@@ -33,7 +33,8 @@ fun DetalleLugarScreen(
     onBackClick: () -> Unit = {},
     favoritoGuardado: Boolean = false,
     favoritoCargando: Boolean = false,
-    onToggleFavorito: () -> Unit = {}
+    onToggleFavorito: () -> Unit = {},
+    onIrAGuia: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -193,7 +194,7 @@ fun DetalleLugarScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp),
+                        onClick = onIrAGuia, modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento), shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(text = "Ver Guía de Comercio y Ocio →", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)

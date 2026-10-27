@@ -144,6 +144,7 @@ fun TurisMapNavHost(
                         onBackClick = { controladorNavegacion.popBackStack() },
                         favoritoGuardado = favoritoGuardado,
                         favoritoCargando = favoritoCargando,
+                        onIrAGuia = { controladorNavegacion.navigate(Pantalla.Guia.ruta) },
                         onToggleFavorito = {
                             if (!favoritoCargando) {
                                 favoritoCargando = true
