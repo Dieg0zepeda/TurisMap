@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Atractivo
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.*
@@ -40,8 +42,20 @@ fun DetalleLugarScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth().height(300.dp).background(Color(0xFF8BA896))
+            modifier = Modifier.fillMaxWidth().height(300.dp).background(Color(0xFFE2E8F0))
         ) {
+            val urlImagen = lugar.imagenPortadaUrl.ifEmpty { 
+                lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: "" 
+            }
+            if (urlImagen.isNotEmpty()) {
+                RemoteImage(
+                    url = urlImagen,
+                    contentDescription = "Fondo de ${lugar.nombre}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 40.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -201,6 +215,14 @@ fun AtractivoCardBase(atractivo: Atractivo) {
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFE2E8F0))) {
+                if (atractivo.imagenUrl.isNotEmpty()) {
+                    RemoteImage(
+                        url = atractivo.imagenUrl,
+                        contentDescription = atractivo.titulo,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 Surface(
                     shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier.padding(10.dp).align(Alignment.TopEnd)

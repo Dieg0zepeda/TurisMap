@@ -16,6 +16,7 @@ data class Lugar(
     val calificacion: Double = 0.0,
     val cantidadResenas: Int = 0,
     val historia: String = "",
+    val imagenPortadaUrl: String = "",
     val mejorTemporadaTitulo: String = "",
     val mejorTemporadaDesc: String = "",
     val atractivos: List<Atractivo> = emptyList(),
