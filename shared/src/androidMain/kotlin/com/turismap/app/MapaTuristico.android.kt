@@ -5,12 +5,23 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Looper
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -20,9 +31,13 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
-import com.turismap.app.data.models.Lugar
 import com.google.maps.android.compose.rememberCameraPositionState
-import kotlin.math.*
+import com.turismap.app.data.models.Lugar
+import kotlinx.coroutines.launch
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 actual fun MapaTuristico(
@@ -30,6 +45,8 @@ actual fun MapaTuristico(
     onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {
+    val ataco = LatLng(13.8697, -89.8486)
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var hasPermission by remember { mutableStateOf(false) }
@@ -51,12 +68,9 @@ actual fun MapaTuristico(
         }
     }
 
-    // Solicitar permisos si no están concedidos
+    // Ubicación por defecto si no hay permisos
     if (shouldRequestPermission) {
-        // Nota: En una implementación completa, usaría ActivityCompat.requestPermissions
-        // Por ahora, asumimos que el usuario concedió los permisos manualmente
-        // o usamos la ubicación por defecto (Ataco)
-        userLocation = LatLng(13.8697, -89.8486)
+        userLocation = ataco
         hasPermission = false
         shouldRequestPermission = false
     }
@@ -66,10 +80,11 @@ actual fun MapaTuristico(
         if (userLocation == null || lugares.isEmpty()) {
             lugares
         } else {
+            val loc = userLocation!!
             lugares.map { lugar ->
                 val distancia = calcularDistancia(
-                    userLocation!!.latitude,
-                    userLocation!!.longitude,
+                    loc.latitude,
+                    loc.longitude,
                     lugar.ubicacionCoordenadas.latitud,
                     lugar.ubicacionCoordenadas.longitud
                 )
@@ -98,7 +113,7 @@ actual fun MapaTuristico(
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            userLocation ?: LatLng(13.8697, -89.8486),
+            userLocation ?: ataco,
             12f
         )
     }
@@ -114,27 +129,116 @@ actual fun MapaTuristico(
         }
     }
 
-    // Estilo JSON: apaga comercios y puntos genéricos de Google
-    val estiloLimpio = """
+    val estiloVerdeNaturaleza = """
         [
           {
-            "featureType": "poi",
-            "elementType": "all",
+            "stylers": [
+              { "hue": "#bbff00" },
+              { "weight": 0.5 },
+              { "gamma": 0.5 }
+            ]
+          },
+          {
+            "elementType": "labels",
             "stylers": [
               { "visibility": "off" }
+            ]
+          },
+          {
+            "featureType": "landscape.natural",
+            "stylers": [
+              { "color": "#a4cc48" }
+            ]
+          },
+          {
+            "featureType": "road",
+            "elementType": "geometry",
+            "stylers": [
+              { "color": "#ffffff" },
+              { "visibility": "on" },
+              { "weight": 1 }
+            ]
+          },
+          {
+            "featureType": "administrative",
+            "elementType": "labels",
+            "stylers": [
+              { "visibility": "on" }
+            ]
+          },
+          {
+            "featureType": "road.highway",
+            "elementType": "labels",
+            "stylers": [
+              { "visibility": "simplified" },
+              { "gamma": 1.14 },
+              { "saturation": -18 }
+            ]
+          },
+          {
+            "featureType": "road.highway.controlled_access",
+            "elementType": "labels",
+            "stylers": [
+              { "saturation": 30 },
+              { "gamma": 0.76 }
+            ]
+          },
+          {
+            "featureType": "road.local",
+            "stylers": [
+              { "visibility": "simplified" },
+              { "weight": 0.4 },
+              { "lightness": -8 }
+            ]
+          },
+          {
+            "featureType": "water",
+            "stylers": [
+              { "color": "#4aaecc" }
+            ]
+          },
+          {
+            "featureType": "landscape.man_made",
+            "stylers": [
+              { "color": "#718e32" }
+            ]
+          },
+          {
+            "featureType": "poi.business",
+            "stylers": [
+              { "saturation": 68 },
+              { "lightness": -61 }
+            ]
+          },
+          {
+            "featureType": "administrative.locality",
+            "elementType": "labels.text.stroke",
+            "stylers": [
+              { "weight": 2.7 },
+              { "color": "#f4f9e8" }
+            ]
+          },
+          {
+            "featureType": "road.highway.controlled_access",
+            "elementType": "geometry.stroke",
+            "stylers": [
+              { "weight": 1.5 },
+              { "color": "#e53013" },
+              { "saturation": -42 },
+              { "lightness": 28 }
             ]
           }
         ]
     """.trimIndent()
 
-    val mapProperties = remember {
+    val mapProperties = remember(hasPermission) {
         MapProperties(
-            mapStyleOptions = MapStyleOptions(estiloLimpio),
-            isMyLocationEnabled = hasPermission
+            isMyLocationEnabled = hasPermission,
+            mapStyleOptions = MapStyleOptions(estiloVerdeNaturaleza)
         )
     }
 
-    val mapUiSettings = remember {
+    val mapUiSettings = remember(hasPermission) {
         MapUiSettings(
             zoomControlsEnabled = false,
             myLocationButtonEnabled = hasPermission
@@ -147,7 +251,6 @@ actual fun MapaTuristico(
         properties = mapProperties,
         uiSettings = mapUiSettings
     ) {
-        // Mostrar todos los marcadores
         lugares.forEach { lugar ->
             Marker(
                 state = MarkerState(
@@ -158,16 +261,28 @@ actual fun MapaTuristico(
                 ),
                 title = lugar.nombre,
                 snippet = lugar.subtitulo,
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
                 onClick = {
                     onLugarClick(lugar)
-                    false
+                    coroutineScope.launch {
+                        cameraPositionState.animate(
+                            update = CameraUpdateFactory.newLatLngZoom(
+                                LatLng(
+                                    lugar.ubicacionCoordenadas.latitud,
+                                    lugar.ubicacionCoordenadas.longitud
+                                ),
+                                15f
+                            ),
+                            durationMs = 500
+                        )
+                    }
+                    true
                 }
             )
         }
     }
 }
 
-// Función para obtener ubicación actual
 private fun obtenerUbicacionActual(context: Context, callback: (LatLng) -> Unit) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
@@ -176,7 +291,6 @@ private fun obtenerUbicacionActual(context: Context, callback: (LatLng) -> Unit)
             if (location != null) {
                 callback(LatLng(location.latitude, location.longitude))
             } else {
-                // Si no hay última ubicación, solicitar actual
                 val locationRequest = LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     10000
@@ -205,11 +319,10 @@ private fun obtenerUbicacionActual(context: Context, callback: (LatLng) -> Unit)
             }
         }
     } catch (e: SecurityException) {
-        // Permisos no concedidos
+        // Manejo silencioso de permisos no concedidos
     }
 }
 
-// Calcular distancia entre dos coordenadas (fórmula Haversine)
 private fun calcularDistancia(
     lat1: Double,
     lon1: Double,
@@ -222,6 +335,6 @@ private fun calcularDistancia(
     val a = sin(dLat / 2) * sin(dLat / 2) +
             cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
             sin(dLon / 2) * sin(dLon / 2)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    val c = 2 * atan2(sqrt(a), sqrt(1.0 - a))
     return r * c
 }

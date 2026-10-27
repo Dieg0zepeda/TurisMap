@@ -1,5 +1,11 @@
 package com.turismap.app.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,6 +40,13 @@ fun MapaScreen(onAbrirDetalle: (Lugar) -> Unit) {
     var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     var intentoCarga by remember { mutableStateOf(0) }
+    var ultimoLugarValido by remember { mutableStateOf(lugarSeleccionado) }
+
+    LaunchedEffect(lugarSeleccionado) {
+        if (lugarSeleccionado != null) {
+            ultimoLugarValido = lugarSeleccionado
+        }
+    }
 
     LaunchedEffect(intentoCarga) {
         errorCarga = null
@@ -102,7 +115,7 @@ fun MapaScreen(onAbrirDetalle: (Lugar) -> Unit) {
                             .clickable { categoriaSeleccionada = categoria },
                         color = if (isSelected) VerdePrimario else Color.White,
                         shape = RoundedCornerShape(50),
-                        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, GrisBorde) else null,
+                        border = if (!isSelected) BorderStroke(1.dp, GrisBorde) else null,
                         shadowElevation = if (isSelected) 3.dp else 1.dp
                     ) {
                         Text(
@@ -117,15 +130,22 @@ fun MapaScreen(onAbrirDetalle: (Lugar) -> Unit) {
             }
         }
 
-        lugarSeleccionado?.let { lugar ->
-            FigmaPoiCard(
-                lugar = lugar,
-                onVerMas = { onAbrirDetalle(lugar) },
-                onClose = { lugarSeleccionado = null },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-            )
+        AnimatedVisibility(
+            visible = lugarSeleccionado != null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            ultimoLugarValido?.let { lugar ->
+                FigmaPoiCard(
+                    lugar = lugar,
+                    onVerMas = { onAbrirDetalle(lugar) },
+                    onClose = { lugarSeleccionado = null },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
