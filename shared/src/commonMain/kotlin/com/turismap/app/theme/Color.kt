@@ -21,3 +21,9 @@ val FondoBlancoAdaptable: Color
 
 val TextoPrincipalOscuro: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF7FAFC) else Color(0xFF1A202C)
+
+val VerdeTextoAdaptable: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF81C784) else VerdePrimario
+
+val TerracotaTextoAdaptable: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE28B73) else TerracotaAcento

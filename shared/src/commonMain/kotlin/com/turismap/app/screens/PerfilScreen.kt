@@ -30,6 +30,7 @@ import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.data.repository.UsuarioBD
 import kotlinx.coroutines.CancellationException
+import com.turismap.app.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,7 +193,7 @@ fun PerfilScreen(
 
             // --- 3. ESTADÍSTICAS ---
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                ItemEstadistica(valor = cantidadFavoritos, etiqueta = "Favoritos", colorEtiqueta = terracota, colorTexto = colorTextoPrincipal)
+                ItemEstadistica(valor = cantidadFavoritos, etiqueta = "Favoritos", colorEtiqueta = TerracotaTextoAdaptable, colorTexto = colorTextoPrincipal)
                 ItemEstadistica(valor = visitas.toString(), etiqueta = "Visitas", colorEtiqueta = colorTextoPrincipal, colorTexto = colorTextoPrincipal)
             }
 
@@ -282,7 +283,7 @@ fun PerfilScreen(
                             Text("Notificaciones", fontSize = 16.sp, color = colorTextoPrincipal, fontWeight = FontWeight.Medium)
                             Text(if (notificacionesActivas) "Activadas" else "Desactivadas", fontSize = 12.sp, color = colorTextoSecundario)
                         }
-                        Switch(checked = notificacionesActivas, onCheckedChange = { notificacionesActivas = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
+                        Switch(checked = notificacionesActivas, onCheckedChange = { notificacionesActivas = it }, colors = SwitchDefaults.colors(checkedThumbColor = VerdeTextoAdaptable, checkedTrackColor = VerdeTextoAdaptable.copy(alpha = 0.5f)))
                     }
                 }
 
@@ -313,12 +314,12 @@ fun PerfilScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = terracota),
-                    border = BorderStroke(2.dp, terracota), shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TerracotaTextoAdaptable),
+                    border = BorderStroke(2.dp, TerracotaTextoAdaptable), shape = RoundedCornerShape(16.dp),
                     enabled = !cerrandoSesion
                 ) {
                     if (cerrandoSesion) {
-                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = terracota)
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = TerracotaTextoAdaptable)
                     } else {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -375,7 +376,7 @@ fun PerfilScreen(
                     }
                 }) { Text("Guardar", color = verdeEsmeralda) }
             },
-            dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = terracota) } }
+            dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = TerracotaTextoAdaptable) } }
         )
     }
 
@@ -403,7 +404,7 @@ fun PerfilScreen(
                             Text("Perfil Público", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
                             Text("Permite que otros vean tus guardados.", fontSize = 12.sp, color = colorTextoSecundario)
                         }
-                        Switch(checked = perfilPublico, onCheckedChange = { perfilPublico = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
+                        Switch(checked = perfilPublico, onCheckedChange = { perfilPublico = it }, colors = SwitchDefaults.colors(checkedThumbColor = VerdeTextoAdaptable, checkedTrackColor = VerdeTextoAdaptable.copy(alpha = 0.5f)))
                     }
                     HorizontalDivider(color = colorDivisor)
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
@@ -411,7 +412,7 @@ fun PerfilScreen(
                             Text("Ubicación en Reseñas", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
                             Text("Comparte de dónde es tu reseña.", fontSize = 12.sp, color = colorTextoSecundario)
                         }
-                        Switch(checked = compartirUbicacion, onCheckedChange = { compartirUbicacion = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
+                        Switch(checked = compartirUbicacion, onCheckedChange = { compartirUbicacion = it }, colors = SwitchDefaults.colors(checkedThumbColor = VerdeTextoAdaptable, checkedTrackColor = VerdeTextoAdaptable.copy(alpha = 0.5f)))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Te enviaremos un correo.") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorTextoPrincipal), shape = RoundedCornerShape(8.dp)) {
@@ -421,7 +422,7 @@ fun PerfilScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { mostrarDialogoPrivacidad = false }) { Text("Cerrar", color = verdeEsmeralda, fontWeight = FontWeight.Bold) } }
+            confirmButton = { TextButton(onClick = { mostrarDialogoPrivacidad = false }) { Text("Cerrar", color = VerdeTextoAdaptable, fontWeight = FontWeight.Bold) } }
         )
     }
 
@@ -452,7 +453,7 @@ fun PerfilScreen(
                     }
                 }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
             },
-            dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = terracota) } }
+            dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = TerracotaTextoAdaptable) } }
         )
     }
 
@@ -466,14 +467,14 @@ fun PerfilScreen(
                 Column {
                     opcionesIdioma.forEach { idioma ->
                         Row(modifier = Modifier.fillMaxWidth().clickable { idiomaSeleccionado = idioma }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = (idioma == idiomaSeleccionado), onClick = { idiomaSeleccionado = idioma }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
+                            RadioButton(selected = (idioma == idiomaSeleccionado), onClick = { idiomaSeleccionado = idioma }, colors = RadioButtonDefaults.colors(selectedColor = VerdeTextoAdaptable))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(text = idioma, fontSize = 16.sp, color = colorTextoPrincipal)
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { mostrarDialogoIdioma = false }) { Text("Cerrar", color = terracota) } }
+            confirmButton = { TextButton(onClick = { mostrarDialogoIdioma = false }) { Text("Cerrar", color = TerracotaTextoAdaptable) } }
         )
     }
 }

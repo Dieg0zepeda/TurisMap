@@ -92,9 +92,9 @@ fun DetalleLugarScreen(
                 modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 15.dp, vertical = 6.dp)) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = VerdePrimario, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = VerdeTextoAdaptable, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(9.dp))
-                    Text(text = lugar.ubicacionCorta, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                    Text(text = lugar.ubicacionCorta, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
                 }
             }
         }
@@ -141,12 +141,12 @@ fun DetalleLugarScreen(
                     Text(text = lugar.historia, fontSize = 14.sp, lineHeight = 22.sp, color = GrisTextoSecundario)
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Surface(shape = RoundedCornerShape(12.dp), color = VerdePrimario.copy(alpha = 0.05f), modifier = Modifier.fillMaxWidth()) {
+                    Surface(shape = RoundedCornerShape(12.dp), color = VerdeTextoAdaptable.copy(alpha = 0.1f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, tint = VerdePrimario)
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = VerdeTextoAdaptable)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(text = lugar.mejorTemporadaTitulo, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                                Text(text = lugar.mejorTemporadaTitulo, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
                                 Text(text = lugar.mejorTemporadaDesc, fontSize = 13.sp, color = TextoPrincipalOscuro)
                             }
                         }
@@ -155,7 +155,7 @@ fun DetalleLugarScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
-                        Text(text = "${lugar.atractivos.size} Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                        Text(text = "${lugar.atractivos.size} Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
                     }
                 }
             }
@@ -225,7 +225,7 @@ fun AtractivoCardBase(atractivo: Atractivo) {
                     )
                 }
                 Surface(
-                    shape = RoundedCornerShape(6.dp), color = FondoBlancoAdaptable.copy(alpha = 0.9f),
+                    shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier.padding(10.dp).align(Alignment.TopEnd)
                 ) {
                     Text(text = atractivo.etiqueta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(atractivo.etiquetaColorHex), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
@@ -236,7 +236,7 @@ fun AtractivoCardBase(atractivo: Atractivo) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = atractivo.descripcion, fontSize = 12.sp, color = GrisTextoSecundario, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.weight(1f))
-                Text(text = atractivo.accion, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TerracotaAcento)
+                Text(text = atractivo.accion, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TerracotaTextoAdaptable)
             }
         }
     }

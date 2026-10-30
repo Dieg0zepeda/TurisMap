@@ -56,7 +56,7 @@ fun PantallaInicioSesion(
             text = "TURISMAP",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = VerdePrimario,
+            color = VerdeTextoAdaptable,
             letterSpacing = 2.sp
         )
         
@@ -81,7 +81,7 @@ fun PantallaInicioSesion(
                 Icon(
                     imageVector = Icons.Default.Email,
                     contentDescription = "Correo",
-                    tint = VerdePrimario
+                    tint = VerdeTextoAdaptable
                 )
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -108,7 +108,7 @@ fun PantallaInicioSesion(
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Contraseña",
-                    tint = VerdePrimario
+                    tint = VerdeTextoAdaptable
                 )
             },
             trailingIcon = {
@@ -149,7 +149,7 @@ fun PantallaInicioSesion(
         Text(
             text = "¿Olvidaste tu contraseña?",
             fontSize = 13.sp,
-            color = VerdePrimario,
+            color = VerdeTextoAdaptable,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(end = 4.dp),
@@ -211,7 +211,7 @@ fun PantallaInicioSesion(
                     text = "Regístrate",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = VerdePrimario
+                    color = VerdeTextoAdaptable
                 )
             }
         }

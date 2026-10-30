@@ -281,7 +281,7 @@ fun MapaScreen(
                             text = "TURISMAP",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1B5E20),
+                            color = VerdeTextoAdaptable,
                             letterSpacing = 1.sp
                         )
                         Text(
@@ -417,7 +417,7 @@ fun MapaScreen(
                                 text = cat.replaceFirstChar { it.uppercase() },
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else ColorAirbnbOscuro,
+                                color = if (isSelected) FondoBlancoAdaptable else ColorAirbnbOscuro,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp)
                             )
                         }
@@ -633,7 +633,7 @@ fun MapaScreen(
                                     text = "Detalles",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = FondoBlancoAdaptable
                                 )
                             }
                         }

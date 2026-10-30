@@ -97,7 +97,7 @@ fun ExplorarScreen(
                         text = "TURISMAP",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VerdePrimario,
+                        color = VerdeTextoAdaptable,
                         letterSpacing = 1.2.sp
                     )
                     Text(
@@ -118,7 +118,7 @@ fun ExplorarScreen(
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Notificaciones",
-                            tint = VerdePrimario,
+                            tint = VerdeTextoAdaptable,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -255,7 +255,7 @@ fun ExplorarScreen(
                                         text = etiqueta,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = VerdePrimario,
+                                        color = VerdeTextoAdaptable,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -323,7 +323,7 @@ fun ExplorarScreen(
                                     )
                                     Spacer(Modifier.height(12.dp))
                                 }
-                                Text(experiencia.nombre, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Text(experiencia.nombre, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
                                 Spacer(Modifier.height(4.dp))
                                 Text(experiencia.descripcion, color = GrisTextoSecundario)
                                 experiencia.precioDesde?.let {

@@ -637,7 +637,7 @@ fun VentanaDetalleAirbnb(
                             Icon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = FondoBlancoAdaptable,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -645,7 +645,7 @@ fun VentanaDetalleAirbnb(
                                 text = "Ruta",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                color = Color.White
+                                color = FondoBlancoAdaptable
                             )
                         }
                     }

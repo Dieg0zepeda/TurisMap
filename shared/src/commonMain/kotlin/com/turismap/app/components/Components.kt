@@ -41,7 +41,7 @@ fun FigmaTopHeader() {
                 text = "TURISMAP",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = VerdePrimario,
+                color = VerdeTextoAdaptable,
                 letterSpacing = 1.2.sp
             )
             Text(
@@ -63,7 +63,7 @@ fun FigmaTopHeader() {
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notificaciones",
-                        tint = VerdePrimario,
+                        tint = VerdeTextoAdaptable,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -156,7 +156,7 @@ fun FigmaPoiCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VerdePrimario,
+                        color = VerdeTextoAdaptable,
                         letterSpacing = 0.5.sp
                     )
                 }
@@ -262,7 +262,7 @@ fun FigmaBottomBar(
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
-                        tint = if (isSelected) VerdePrimario else GrisTextoSecundario,
+                        tint = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -270,7 +270,7 @@ fun FigmaBottomBar(
                         text = tab.label,
                         fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) VerdePrimario else GrisTextoSecundario
+                        color = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario
                     )
                 }
             }

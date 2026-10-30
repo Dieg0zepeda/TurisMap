@@ -23,10 +23,7 @@ import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.Resena
-import com.turismap.app.theme.GrisFondo
-import com.turismap.app.theme.GrisTextoSecundario
-import com.turismap.app.theme.TerracotaAcento
-import com.turismap.app.theme.VerdePrimario
+import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -72,7 +69,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onVolver) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = VerdePrimario)
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = VerdeTextoAdaptable)
             }
             Text("Detalle del comercio", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
@@ -106,7 +103,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         Box(
                             Modifier.fillMaxWidth().height(150.dp).background(GrisFondo),
                             contentAlignment = Alignment.Center
-                        ) { Text(datos.categoria, color = VerdePrimario, fontWeight = FontWeight.SemiBold) }
+                        ) { Text(datos.categoria, color = VerdeTextoAdaptable, fontWeight = FontWeight.SemiBold) }
                     }
                     Column(Modifier.padding(20.dp)) {
                         Text(datos.nombre, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = androidx.compose.material3.MaterialTheme.colorScheme.onBackground)
