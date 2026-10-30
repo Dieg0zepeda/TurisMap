@@ -43,7 +43,7 @@ fun DetalleLugarScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth().height(300.dp).background(Color(0xFFE2E8F0))
+            modifier = Modifier.fillMaxWidth().height(300.dp).background(GrisBorde)
         ) {
             val urlImagen = lugar.imagenPortadaUrl.ifEmpty { 
                 lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: "" 
@@ -62,33 +62,33 @@ fun DetalleLugarScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Surface(
-                    shape = CircleShape, color = Color.White.copy(alpha = 0.9f),
+                    shape = CircleShape, color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                     modifier = Modifier.size(40.dp).clickable { onBackClick() }
-                ) { Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.padding(8.dp), tint = Color(0xFF1A202C)) }
+                ) { Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.padding(8.dp), tint = TextoPrincipalOscuro) }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = Color(0xFF1A202C))
+                    Surface(shape = CircleShape, color = FondoBlancoAdaptable.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = TextoPrincipalOscuro)
                     }
                     Surface(
                         onClick = onToggleFavorito,
                         enabled = !favoritoCargando,
                         shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             if (favoritoGuardado) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (favoritoGuardado) "Quitar de favoritos" else "Guardar en favoritos",
                             modifier = Modifier.padding(10.dp),
-                            tint = if (favoritoGuardado) TerracotaAcento else Color(0xFF1A202C)
+                            tint = if (favoritoGuardado) TerracotaAcento else TextoPrincipalOscuro
                         )
                     }
                 }
             }
 
             Surface(
-                shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(16.dp), color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                 modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 15.dp, vertical = 6.dp)) {
@@ -101,7 +101,7 @@ fun DetalleLugarScreen(
 
         Column(modifier = Modifier.offset(y = (-20).dp)) {
             Surface(
-                modifier = Modifier.fillMaxWidth(), color = Color.White, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                modifier = Modifier.fillMaxWidth(), color = FondoBlancoAdaptable, shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -110,7 +110,7 @@ fun DetalleLugarScreen(
                         Text(text = lugar.ubicacionLarga, fontSize = 12.sp, color = GrisTextoSecundario)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = lugar.nombre, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A202C))
+                    Text(text = lugar.nombre, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextoPrincipalOscuro)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = lugar.subtitulo, fontSize = 14.sp, color = GrisTextoSecundario)
 
@@ -120,12 +120,12 @@ fun DetalleLugarScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = lugar.elevacion, fontSize = 12.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            Text(text = lugar.elevacion, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = lugar.clima, fontSize = 12.sp, color = Color(0xFF1A202C), fontWeight = FontWeight.Medium)
+                            Text(text = lugar.clima, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
@@ -136,7 +136,7 @@ fun DetalleLugarScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text(text = "Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                    Text(text = "Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(text = lugar.historia, fontSize = 14.sp, lineHeight = 22.sp, color = GrisTextoSecundario)
                     Spacer(modifier = Modifier.height(20.dp))
@@ -147,14 +147,14 @@ fun DetalleLugarScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(text = lugar.mejorTemporadaTitulo, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
-                                Text(text = lugar.mejorTemporadaDesc, fontSize = 13.sp, color = Color(0xFF1A202C))
+                                Text(text = lugar.mejorTemporadaDesc, fontSize = 13.sp, color = TextoPrincipalOscuro)
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                        Text(text = "Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
                         Text(text = "${lugar.atractivos.size} Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdePrimario)
                     }
                 }
@@ -211,11 +211,11 @@ fun AtractivoCardBase(atractivo: Atractivo) {
     Card(
         modifier = Modifier.width(200.dp).height(240.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFE2E8F0))) {
+            Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(GrisBorde)) {
                 if (atractivo.imagenUrl.isNotEmpty()) {
                     RemoteImage(
                         url = atractivo.imagenUrl,
@@ -225,14 +225,14 @@ fun AtractivoCardBase(atractivo: Atractivo) {
                     )
                 }
                 Surface(
-                    shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.9f),
+                    shape = RoundedCornerShape(6.dp), color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                     modifier = Modifier.padding(10.dp).align(Alignment.TopEnd)
                 ) {
                     Text(text = atractivo.etiqueta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(atractivo.etiquetaColorHex), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = atractivo.titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                Text(text = atractivo.titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = atractivo.descripcion, fontSize = 12.sp, color = GrisTextoSecundario, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.weight(1f))

@@ -71,7 +71,7 @@ fun ExplorarScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(errorCarga ?: "No se pudieron cargar los destinos.", color = Color(0xFF1A202C))
+            Text(errorCarga ?: "No se pudieron cargar los destinos.", color = TextoPrincipalOscuro)
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { intentoCarga++ }) {
                 Text("Reintentar")
@@ -104,14 +104,14 @@ fun ExplorarScreen(
                         text = "Explorar la Ruta",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A202C)
+                        color = TextoPrincipalOscuro
                     )
                 }
 
                 Surface(
                     modifier = Modifier.size(40.dp),
                     shape = CircleShape,
-                    color = Color.White,
+                    color = FondoBlancoAdaptable,
                     border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -208,7 +208,7 @@ fun ExplorarScreen(
                 text = "Explora la Ruta",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A202C),
+                color = TextoPrincipalOscuro,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -225,7 +225,7 @@ fun ExplorarScreen(
                             .height(180.dp)
                             .clickable { onLugarClick(lugar) },
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
@@ -248,7 +248,7 @@ fun ExplorarScreen(
                                 Surface(
                                     modifier = Modifier.padding(8.dp),
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Color.White.copy(alpha = 0.9f)
+                                    color = FondoBlancoAdaptable.copy(alpha = 0.9f)
                                 ) {
                                     val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta ?: "Destino"
                                     Text(
@@ -266,7 +266,7 @@ fun ExplorarScreen(
                                     text = lugar.nombre,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1A202C),
+                                    color = TextoPrincipalOscuro,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -290,7 +290,7 @@ fun ExplorarScreen(
                 text = "Experiencias Destacadas",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A202C),
+                color = TextoPrincipalOscuro,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -311,7 +311,7 @@ fun ExplorarScreen(
                                 onComercioClick(experiencia.id)
                             },
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable)
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 experiencia.imagenUrls.firstOrNull { it.startsWith("https://") }?.let { url ->

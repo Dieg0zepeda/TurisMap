@@ -96,7 +96,7 @@ fun FigmaSearchBar(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .height(50.dp)
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(14.dp)),
-        color = Color.White,
+        color = FondoBlancoAdaptable,
         shape = RoundedCornerShape(14.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
     ) {
@@ -184,7 +184,7 @@ fun FigmaPoiCard(
                 text = lugar.nombre,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A202C)
+                color = TextoPrincipalOscuro
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -242,7 +242,7 @@ fun FigmaBottomBar(
             .fillMaxWidth()
             .wrapContentHeight()
             .navigationBarsPadding(),
-        color = Color.White,
+        color = FondoBlancoAdaptable,
         border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
     ) {
         Row(

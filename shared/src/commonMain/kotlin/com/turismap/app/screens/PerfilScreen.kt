@@ -38,15 +38,13 @@ fun PerfilScreen(
     onCerrarSesionClick: () -> Unit = {}
 ) {
     // --- VARIABLES DE APARIENCIA ---
-    var temaSeleccionado by remember { mutableStateOf("Modo Claro") }
-    val esModoOscuro = temaSeleccionado == "Modo Oscuro"
     val verdeEsmeralda = Color(0xFF1B4934)
     val terracota = Color(0xFFD96B52)
-    val fondoApp = if (esModoOscuro) Color(0xFF121212) else Color(0xFFF6F8F7)
-    val fondoTarjeta = if (esModoOscuro) Color(0xFF1E1E1E) else Color.White
-    val colorTextoPrincipal = if (esModoOscuro) Color.White else Color(0xFF333333)
-    val colorTextoSecundario = if (esModoOscuro) Color.LightGray else Color.Gray
-    val colorDivisor = if (esModoOscuro) Color(0xFF333333) else Color(0xFFF6F8F7)
+    val fondoApp = MaterialTheme.colorScheme.background
+    val fondoTarjeta = MaterialTheme.colorScheme.surface
+    val colorTextoPrincipal = MaterialTheme.colorScheme.onBackground
+    val colorTextoSecundario = MaterialTheme.colorScheme.onSurfaceVariant
+    val colorDivisor = MaterialTheme.colorScheme.outlineVariant
 
     // --- CONEXIÓN A FIREBASE (REAL) ---
     var usuarioBD by remember { mutableStateOf<UsuarioBD?>(null) }
@@ -98,7 +96,6 @@ fun PerfilScreen(
 
     var mostrarDialogoEditar by remember { mutableStateOf(false) }
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
-    var mostrarDialogoApariencia by remember { mutableStateOf(false) }
     var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
     var mostrarOpcionesFoto by remember { mutableStateOf(false) }
     var mostrarFormularioComercio by remember { mutableStateOf(false) }
@@ -154,7 +151,7 @@ fun PerfilScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .background(Color.LightGray)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(4.dp, fondoApp, CircleShape)
                             .clickable {
                                 tipoFotoSeleccionada = "perfil"
@@ -172,7 +169,7 @@ fun PerfilScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
-                            Icon(Icons.Default.Person, contentDescription = "Foto de perfil", modifier = Modifier.size(72.dp), tint = Color.White)
+                            Icon(Icons.Default.Person, contentDescription = "Foto de perfil", modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     // Botón flotante para editar nombre
@@ -273,8 +270,6 @@ fun PerfilScreen(
 
                 Text("PERSONALIZACIÓN", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                 CardOpciones(fondoTarjeta) {
-                    ItemMenuOpcion(icono = Icons.Default.BrightnessMedium, titulo = "Apariencia", subtitulo = temaSeleccionado, colorTexto = colorTextoPrincipal, colorIcono = colorTextoPrincipal) { mostrarDialogoApariencia = true }
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = colorDivisor)
                     ItemMenuOpcion(icono = Icons.Default.Public, titulo = "Idioma", subtitulo = idiomaSeleccionado, colorTexto = colorTextoPrincipal, colorIcono = colorTextoPrincipal) { mostrarDialogoIdioma = true }
                 }
 
@@ -396,27 +391,6 @@ fun PerfilScreen(
         )
     }
 
-    if (mostrarDialogoApariencia) {
-        val opcionesTema = listOf("Modo Claro", "Modo Oscuro")
-        AlertDialog(
-            onDismissRequest = { mostrarDialogoApariencia = false },
-            containerColor = fondoTarjeta,
-            title = { Text("Apariencia", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-            text = {
-                Column {
-                    opcionesTema.forEach { tema ->
-                        Row(modifier = Modifier.fillMaxWidth().clickable { temaSeleccionado = tema }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = (tema == temaSeleccionado), onClick = { temaSeleccionado = tema }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = tema, fontSize = 16.sp, color = colorTextoPrincipal)
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { mostrarDialogoApariencia = false }) { Text("Guardar", color = verdeEsmeralda) } }
-        )
-    }
-
     if (mostrarDialogoPrivacidad) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoPrivacidad = false },
@@ -531,8 +505,8 @@ private fun ItemMenuOpcion(icono: ImageVector, titulo: String, subtitulo: String
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = titulo, fontSize = 16.sp, color = colorTexto, fontWeight = FontWeight.Medium)
-            if (subtitulo.isNotEmpty()) Text(text = subtitulo, fontSize = 12.sp, color = Color.Gray)
+            if (subtitulo.isNotEmpty()) Text(text = subtitulo, fontSize = 12.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

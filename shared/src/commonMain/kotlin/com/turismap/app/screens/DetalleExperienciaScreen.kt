@@ -66,7 +66,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(Color.White)) {
+    Column(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -109,14 +109,14 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         ) { Text(datos.categoria, color = VerdePrimario, fontWeight = FontWeight.SemiBold) }
                     }
                     Column(Modifier.padding(20.dp)) {
-                        Text(datos.nombre, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A202C))
+                        Text(datos.nombre, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = androidx.compose.material3.MaterialTheme.colorScheme.onBackground)
                         Text(
                             listOf(datos.categoria, datos.direccion.ifBlank { datos.lugarId })
                                 .filter(String::isNotBlank).joinToString(" · "),
                             color = GrisTextoSecundario
                         )
                         Spacer(Modifier.height(12.dp))
-                        Text(datos.descripcion, color = Color(0xFF2D3748), lineHeight = 21.sp)
+                        Text(datos.descripcion, color = androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f), lineHeight = 21.sp)
                         if (datos.precioDesde != null) {
                             Spacer(Modifier.height(12.dp))
                             Text("Desde ${datos.precioDesde}", fontWeight = FontWeight.Bold, color = TerracotaAcento)
@@ -186,7 +186,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Text("★".repeat(resena.calificacion), color = TerracotaAcento)
-                                    Text(resena.comentario.ifBlank { "Sin comentario" })
+                                    Text(resena.comentario.ifBlank { "Sin comentario" }, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }

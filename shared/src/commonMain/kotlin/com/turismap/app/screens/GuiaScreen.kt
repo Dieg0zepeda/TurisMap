@@ -43,11 +43,18 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import kotlinx.coroutines.launch
 
-// Paleta oficial de Airbnb
-private val AirbnbBlack = Color(0xFF222222)
-private val AirbnbGray = Color(0xFF717171)
-private val AirbnbLightGray = Color(0xFFF7F7F7)
-private val AirbnbBorder = Color(0xFFEBEBEB)
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.turismap.app.theme.*
+
+// Paleta oficial de Airbnb (Modo oscuro adaptativo)
+private val AirbnbBlack: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF7F7F7) else Color(0xFF222222)
+private val AirbnbGray: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFA0A0A0) else Color(0xFF717171)
+private val AirbnbLightGray: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF7F7F7)
+private val AirbnbBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFEBEBEB)
 private val AirbnbPrimary = Color(0xFFFF385C)
 
 // Formateo numérico en Kotlin puro sin depender de librerías Java
@@ -135,7 +142,7 @@ fun GuiaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(androidx.compose.material3.MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
             // Buscador estilo cápsula flotante
@@ -155,7 +162,7 @@ fun GuiaScreen(
                             spotColor = Color.Black.copy(alpha = 0.12f)
                         )
                         .clip(RoundedCornerShape(32.dp))
-                        .background(Color.White)
+                        .background(FondoBlancoAdaptable)
                         .border(0.8.dp, AirbnbBorder, RoundedCornerShape(32.dp))
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -204,7 +211,7 @@ fun GuiaScreen(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (activa) AirbnbLightGray else Color.White)
+                            .background(if (activa) AirbnbLightGray else FondoBlancoAdaptable)
                             .border(
                                 width = if (activa) 1.5.dp else 1.dp,
                                 color = if (activa) AirbnbBlack else AirbnbBorder,
@@ -307,7 +314,7 @@ fun GuiaScreen(
         ModalBottomSheet(
             onDismissRequest = { comercioSeleccionado = null },
             sheetState = sheetState,
-            containerColor = Color.White,
+            containerColor = FondoBlancoAdaptable,
             dragHandle = { BottomSheetDefaults.DragHandle(color = AirbnbBorder) }
         ) {
             VentanaDetalleAirbnb(
@@ -419,7 +426,7 @@ fun TarjetaMiniAirbnb(
                     .padding(top = 12.dp, start = 12.dp)
                     .shadow(elevation = 2.dp, shape = RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
+                    .background(FondoBlancoAdaptable)
                     .padding(horizontal = 10.dp, vertical = 5.dp)
                     .align(Alignment.TopStart)
             ) {
@@ -504,7 +511,7 @@ fun VentanaDetalleAirbnb(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(0.92f)
-            .background(Color.White)
+            .background(FondoBlancoAdaptable)
     ) {
         LazyColumn(
             modifier = Modifier
@@ -531,7 +538,7 @@ fun VentanaDetalleAirbnb(
                             .padding(16.dp)
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.9f))
+                            .background(FondoBlancoAdaptable.copy(alpha = 0.9f))
                             .align(Alignment.TopStart)
                     ) {
                         Icon(
@@ -594,7 +601,7 @@ fun VentanaDetalleAirbnb(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(Color.White),
+                                .background(FondoBlancoAdaptable),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -717,7 +724,7 @@ fun VentanaDetalleAirbnb(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(FondoBlancoAdaptable)
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

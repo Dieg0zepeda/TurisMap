@@ -38,12 +38,15 @@ import turismap.shared.generated.resources.logo_turismap
 
 @Composable
 fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
-    // Colores basados en el diseño
-    val colorFondoArriba = Color(0xFFE8F0EC)
-    val colorFondoAbajo = Color(0xFFF7FAF8)
-    val verdeOscuro = Color(0xFF1B4934)
-    val terracota = Color(0xFFD96B52)
-    val grisTexto = Color(0xFF555555)
+    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+    // Colores basados en el diseño adaptables
+    val colorFondoArriba = if (esOscuro) Color(0xFF12221A) else Color(0xFFE8F0EC)
+    val colorFondoAbajo = if (esOscuro) Color(0xFF0F1A14) else Color(0xFFF7FAF8)
+    val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
+    val terracota = if (esOscuro) Color(0xFFFF8A65) else Color(0xFFD96B52)
+    val grisTexto = if (esOscuro) Color(0xFFB0BEC5) else Color(0xFF555555)
+    val fondoCampos = if (esOscuro) Color(0xFF1E1E1E) else Color.White
+    val colorTextoPrincipal = if (esOscuro) Color.White else Color(0xFF1A202C)
 
     // Estados para los campos de texto
     var email by remember { mutableStateOf("") }
@@ -98,7 +101,7 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
             modifier = Modifier
                 .size(150.dp) // Un poco más grande para que luzca bien
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(fondoCampos)
                 .padding(5.dp), // Menos padding para aprovechar el espacio
             contentAlignment = Alignment.Center
         ) {
@@ -115,7 +118,7 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
         // Etiqueta "PUEBLOS VIVOS"
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = fondoCampos,
             shadowElevation = 2.dp
         ) {
             Row(
@@ -171,8 +174,8 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isError = emailError != null,
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = fondoCampos,
+                    focusedContainerColor = fondoCampos,
                     unfocusedBorderColor = Color.Transparent,
                     focusedBorderColor = verdeOscuro
                 ),
@@ -206,8 +209,8 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 isError = passwordError != null,
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = fondoCampos,
+                    focusedContainerColor = fondoCampos,
                     unfocusedBorderColor = Color.Transparent,
                     focusedBorderColor = verdeOscuro
                 ),
@@ -335,9 +338,10 @@ fun esEmailValido(email: String): Boolean {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
-    val verdeOscuro = Color(0xFF1B4934)
-    val colorFondo = Color(0xFFF7FAF8)
-    val grisTexto = Color(0xFF555555)
+    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+    val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
+    val colorFondo = if (esOscuro) Color(0xFF1E1E1E) else Color(0xFFF7FAF8)
+    val grisTexto = if (esOscuro) Color(0xFFB0BEC5) else Color(0xFF555555)
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -497,18 +501,23 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
 @Composable
 fun ChipInteres(texto: String, seleccionado: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val verdeOscuro = Color(0xFF1B4934)
+    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+    val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
+    val fondoChip = if (esOscuro) Color(0xFF1E1E1E) else Color.White
+    val colorBorde = if (esOscuro) Color(0xFF333333) else Color.LightGray
+    val colorTexto = if (esOscuro) Color(0xFFB0BEC5) else Color.Gray
+
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = if (seleccionado) verdeOscuro.copy(alpha = 0.1f) else Color.White,
-        border = BorderStroke(1.dp, if (seleccionado) verdeOscuro else Color.LightGray),
+        color = if (seleccionado) verdeOscuro.copy(alpha = 0.1f) else fondoChip,
+        border = BorderStroke(1.dp, if (seleccionado) verdeOscuro else colorBorde),
         modifier = modifier.clickable { onClick() }
     ) {
         Text(
             text = texto,
             modifier = Modifier.padding(vertical = 12.dp),
             textAlign = TextAlign.Center,
-            color = if (seleccionado) verdeOscuro else Color.Gray,
+            color = if (seleccionado) verdeOscuro else colorTexto,
             fontWeight = FontWeight.Medium,
             fontSize = 13.sp
         )

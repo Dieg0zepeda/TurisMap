@@ -43,11 +43,18 @@ import com.turismap.app.data.repository.LugaresRepository
 import kotlin.math.*
 import kotlinx.coroutines.CancellationException
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.turismap.app.theme.*
+
 private val ColorAirbnbPrimario = Color(0xFFFF385C)
-private val ColorAirbnbOscuro = Color(0xFF1E1E1E)
-private val ColorAirbnbGris = Color(0xFF717171)
-private val ColorAirbnbFondo = Color(0xFFF7F7F8)
-private val ColorAirbnbBorde = Color(0xFFEBEBEB)
+private val ColorAirbnbOscuro: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF7F7F7) else Color(0xFF1E1E1E)
+private val ColorAirbnbGris: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFA0A0A0) else Color(0xFF717171)
+private val ColorAirbnbFondo: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF7F7F8)
+private val ColorAirbnbBorde: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFEBEBEB)
 
 // Cálculo geodésico de distancia y tiempo estimado
 private fun calcularDistanciaYTiempo(
@@ -291,7 +298,7 @@ fun MapaScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color.White,
+                            color = FondoBlancoAdaptable,
                             shadowElevation = 3.dp,
                             modifier = Modifier.size(40.dp)
                         ) {
@@ -338,7 +345,7 @@ fun MapaScreen(
                             .height(50.dp)
                             .shadow(4.dp, RoundedCornerShape(30.dp))
                             .clip(RoundedCornerShape(30.dp))
-                            .background(Color.White)
+                            .background(FondoBlancoAdaptable)
                             .border(1.dp, ColorAirbnbBorde, RoundedCornerShape(30.dp))
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -401,7 +408,7 @@ fun MapaScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(24.dp))
                                 .clickable { categoriaSeleccionada = cat },
-                            color = if (isSelected) ColorAirbnbOscuro else Color.White,
+                            color = if (isSelected) ColorAirbnbOscuro else FondoBlancoAdaptable,
                             shape = RoundedCornerShape(24.dp),
                             border = if (!isSelected) BorderStroke(1.dp, ColorAirbnbBorde) else null,
                             shadowElevation = if (isSelected) 3.dp else 1.dp
@@ -437,7 +444,7 @@ fun MapaScreen(
 
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
                     elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
                     border = BorderStroke(1.dp, ColorAirbnbBorde),
                     modifier = Modifier.fillMaxWidth()
