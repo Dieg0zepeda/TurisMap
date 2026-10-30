@@ -12,8 +12,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,6 +21,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.LugaresRepository
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TurisMapNavHost(
-    controladorNavegacion: NavHostController,
+    controladorNavegacion: NavHostController = rememberNavController(),
     modificador: Modifier = Modifier,
     mostrarBarraInferior: Boolean = true,
     onCerrarSesion: () -> Unit = {},
@@ -48,7 +49,7 @@ fun TurisMapNavHost(
         startDestination = destinoInicial,
         modifier = modificadorConPadding
     ) {
-        // Tabs principales
+        // 1. Explorar
         composable(Pantalla.Explorar.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 ExplorarScreen(
@@ -62,36 +63,50 @@ fun TurisMapNavHost(
             }
         }
 
+        // 2. Mapa
         composable(Pantalla.Mapa.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 MapaScreen(
-                    onAbrirDetalle = { lugar ->
-                        controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
+                    onComercioClick = { comercioId ->
+                        controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
                     }
                 )
             }
         }
-        composable(Pantalla.Guia.ruta) {
+
+        // 3. Guía Comercial (Airbnb Style)
+        composable(route = Pantalla.Guia.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
-                GuiaScreen(onComercioClick = { comercioId ->
-                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
-                })
+                GuiaScreen(
+                    onComercioClick = { comercioId ->
+                        controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                    },
+                    onIniciarRuta = { _ ->
+                        controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
+                            popUpTo(Pantalla.Guia.ruta) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
         }
+
+        // 4. Perfil
         composable(Pantalla.Perfil.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PerfilScreen(onCerrarSesionClick = onCerrarSesion)
             }
         }
 
-        // NAVEGACIÓN DINÁMICA DE DETALLE
+        // Detalle de Lugar
         composable(
             route = Pantalla.DetalleLugar.ruta,
             arguments = listOf(navArgument("lugarId") { type = NavType.StringType })
         ) { backStackEntry ->
             val lugarId = backStackEntry.arguments?.getString("lugarId") ?: return@composable
 
-            // 1. Estados para manejar la asincronía y el renderizado
             var lugarCompleto by remember { mutableStateOf<Lugar?>(null) }
             var cargando by remember { mutableStateOf(true) }
             var errorCarga by remember { mutableStateOf<String?>(null) }
@@ -185,6 +200,7 @@ fun TurisMapNavHost(
             }
         }
 
+        // Detalle de Experiencia / Comercio
         composable(
             route = Pantalla.DetalleExperiencia.ruta,
             arguments = listOf(navArgument("comercioId") { type = NavType.StringType })
@@ -198,6 +214,7 @@ fun TurisMapNavHost(
             }
         }
 
+        // Inicio de Sesión
         composable(Pantalla.InicioSesion.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PantallaInicioSesion(
