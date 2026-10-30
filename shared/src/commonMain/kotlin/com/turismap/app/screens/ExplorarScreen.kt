@@ -341,7 +341,6 @@ fun ExplorarScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(80.dp)) // Espacio para BottomBar
         }
     }
 }

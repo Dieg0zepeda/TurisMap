@@ -240,12 +240,13 @@ fun FigmaBottomBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(68.dp),
+            .wrapContentHeight()
+            .navigationBarsPadding(),
         color = Color.White,
         border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -38,16 +38,10 @@ fun TurisMapNavHost(
     onCerrarSesion: () -> Unit = {},
     destinoInicial: String = Pantalla.Explorar.ruta
 ) {
-    val modificadorConPadding = if (mostrarBarraInferior) {
-        modificador.padding(bottom = 68.dp)
-    } else {
-        modificador
-    }
-
     NavHost(
         navController = controladorNavegacion,
         startDestination = destinoInicial,
-        modifier = modificadorConPadding
+        modifier = modificador
     ) {
         // 1. Explorar
         composable(Pantalla.Explorar.ruta) {
@@ -76,28 +70,24 @@ fun TurisMapNavHost(
 
         // 3. Guía Comercial (Airbnb Style)
         composable(route = Pantalla.Guia.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                GuiaScreen(
-                    onComercioClick = { comercioId ->
-                        controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
-                    },
-                    onIniciarRuta = { _ ->
-                        controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
-                            popUpTo(Pantalla.Guia.ruta) {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
+            GuiaScreen(
+                onComercioClick = { comercioId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                },
+                onIniciarRuta = { _ ->
+                    controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
+                        popUpTo(Pantalla.Guia.ruta) {
+                            inclusive = true
                         }
+                        launchSingleTop = true
                     }
-                )
-            }
+                }
+            )
         }
 
         // 4. Perfil
         composable(Pantalla.Perfil.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                PerfilScreen(onCerrarSesionClick = onCerrarSesion)
-            }
+            PerfilScreen(onCerrarSesionClick = onCerrarSesion)
         }
 
         // Detalle de Lugar

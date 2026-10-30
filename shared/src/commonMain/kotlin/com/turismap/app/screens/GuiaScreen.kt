@@ -71,6 +71,7 @@ private val categoriasFiltros = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuiaScreen(
+    paddingValues: PaddingValues = PaddingValues(0.dp),
     comerciosExternos: List<Comercio>? = null,
     onLlamarComercio: (String) -> Unit = {},
     onComercioClick: (String) -> Unit = {},
@@ -131,14 +132,12 @@ fun GuiaScreen(
         }
     }
 
-    Scaffold(
-        containerColor = Color.White
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(paddingValues)
+    ) {
             // Buscador estilo cápsula flotante
             Box(
                 modifier = Modifier
@@ -300,7 +299,6 @@ fun GuiaScreen(
                         }
                     }
                 }
-            }
         }
     }
 

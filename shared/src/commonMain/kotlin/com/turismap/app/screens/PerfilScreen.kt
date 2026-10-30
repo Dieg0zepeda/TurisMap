@@ -34,6 +34,7 @@ import kotlinx.coroutines.CancellationException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
+    paddingValues: PaddingValues = PaddingValues(0.dp),
     onCerrarSesionClick: () -> Unit = {}
 ) {
     // --- VARIABLES DE APARIENCIA ---
@@ -108,13 +109,11 @@ fun PerfilScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = fondoApp
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(fondoApp)
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -216,7 +215,7 @@ fun PerfilScreen(
                         color = Color.White.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = "TurisMap Negocios",
+                        text = "TurisMap Negocios",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
@@ -227,7 +226,7 @@ fun PerfilScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "Promociona tu negocio en la Ruta",
+                    text = "Promociona tu negocio en la Ruta",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -236,7 +235,7 @@ fun PerfilScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.",
+                    text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.",
                         fontSize = 12.sp,
                         color = Color.White.copy(alpha = 0.85f),
                         lineHeight = 18.sp
@@ -251,7 +250,7 @@ fun PerfilScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            text = "Registrar mi comercio",
+                        text = "Registrar mi comercio",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -335,168 +334,173 @@ fun PerfilScreen(
             Spacer(modifier = Modifier.height(40.dp))
         }
 
-        // --- DIÁLOGOS EMERGENTES ---
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
 
-        if (mostrarOpcionesFoto) {
-            val tituloDialogo = if (tipoFotoSeleccionada == "perfil") "Actualizar Foto de Perfil" else "Actualizar Foto de Portada"
-            AlertDialog(
-                onDismissRequest = { mostrarOpcionesFoto = false },
-                containerColor = fondoTarjeta,
-                title = { Text(tituloDialogo, fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-                text = {
-                    Column {
-                        Text("Usa una URL HTTPS pública. La app no sube archivos ni utiliza Firebase Storage.")
-                        OutlinedTextField(
-                            value = urlFotoTemporal,
-                            onValueChange = { urlFotoTemporal = it },
-                            label = { Text("URL de imagen") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        coroutineScope.launch {
-                            try {
-                                UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", urlFotoTemporal)
-                                usuarioBD = if (tipoFotoSeleccionada == "perfil") {
-                                    usuarioBD?.copy(fotoPerfil = urlFotoTemporal.trim())
-                                } else {
-                                    usuarioBD?.copy(fotoPortada = urlFotoTemporal.trim())
-                                }
-                                mostrarOpcionesFoto = false
-                                snackbarHostState.showSnackbar("Imagen actualizada.")
-                            } catch (error: CancellationException) {
-                                throw error
-                            } catch (error: Exception) {
-                                snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar la imagen.")
-                            }
-                        }
-                    }) { Text("Guardar", color = verdeEsmeralda) }
-                },
-                dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = terracota) } }
-            )
-        }
+    // --- DIÁLOGOS EMERGENTES ---
 
-        if (mostrarFormularioComercio) {
-            ComercioSolicitudDialog(
-                onDismiss = { mostrarFormularioComercio = false },
-                onSubmitted = {
-                    mostrarFormularioComercio = false
+    if (mostrarOpcionesFoto) {
+        val tituloDialogo = if (tipoFotoSeleccionada == "perfil") "Actualizar Foto de Perfil" else "Actualizar Foto de Portada"
+        AlertDialog(
+            onDismissRequest = { mostrarOpcionesFoto = false },
+            containerColor = fondoTarjeta,
+            title = { Text(tituloDialogo, fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
+            text = {
+                Column {
+                    Text("Usa una URL HTTPS pública. La app no sube archivos ni utiliza Firebase Storage.")
+                    OutlinedTextField(
+                        value = urlFotoTemporal,
+                        onValueChange = { urlFotoTemporal = it },
+                        label = { Text("URL de imagen") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
                     coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Solicitud enviada. Un administrador debe revisarla antes de publicarse.")
+                        try {
+                            UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", urlFotoTemporal)
+                            usuarioBD = if (tipoFotoSeleccionada == "perfil") {
+                                usuarioBD?.copy(fotoPerfil = urlFotoTemporal.trim())
+                            } else {
+                                usuarioBD?.copy(fotoPortada = urlFotoTemporal.trim())
+                            }
+                            mostrarOpcionesFoto = false
+                            snackbarHostState.showSnackbar("Imagen actualizada.")
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar la imagen.")
+                        }
+                    }
+                }) { Text("Guardar", color = verdeEsmeralda) }
+            },
+            dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = terracota) } }
+        )
+    }
+
+    if (mostrarFormularioComercio) {
+        ComercioSolicitudDialog(
+            onDismiss = { mostrarFormularioComercio = false },
+            onSubmitted = {
+                mostrarFormularioComercio = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Solicitud enviada. Un administrador debe revisarla antes de publicarse.")
+                }
+            }
+        )
+    }
+
+    if (mostrarDialogoApariencia) {
+        val opcionesTema = listOf("Modo Claro", "Modo Oscuro")
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoApariencia = false },
+            containerColor = fondoTarjeta,
+            title = { Text("Apariencia", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
+            text = {
+                Column {
+                    opcionesTema.forEach { tema ->
+                        Row(modifier = Modifier.fillMaxWidth().clickable { temaSeleccionado = tema }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = (tema == temaSeleccionado), onClick = { temaSeleccionado = tema }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = tema, fontSize = 16.sp, color = colorTextoPrincipal)
+                        }
                     }
                 }
-            )
-        }
+            },
+            confirmButton = { TextButton(onClick = { mostrarDialogoApariencia = false }) { Text("Guardar", color = verdeEsmeralda) } }
+        )
+    }
 
-        if (mostrarDialogoApariencia) {
-            val opcionesTema = listOf("Modo Claro", "Modo Oscuro")
-            AlertDialog(
-                onDismissRequest = { mostrarDialogoApariencia = false },
-                containerColor = fondoTarjeta,
-                title = { Text("Apariencia", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-                text = {
-                    Column {
-                        opcionesTema.forEach { tema ->
-                            Row(modifier = Modifier.fillMaxWidth().clickable { temaSeleccionado = tema }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = (tema == temaSeleccionado), onClick = { temaSeleccionado = tema }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = tema, fontSize = 16.sp, color = colorTextoPrincipal)
-                            }
+    if (mostrarDialogoPrivacidad) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoPrivacidad = false },
+            containerColor = fondoTarjeta,
+            title = { Text("Privacidad", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
+            text = {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Perfil Público", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
+                            Text("Permite que otros vean tus guardados.", fontSize = 12.sp, color = colorTextoSecundario)
+                        }
+                        Switch(checked = perfilPublico, onCheckedChange = { perfilPublico = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
+                    }
+                    HorizontalDivider(color = colorDivisor)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Ubicación en Reseñas", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
+                            Text("Comparte de dónde es tu reseña.", fontSize = 12.sp, color = colorTextoSecundario)
+                        }
+                        Switch(checked = compartirUbicacion, onCheckedChange = { compartirUbicacion = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Te enviaremos un correo.") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorTextoPrincipal), shape = RoundedCornerShape(8.dp)) {
+                        Icon(Icons.Default.LockReset, contentDescription = null, tint = fondoApp, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Cambiar Contraseña", color = fondoApp)
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { mostrarDialogoPrivacidad = false }) { Text("Cerrar", color = verdeEsmeralda, fontWeight = FontWeight.Bold) } }
+        )
+    }
+
+    if (mostrarDialogoEditar) {
+        var tempNombre by remember { mutableStateOf(nombreMostrar) }
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoEditar = false },
+            containerColor = fondoTarjeta,
+            title = { Text("Editar Perfil", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
+            text = {
+                Column {
+                    OutlinedTextField(value = tempNombre, onValueChange = { tempNombre = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    coroutineScope.launch {
+                        try {
+                            UsuarioRepository.actualizarPerfil(tempNombre.trim())
+                            usuarioBD = usuarioBD?.copy(nombre = tempNombre.trim())
+                            mostrarDialogoEditar = false
+                            snackbarHostState.showSnackbar("Perfil actualizado.")
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar el perfil.")
                         }
                     }
-                },
-                confirmButton = { TextButton(onClick = { mostrarDialogoApariencia = false }) { Text("Guardar", color = verdeEsmeralda) } }
-            )
-        }
+                }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = terracota) } }
+        )
+    }
 
-        if (mostrarDialogoPrivacidad) {
-            AlertDialog(
-                onDismissRequest = { mostrarDialogoPrivacidad = false },
-                containerColor = fondoTarjeta,
-                title = { Text("Privacidad", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-                text = {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Perfil Público", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
-                                Text("Permite que otros vean tus guardados.", fontSize = 12.sp, color = colorTextoSecundario)
-                            }
-                            Switch(checked = perfilPublico, onCheckedChange = { perfilPublico = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
-                        }
-                        HorizontalDivider(color = colorDivisor)
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Ubicación en Reseñas", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colorTextoPrincipal)
-                                Text("Comparte de dónde es tu reseña.", fontSize = 12.sp, color = colorTextoSecundario)
-                            }
-                            Switch(checked = compartirUbicacion, onCheckedChange = { compartirUbicacion = it }, colors = SwitchDefaults.colors(checkedThumbColor = verdeEsmeralda, checkedTrackColor = verdeEsmeralda.copy(alpha = 0.5f)))
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Te enviaremos un correo.") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorTextoPrincipal), shape = RoundedCornerShape(8.dp)) {
-                            Icon(Icons.Default.LockReset, contentDescription = null, tint = fondoApp, modifier = Modifier.size(18.dp))
+    if (mostrarDialogoIdioma) {
+        val opcionesIdioma = listOf("Español", "English", "Français")
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoIdioma = false },
+            containerColor = fondoTarjeta,
+            title = { Text("Idioma", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
+            text = {
+                Column {
+                    opcionesIdioma.forEach { idioma ->
+                        Row(modifier = Modifier.fillMaxWidth().clickable { idiomaSeleccionado = idioma }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = (idioma == idiomaSeleccionado), onClick = { idiomaSeleccionado = idioma }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cambiar Contraseña", color = fondoApp)
+                            Text(text = idioma, fontSize = 16.sp, color = colorTextoPrincipal)
                         }
                     }
-                },
-                confirmButton = { TextButton(onClick = { mostrarDialogoPrivacidad = false }) { Text("Cerrar", color = verdeEsmeralda, fontWeight = FontWeight.Bold) } }
-            )
-        }
-
-        if (mostrarDialogoEditar) {
-            var tempNombre by remember { mutableStateOf(nombreMostrar) }
-            AlertDialog(
-                onDismissRequest = { mostrarDialogoEditar = false },
-                containerColor = fondoTarjeta,
-                title = { Text("Editar Perfil", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-                text = {
-                    Column {
-                        OutlinedTextField(value = tempNombre, onValueChange = { tempNombre = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        coroutineScope.launch {
-                            try {
-                                UsuarioRepository.actualizarPerfil(tempNombre.trim())
-                                usuarioBD = usuarioBD?.copy(nombre = tempNombre.trim())
-                                mostrarDialogoEditar = false
-                                snackbarHostState.showSnackbar("Perfil actualizado.")
-                            } catch (error: CancellationException) {
-                                throw error
-                            } catch (error: Exception) {
-                                snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar el perfil.")
-                            }
-                        }
-                    }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
-                },
-                dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = terracota) } }
-            )
-        }
-
-        if (mostrarDialogoIdioma) {
-            val opcionesIdioma = listOf("Español", "English", "Français")
-            AlertDialog(
-                onDismissRequest = { mostrarDialogoIdioma = false },
-                containerColor = fondoTarjeta,
-                title = { Text("Idioma", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-                text = {
-                    Column {
-                        opcionesIdioma.forEach { idioma ->
-                            Row(modifier = Modifier.fillMaxWidth().clickable { idiomaSeleccionado = idioma }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = (idioma == idiomaSeleccionado), onClick = { idiomaSeleccionado = idioma }, colors = RadioButtonDefaults.colors(selectedColor = verdeEsmeralda))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = idioma, fontSize = 16.sp, color = colorTextoPrincipal)
-                            }
-                        }
-                    }
-                },
-                confirmButton = { TextButton(onClick = { mostrarDialogoIdioma = false }) { Text("Cerrar", color = terracota) } }
-            )
-        }
+                }
+            },
+            confirmButton = { TextButton(onClick = { mostrarDialogoIdioma = false }) { Text("Cerrar", color = terracota) } }
+        )
     }
 }
 
