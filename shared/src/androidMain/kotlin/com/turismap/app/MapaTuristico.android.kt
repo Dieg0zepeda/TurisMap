@@ -30,14 +30,26 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.clustering.Clustering
+import com.google.maps.android.clustering.ClusterItem
 import com.turismap.app.data.models.Lugar
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+class LugarClusterItem(val lugar: Lugar) : ClusterItem {
+    override fun getPosition(): LatLng = LatLng(lugar.ubicacionCoordenadas.latitud, lugar.ubicacionCoordenadas.longitud)
+    override fun getTitle(): String = lugar.nombre
+    override fun getSnippet(): String = lugar.subtitulo
+    override fun getZIndex(): Float? = null
+}
 
 @Composable
 actual fun MapaTuristico(
@@ -45,12 +57,23 @@ actual fun MapaTuristico(
     onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {
-    val ataco = LatLng(13.8697, -89.8486)
+    // Centroide dinámico calculado 100% desde las coordenadas de la Base de Datos
+    val centroRuta = remember(lugares) {
+        if (lugares.isNotEmpty()) {
+            val avgLat = lugares.map { it.ubicacionCoordenadas.latitud }.average()
+            val avgLng = lugares.map { it.ubicacionCoordenadas.longitud }.average()
+            LatLng(avgLat, avgLng)
+        } else {
+            LatLng(13.8697, -89.8486) // Fallback inicial de milisegundos mientras responde Firebase
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val esOscuro = isSystemInDarkTheme()
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var hasPermission by remember { mutableStateOf(false) }
     var shouldRequestPermission by remember { mutableStateOf(false) }
+    var lugaresCercanos by remember { mutableStateOf<List<Lugar>>(emptyList()) }
 
     // Verificar permisos de ubicación
     LaunchedEffect(Unit) {
@@ -68,28 +91,31 @@ actual fun MapaTuristico(
         }
     }
 
-    // Ubicación por defecto si no hay permisos
+    // Ubicación por defecto basada en la BD si no hay permisos
     if (shouldRequestPermission) {
-        userLocation = ataco
+        userLocation = centroRuta
         hasPermission = false
         shouldRequestPermission = false
     }
 
-    // Calcular lugares más cercanos (2-3)
-    val lugaresCercanos = remember(userLocation, lugares) {
-        if (userLocation == null || lugares.isEmpty()) {
-            lugares
-        } else {
-            val loc = userLocation!!
-            lugares.map { lugar ->
-                val distancia = calcularDistancia(
-                    loc.latitude,
-                    loc.longitude,
-                    lugar.ubicacionCoordenadas.latitud,
-                    lugar.ubicacionCoordenadas.longitud
-                )
-                lugar to distancia
-            }.sortedBy { it.second }.take(3).map { it.first }
+    // Calcular lugares más cercanos en hilo de fondo para no bloquear UI
+    LaunchedEffect(userLocation, lugares) {
+        if (userLocation != null && lugares.isNotEmpty()) {
+            withContext(Dispatchers.Default) {
+                val loc = userLocation!!
+                val cercanos = lugares.map { lugar ->
+                    val distancia = calcularDistancia(
+                        loc.latitude,
+                        loc.longitude,
+                        lugar.ubicacionCoordenadas.latitud,
+                        lugar.ubicacionCoordenadas.longitud
+                    )
+                    lugar to distancia
+                }.sortedBy { it.second }.take(3).map { it.first }
+                lugaresCercanos = cercanos
+            }
+        } else if (lugares.isNotEmpty()) {
+            lugaresCercanos = lugares
         }
     }
 
@@ -113,7 +139,7 @@ actual fun MapaTuristico(
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            userLocation ?: ataco,
+            userLocation ?: centroRuta,
             12f
         )
     }
@@ -129,112 +155,23 @@ actual fun MapaTuristico(
         }
     }
 
-    val estiloVerdeNaturaleza = """
+    val estiloOscuro = """
         [
-          {
-            "stylers": [
-              { "hue": "#bbff00" },
-              { "weight": 0.5 },
-              { "gamma": 0.5 }
-            ]
-          },
-          {
-            "elementType": "labels",
-            "stylers": [
-              { "visibility": "off" }
-            ]
-          },
-          {
-            "featureType": "landscape.natural",
-            "stylers": [
-              { "color": "#a4cc48" }
-            ]
-          },
-          {
-            "featureType": "road",
-            "elementType": "geometry",
-            "stylers": [
-              { "color": "#ffffff" },
-              { "visibility": "on" },
-              { "weight": 1 }
-            ]
-          },
-          {
-            "featureType": "administrative",
-            "elementType": "labels",
-            "stylers": [
-              { "visibility": "on" }
-            ]
-          },
-          {
-            "featureType": "road.highway",
-            "elementType": "labels",
-            "stylers": [
-              { "visibility": "simplified" },
-              { "gamma": 1.14 },
-              { "saturation": -18 }
-            ]
-          },
-          {
-            "featureType": "road.highway.controlled_access",
-            "elementType": "labels",
-            "stylers": [
-              { "saturation": 30 },
-              { "gamma": 0.76 }
-            ]
-          },
-          {
-            "featureType": "road.local",
-            "stylers": [
-              { "visibility": "simplified" },
-              { "weight": 0.4 },
-              { "lightness": -8 }
-            ]
-          },
-          {
-            "featureType": "water",
-            "stylers": [
-              { "color": "#4aaecc" }
-            ]
-          },
-          {
-            "featureType": "landscape.man_made",
-            "stylers": [
-              { "color": "#718e32" }
-            ]
-          },
-          {
-            "featureType": "poi.business",
-            "stylers": [
-              { "saturation": 68 },
-              { "lightness": -61 }
-            ]
-          },
-          {
-            "featureType": "administrative.locality",
-            "elementType": "labels.text.stroke",
-            "stylers": [
-              { "weight": 2.7 },
-              { "color": "#f4f9e8" }
-            ]
-          },
-          {
-            "featureType": "road.highway.controlled_access",
-            "elementType": "geometry.stroke",
-            "stylers": [
-              { "weight": 1.5 },
-              { "color": "#e53013" },
-              { "saturation": -42 },
-              { "lightness": 28 }
-            ]
-          }
+          { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+          { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+          { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+          { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#d59563" }] },
+          { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
+          { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+          { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
+          { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
         ]
     """.trimIndent()
 
-    val mapProperties = remember(hasPermission) {
+    val mapProperties = remember(hasPermission, esOscuro) {
         MapProperties(
             isMyLocationEnabled = hasPermission,
-            mapStyleOptions = MapStyleOptions(estiloVerdeNaturaleza)
+            mapStyleOptions = if (esOscuro) MapStyleOptions(estiloOscuro) else null
         )
     }
 
@@ -245,41 +182,27 @@ actual fun MapaTuristico(
         )
     }
 
+    val clusterItems = remember(lugares) { lugares.map { LugarClusterItem(it) } }
+
     GoogleMap(
         modifier = modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = mapProperties,
         uiSettings = mapUiSettings
     ) {
-        lugares.forEach { lugar ->
-            Marker(
-                state = MarkerState(
-                    position = LatLng(
-                        lugar.ubicacionCoordenadas.latitud,
-                        lugar.ubicacionCoordenadas.longitud
+        Clustering(
+            items = clusterItems,
+            onClusterItemClick = { item ->
+                onLugarClick(item.lugar)
+                coroutineScope.launch {
+                    cameraPositionState.animate(
+                        update = CameraUpdateFactory.newLatLngZoom(item.position, 15f),
+                        durationMs = 500
                     )
-                ),
-                title = lugar.nombre,
-                snippet = lugar.subtitulo,
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
-                onClick = {
-                    onLugarClick(lugar)
-                    coroutineScope.launch {
-                        cameraPositionState.animate(
-                            update = CameraUpdateFactory.newLatLngZoom(
-                                LatLng(
-                                    lugar.ubicacionCoordenadas.latitud,
-                                    lugar.ubicacionCoordenadas.longitud
-                                ),
-                                15f
-                            ),
-                            durationMs = 500
-                        )
-                    }
-                    true
                 }
-            )
-        }
+                true
+            }
+        )
     }
 }
 

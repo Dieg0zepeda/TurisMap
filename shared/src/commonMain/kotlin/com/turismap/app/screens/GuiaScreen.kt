@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalUriHandler
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
@@ -94,6 +95,7 @@ fun GuiaScreen(
     var cargando by remember { mutableStateOf(comerciosExternos == null) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(comerciosExternos) {
         if (comerciosExternos != null) {
@@ -323,8 +325,11 @@ fun GuiaScreen(
                 onLlamar = { onLlamarComercio(comercioSeleccionado!!.telefono) },
                 onIniciarRuta = {
                     val c = comercioSeleccionado!!
-                    comercioSeleccionado = null
-                    onIniciarRuta(c)
+                    val municipio = mapaMunicipios[c.lugarId.trim()] ?: ""
+                    val query = "${c.nombre} ${c.direccion} $municipio El Salvador"
+                        .replace(" ", "+").replace(",", "")
+                    val url = "https://www.google.com/maps/dir/?api=1&destination=$query"
+                    try { uriHandler.openUri(url) } catch (e: Exception) {}
                 },
                 onVerDetalleCompleto = {
                     val id = comercioSeleccionado!!.id

@@ -250,6 +250,20 @@ fun MapaScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    Button(
+                        onClick = { 
+                            val url = "https://www.google.com/maps/dir/?api=1&destination=${coords.latitud},${coords.longitud}"
+                            try { uriHandler.openUri(url) } catch (e: Exception) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbPrimario),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("Maps", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     // Botón para finalizar ruta
                     Button(
                         onClick = { comercioEnRutaActiva = null },
