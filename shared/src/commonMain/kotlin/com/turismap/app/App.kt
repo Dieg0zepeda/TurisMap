@@ -98,15 +98,19 @@ fun App() {
                                     else -> Pantalla.Explorar.ruta
                                 }
 
-                                controladorNavegacion.navigate(destino) {
-                                    // Usamos el 'route' del destino inicial, o hacemos fallback a la ruta de Explorar
-                                    val rutaInicio = controladorNavegacion.graph.findStartDestination().route ?: Pantalla.Explorar.ruta
+                                if (controladorNavegacion.currentDestination?.route != destino) {
+                                    val volvioAUnaPestanaExistente =
+                                        controladorNavegacion.popBackStack(destino, inclusive = false)
 
-                                    popUpTo(route = rutaInicio) {
-                                        saveState = true
+                                    if (!volvioAUnaPestanaExistente) {
+                                        controladorNavegacion.navigate(destino) {
+                                            popUpTo(id = controladorNavegacion.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             }
                         )

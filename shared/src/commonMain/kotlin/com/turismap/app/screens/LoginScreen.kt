@@ -281,7 +281,7 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
             shape = RoundedCornerShape(16.dp),
             enabled = !cargando
@@ -482,7 +482,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos

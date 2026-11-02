@@ -313,7 +313,7 @@ fun PerfilScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TerracotaTextoAdaptable),
                     border = BorderStroke(2.dp, TerracotaTextoAdaptable), shape = RoundedCornerShape(16.dp),
                     enabled = !cerrandoSesion

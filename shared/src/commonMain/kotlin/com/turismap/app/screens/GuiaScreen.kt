@@ -156,7 +156,7 @@ fun GuiaScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
+                        .heightIn(min = 54.dp)
                         .shadow(
                             elevation = 4.dp,
                             shape = RoundedCornerShape(32.dp),
@@ -357,6 +357,7 @@ fun SeccionMunicipioAirbnb(
         ) {
             Text(
                 text = titulo,
+                modifier = Modifier.weight(1f),
                 color = AirbnbBlack,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold,
@@ -467,17 +468,13 @@ fun TarjetaMiniAirbnb(
             text = comercio.nombre,
             color = AirbnbBlack,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            fontWeight = FontWeight.Bold
         )
 
         Text(
             text = "$precio por consumo",
             color = AirbnbGray,
-            fontSize = 13.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            fontSize = 13.sp
         )
 
         Spacer(modifier = Modifier.height(2.dp))
@@ -593,51 +590,51 @@ fun VentanaDetalleAirbnb(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Tarjeta de Ubicación con acción de iniciar ruta
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                             .background(AirbnbLightGray)
                             .border(1.dp, AirbnbBorder, RoundedCornerShape(14.dp))
                             .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(FondoBlancoAdaptable),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Place,
-                                contentDescription = null,
-                                tint = AirbnbPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(FondoBlancoAdaptable),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Place,
+                                    contentDescription = null,
+                                    tint = AirbnbPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Ubicación en la Ruta",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = AirbnbBlack
+                                )
+                                Text(
+                                    text = comercio.direccion.ifBlank { "Ruta de las Flores, El Salvador" },
+                                    fontSize = 12.sp,
+                                    color = AirbnbGray
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ubicación en la Ruta",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = AirbnbBlack
-                            )
-                            Text(
-                                text = comercio.direccion.ifBlank { "Ruta de las Flores, El Salvador" },
-                                fontSize = 12.sp,
-                                color = AirbnbGray,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = onIniciarRuta,
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Place,
@@ -726,23 +723,20 @@ fun VentanaDetalleAirbnb(
         // Barra inferior fija con botones balanceados
         HorizontalDivider(color = AirbnbBorder, thickness = 0.8.dp)
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(FondoBlancoAdaptable)
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Desde $precio",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = AirbnbBlack,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = AirbnbBlack
                 )
                 Text(
                     text = "por consumo",
@@ -751,9 +745,8 @@ fun VentanaDetalleAirbnb(
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -761,7 +754,6 @@ fun VentanaDetalleAirbnb(
                     IconButton(
                         onClick = onLlamar,
                         modifier = Modifier
-                            .size(46.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .border(1.dp, AirbnbBorder, RoundedCornerShape(10.dp))
                             .background(AirbnbLightGray)
@@ -778,9 +770,10 @@ fun VentanaDetalleAirbnb(
                 // Botón Iniciar Ruta destacado
                 Button(
                     onClick = onIniciarRuta,
+                    modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AirbnbPrimary),
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Place,

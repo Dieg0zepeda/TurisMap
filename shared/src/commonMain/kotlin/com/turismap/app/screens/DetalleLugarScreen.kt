@@ -194,7 +194,7 @@ fun DetalleLugarScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = onIrAGuia, modifier = Modifier.fillMaxWidth().height(48.dp),
+                        onClick = onIrAGuia, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TerracotaAcento), shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(text = "Ver Guía de Comercio y Ocio →", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -209,7 +209,7 @@ fun DetalleLugarScreen(
 @Composable
 fun AtractivoCardBase(atractivo: Atractivo) {
     Card(
-        modifier = Modifier.width(200.dp).height(240.dp),
+        modifier = Modifier.width(200.dp).heightIn(min = 240.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
@@ -234,8 +234,8 @@ fun AtractivoCardBase(atractivo: Atractivo) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(text = atractivo.titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = atractivo.descripcion, fontSize = 12.sp, color = GrisTextoSecundario, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                Spacer(modifier = Modifier.weight(1f))
+                Text(text = atractivo.descripcion, fontSize = 12.sp, color = GrisTextoSecundario)
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(text = atractivo.accion, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TerracotaTextoAdaptable)
             }
         }

@@ -94,7 +94,7 @@ fun FigmaSearchBar(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(14.dp)),
         color = FondoBlancoAdaptable,
         shape = RoundedCornerShape(14.dp),
@@ -102,7 +102,7 @@ fun FigmaSearchBar(modifier: Modifier = Modifier) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -193,7 +193,6 @@ fun FigmaPoiCard(
                 text = lugar.subtitulo,
                 fontSize = 13.sp,
                 color = GrisTextoSecundario,
-                maxLines = 2,
                 lineHeight = 18.sp
             )
 
@@ -246,17 +245,19 @@ fun FigmaBottomBar(
         border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEachIndexed { index, tab ->
                 val isSelected = selectedIndex == index
                 Column(
                     modifier = Modifier
+                        .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable { onTabSelected(index) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 4.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -270,7 +271,8 @@ fun FigmaBottomBar(
                         text = tab.label,
                         fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario
+                        color = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }

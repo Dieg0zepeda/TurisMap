@@ -131,7 +131,7 @@ fun ExplorarScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(280.dp)
+                        .heightIn(min = 280.dp)
                         .padding(horizontal = 16.dp)
                         .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
                         .clickable { onLugarClick(lugarDestacado!!) },
@@ -222,7 +222,6 @@ fun ExplorarScreen(
                     Card(
                         modifier = Modifier
                             .width(140.dp)
-                            .height(180.dp)
                             .clickable { onLugarClick(lugar) },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
@@ -266,17 +265,13 @@ fun ExplorarScreen(
                                     text = lugar.nombre,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextoPrincipalOscuro,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    color = TextoPrincipalOscuro
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = lugar.subtitulo,
                                     fontSize = 12.sp,
-                                    color = GrisTextoSecundario,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    color = GrisTextoSecundario
                                 )
                             }
                         }

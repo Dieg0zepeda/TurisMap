@@ -211,67 +211,66 @@ fun MapaScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp)
                     .align(Alignment.TopCenter)
             ) {
-                Row(
+                Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(ColorAirbnbPrimario),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Navigation,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(ColorAirbnbPrimario),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Navigation,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Rumbo a ${c.nombre}",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = "🚗 Llegada estimada en $tiempo ($dist)",
+                                color = Color(0xFFB0B0B0),
+                                fontSize = 12.sp
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Rumbo a ${c.nombre}",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "🚗 Llegada estimada en $tiempo ($dist)",
-                            color = Color(0xFFB0B0B0),
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = { 
-                            val url = "https://www.google.com/maps/dir/?api=1&destination=${coords.latitud},${coords.longitud}"
-                            try { uriHandler.openUri(url) } catch (e: Exception) {}
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbPrimario),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Maps", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Botón para finalizar ruta
-                    Button(
-                        onClick = { comercioEnRutaActiva = null },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Text("Salir", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Button(
+                            onClick = {
+                                val url = "https://www.google.com/maps/dir/?api=1&destination=${coords.latitud},${coords.longitud}"
+                                try {
+                                    uriHandler.openUri(url)
+                                } catch (e: Exception) {}
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbPrimario),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Abrir en Maps", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { comercioEnRutaActiva = null },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Finalizar ruta", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
@@ -356,7 +355,7 @@ fun MapaScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .heightIn(min = 50.dp)
                             .shadow(4.dp, RoundedCornerShape(30.dp))
                             .clip(RoundedCornerShape(30.dp))
                             .background(FondoBlancoAdaptable)
@@ -522,9 +521,7 @@ fun MapaScreen(
                                     text = comercio.nombre,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ColorAirbnbOscuro,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    color = ColorAirbnbOscuro
                                 )
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -538,9 +535,7 @@ fun MapaScreen(
                                     Text(
                                         text = "${comercio.calificacionPromedio ?: 4.9} · ${comercio.direccion.ifBlank { "Ruta de las Flores" }}",
                                         fontSize = 12.sp,
-                                        color = ColorAirbnbGris,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        color = ColorAirbnbGris
                                     )
                                 }
 
@@ -578,10 +573,9 @@ fun MapaScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         // UMI BOTÓN OÑEMOHENDA PORÃVA
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (comercio.telefono.isNotBlank()) {
                                 OutlinedButton(
@@ -593,15 +587,17 @@ fun MapaScreen(
                                     },
                                     shape = RoundedCornerShape(12.dp),
                                     border = BorderStroke(1.dp, ColorAirbnbBorde),
-                                    contentPadding = PaddingValues(10.dp),
-                                    modifier = Modifier.size(44.dp)
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Phone,
-                                        contentDescription = "Llamar",
+                                        contentDescription = null,
                                         tint = ColorAirbnbOscuro,
                                         modifier = Modifier.size(16.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Llamar")
                                 }
                             }
 
@@ -612,7 +608,7 @@ fun MapaScreen(
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbPrimario),
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                                 contentPadding = PaddingValues(vertical = 11.dp)
                             ) {
                                 Icon(
@@ -630,7 +626,6 @@ fun MapaScreen(
                                 )
                             }
 
-                            // Botón "Detalles"
                             Button(
                                 onClick = {
                                     val id = comercio.id
@@ -641,6 +636,7 @@ fun MapaScreen(
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbOscuro),
+                                modifier = Modifier.fillMaxWidth(),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 11.dp)
                             ) {
                                 Text(

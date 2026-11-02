@@ -2,8 +2,10 @@ package com.turismap.app.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -45,9 +47,10 @@ fun PantallaInicioSesion(
         modifier = Modifier
             .fillMaxSize()
             .background(GrisFondo)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         // Logo/Brand
         Spacer(modifier = Modifier.height(40.dp))
@@ -169,7 +172,7 @@ fun PantallaInicioSesion(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp),
             enabled = formularioValido && !cargando,
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
@@ -247,7 +250,7 @@ fun PantallaInicioSesion(
             onClick = { /* TODO: Implementar Google Sign-In */ },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp),
             shape = RoundedCornerShape(12.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
         ) {
