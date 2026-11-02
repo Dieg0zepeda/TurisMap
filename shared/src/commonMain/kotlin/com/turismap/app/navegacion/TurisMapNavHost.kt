@@ -61,6 +61,9 @@ fun TurisMapNavHost(
         composable(Pantalla.Mapa.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 MapaScreen(
+                    onAbrirDetalle = { lugar ->
+                        controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
+                    },
                     onComercioClick = { comercioId ->
                         controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
                     }
