@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
@@ -88,13 +87,20 @@ fun DetalleLugarScreen(
             }
 
             Surface(
-                shape = RoundedCornerShape(16.dp), color = FondoBlancoAdaptable.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(16.dp),
+                color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                 modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+                    .widthIn(max = 300.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 15.dp, vertical = 6.dp)) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = VerdeTextoAdaptable, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(9.dp))
-                    Text(text = lugar.ubicacionCorta, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
+                    Text(
+                        text = lugar.ubicacionCorta,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VerdeTextoAdaptable
+                    )
                 }
             }
         }
@@ -107,7 +113,12 @@ fun DetalleLugarScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocationOn, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = lugar.ubicacionLarga, fontSize = 12.sp, color = GrisTextoSecundario)
+                        Text(
+                            text = lugar.ubicacionLarga,
+                            fontSize = 12.sp,
+                            color = GrisTextoSecundario,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = lugar.nombre, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextoPrincipalOscuro)
@@ -116,22 +127,26 @@ fun DetalleLugarScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = lugar.elevacion, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium)
+                            Text(text = lugar.elevacion, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = lugar.clima, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium)
+                            Text(text = lugar.clima, fontSize = 12.sp, color = TextoPrincipalOscuro, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = TerracotaAcento, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             val resenaTexto = if (lugar.cantidadResenas > 0) "${lugar.calificacion} (${lugar.cantidadResenas})" else "${lugar.calificacion}"
-                            Text(text = resenaTexto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(text = resenaTexto, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                         }
                     }
 
@@ -145,7 +160,7 @@ fun DetalleLugarScreen(
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.DateRange, contentDescription = null, tint = VerdeTextoAdaptable)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(text = lugar.mejorTemporadaTitulo, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
                                 Text(text = lugar.mejorTemporadaDesc, fontSize = 13.sp, color = TextoPrincipalOscuro)
                             }
@@ -153,8 +168,18 @@ fun DetalleLugarScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Atractivos Imperdibles", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Atractivos Imperdibles",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextoPrincipalOscuro,
+                            modifier = Modifier.weight(1f)
+                        )
                         Text(text = "${lugar.atractivos.size} Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
                     }
                 }
@@ -183,14 +208,14 @@ fun DetalleLugarScreen(
                     Text(text = lugar.directorioStats.descripcionGeneral, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), lineHeight = 18.sp)
 
                     Spacer(modifier = Modifier.height(20.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat1Icon), texto = lugar.directorioStats.stat1Texto)
-                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat2Icon), texto = lugar.directorioStats.stat2Texto)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat1Icon), texto = lugar.directorioStats.stat1Texto, modifier = Modifier.weight(1f))
+                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat2Icon), texto = lugar.directorioStats.stat2Texto, modifier = Modifier.weight(1f))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat3Icon), texto = lugar.directorioStats.stat3Texto)
-                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat4Icon), texto = lugar.directorioStats.stat4Texto)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat3Icon), texto = lugar.directorioStats.stat3Texto, modifier = Modifier.weight(1f))
+                        DirectorioIconoGen(icono = mapIcon(lugar.directorioStats.stat4Icon), texto = lugar.directorioStats.stat4Texto, modifier = Modifier.weight(1f))
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
@@ -243,13 +268,13 @@ fun AtractivoCardBase(atractivo: Atractivo) {
 }
 
 @Composable
-fun DirectorioIconoGen(icono: ImageVector, texto: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(130.dp)) {
+fun DirectorioIconoGen(icono: ImageVector, texto: String, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.15f), modifier = Modifier.size(36.dp)) {
             Icon(icono, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
         }
         Spacer(modifier = Modifier.width(10.dp))
-        Text(texto, fontSize = 12.sp, color = Color.White, lineHeight = 16.sp)
+        Text(texto, fontSize = 12.sp, color = Color.White, lineHeight = 16.sp, modifier = Modifier.weight(1f))
     }
 }
 
