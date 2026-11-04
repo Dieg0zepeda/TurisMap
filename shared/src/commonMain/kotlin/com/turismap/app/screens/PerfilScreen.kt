@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,11 +33,14 @@ import com.turismap.app.data.repository.UsuarioBD
 import kotlinx.coroutines.CancellationException
 import com.turismap.app.theme.*
 
+private const val TURISMAP_WEB_URL = "https://urldeprueba.com"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
-    onCerrarSesionClick: () -> Unit = {}
+    onCerrarSesionClick: () -> Unit = {},
+    onVerPlanesClick: () -> Unit = {}
 ) {
     // --- VARIABLES DE APARIENCIA ---
     val verdeEsmeralda = Color(0xFF1B4934)
@@ -46,6 +50,7 @@ fun PerfilScreen(
     val colorTextoPrincipal = MaterialTheme.colorScheme.onBackground
     val colorTextoSecundario = MaterialTheme.colorScheme.onSurfaceVariant
     val colorDivisor = MaterialTheme.colorScheme.outlineVariant
+    val uriHandler = LocalUriHandler.current
 
     // --- CONEXIÓN A FIREBASE (REAL) ---
     var usuarioBD by remember { mutableStateOf<UsuarioBD?>(null) }
@@ -99,7 +104,6 @@ fun PerfilScreen(
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
     var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
     var mostrarOpcionesFoto by remember { mutableStateOf(false) }
-    var mostrarFormularioComercio by remember { mutableStateOf(false) }
     var urlFotoTemporal by remember { mutableStateOf("") }
     var tipoFotoSeleccionada by remember { mutableStateOf("perfil") } // "perfil" o "portada"
     var cerrandoSesion by remember { mutableStateOf(false) }
@@ -241,25 +245,47 @@ fun PerfilScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { mostrarFormularioComercio = true },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = terracota),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
-                    ) {
-                        Text(
-                        text = "Registrar mi comercio",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onVerPlanesClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = terracota),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = "Ver planes para mi negocio",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    uriHandler.openUri(TURISMAP_WEB_URL)
+                                } catch (error: Exception) {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            error.message ?: "No se pudo abrir el sitio web."
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Ver en la web")
+                        }
                     }
                 }
             }
@@ -377,18 +403,6 @@ fun PerfilScreen(
                 }) { Text("Guardar", color = verdeEsmeralda) }
             },
             dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = TerracotaTextoAdaptable) } }
-        )
-    }
-
-    if (mostrarFormularioComercio) {
-        ComercioSolicitudDialog(
-            onDismiss = { mostrarFormularioComercio = false },
-            onSubmitted = {
-                mostrarFormularioComercio = false
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Solicitud enviada. Un administrador debe revisarla antes de publicarse.")
-                }
-            }
         )
     }
 

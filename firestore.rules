@@ -144,6 +144,91 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /planes_comercio/{planId} {
+      allow read: if resource.data.activo == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /categorias_comercio/{categoriaId} {
+      allow read: if resource.data.activo == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /solicitudes_comercio/{solicitudId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.propietarioUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'id',
+          'propietarioUid',
+          'nombreCompleto',
+          'email',
+          'municipio',
+          'nombreNegocio',
+          'categoria',
+          'descripcion',
+          'direccion',
+          'telefono',
+          'sitioWeb',
+          'horario',
+          'planId',
+          'estado',
+          'fechaRegistro'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'propietarioUid',
+          'nombreCompleto',
+          'email',
+          'municipio',
+          'nombreNegocio',
+          'categoria',
+          'descripcion',
+          'direccion',
+          'telefono',
+          'sitioWeb',
+          'horario',
+          'planId',
+          'estado',
+          'fechaRegistro'
+        ])
+        && request.resource.data.id == solicitudId
+        && request.resource.data.propietarioUid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.nombreCompleto is string
+        && request.resource.data.nombreCompleto.size() > 0
+        && request.resource.data.nombreCompleto.size() <= 120
+        && request.resource.data.municipio is string
+        && request.resource.data.municipio.size() > 0
+        && request.resource.data.municipio.size() <= 100
+        && request.resource.data.nombreNegocio is string
+        && request.resource.data.nombreNegocio.size() > 0
+        && request.resource.data.nombreNegocio.size() <= 120
+        && request.resource.data.categoria is string
+        && request.resource.data.categoria.size() > 0
+        && exists(/databases/$(database)/documents/categorias_comercio/$(request.resource.data.categoria))
+        && get(/databases/$(database)/documents/categorias_comercio/$(request.resource.data.categoria)).data.activo == true
+        && request.resource.data.descripcion is string
+        && request.resource.data.descripcion.size() > 0
+        && request.resource.data.descripcion.size() <= 2000
+        && request.resource.data.direccion is string
+        && request.resource.data.direccion.size() > 0
+        && request.resource.data.direccion.size() <= 300
+        && request.resource.data.telefono is string
+        && request.resource.data.telefono.size() > 0
+        && request.resource.data.telefono.size() <= 40
+        && request.resource.data.sitioWeb is string
+        && request.resource.data.horario is string
+        && request.resource.data.planId is string
+        && exists(/databases/$(database)/documents/planes_comercio/$(request.resource.data.planId))
+        && get(/databases/$(database)/documents/planes_comercio/$(request.resource.data.planId)).data.activo == true
+        && request.resource.data.estado == 'PENDIENTE'
+        && request.resource.data.fechaRegistro is string
+        && request.resource.data.fechaRegistro.size() > 0
+        && request.resource.data.fechaRegistro.size() <= 40;
+      allow update, delete: if isAdmin();
+    }
+
     match /resenas/{resenaId} {
       allow read: if true;
       allow create: if signedIn()
