@@ -1,6 +1,7 @@
 package com.turismap.app.data.repository
 
 import com.turismap.app.data.models.CategoriaComercio
+import com.turismap.app.data.models.Coordenada
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
@@ -9,6 +10,7 @@ import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.firestore.where
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
@@ -51,10 +53,27 @@ data class PlanComercio(
     val nombre: String = "",
     val descripcion: String = "",
     val beneficios: List<String> = emptyList(),
+    val precio: Double? = null,
+    val moneda: String = "",
+    val periodicidad: String = "",
     val orden: Int = 0,
     val activo: Boolean = true,
-    val id: String = ""
-)
+    val id: String? = null,
+    @Transient val documentId: String = ""
+) {
+    fun precioFormateado(): String? {
+        val valor = precio?.takeIf { it.isFinite() && it >= 0.0 } ?: return null
+        val valorTexto = valor.toString()
+        val precioTexto = if (valorTexto.endsWith(".0")) valorTexto.dropLast(2) else valorTexto
+        val importe = listOf(precioTexto, moneda.trim())
+            .filter(String::isNotBlank)
+            .joinToString(" ")
+        return listOf(importe, periodicidad.trim())
+            .filter(String::isNotBlank)
+            .joinToString(" / ")
+            .ifBlank { null }
+    }
+}
 
 object ComercioRepository {
     private val firestore by lazy { Firebase.firestore }
@@ -65,14 +84,14 @@ object ComercioRepository {
             .get()
             .documents
             .map { documento ->
-                documento.data(PlanComercio.serializer()).copy(id = documento.id)
+                documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
             }
             .sortedBy(PlanComercio::orden)
 
     suspend fun obtenerPlanDisponible(id: String): PlanComercio? {
         val documento = firestore.collection("planes_comercio").document(id).get()
         return if (documento.exists) {
-            documento.data(PlanComercio.serializer()).copy(id = documento.id)
+            documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
                 .takeIf(PlanComercio::activo)
         } else {
             null
@@ -165,7 +184,8 @@ object ComercioRepository {
         telefono: String,
         sitioWeb: String,
         horario: String,
-        planId: String
+        planId: String,
+        coordenadas: Coordenada
     ) {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException("Inicia sesión para enviar una solicitud.")
@@ -183,6 +203,12 @@ object ComercioRepository {
         require(descripcion.trim().length in 1..2000) { "La descripción debe tener entre 1 y 2000 caracteres." }
         require(direccion.trim().length in 1..300) { "La dirección debe tener entre 1 y 300 caracteres." }
         require(telefono.trim().length in 1..40) { "El teléfono debe tener entre 1 y 40 caracteres." }
+        require(coordenadas.latitud.isFinite() && coordenadas.latitud in -90.0..90.0) {
+            "La latitud debe estar entre -90 y 90."
+        }
+        require(coordenadas.longitud.isFinite() && coordenadas.longitud in -180.0..180.0) {
+            "La longitud debe estar entre -180 y 180."
+        }
 
         val referencia = firestore.collection("solicitudes_comercio").document(Uuid.random().toString())
         referencia.set(
@@ -200,6 +226,10 @@ object ComercioRepository {
                 "sitioWeb" to sitioWeb.trim(),
                 "horario" to horario.trim(),
                 "planId" to planId,
+                "coordenadas" to mapOf(
+                    "latitud" to coordenadas.latitud,
+                    "longitud" to coordenadas.longitud
+                ),
                 "estado" to "PENDIENTE",
                 "fechaRegistro" to Clock.System.now().toString()
             )

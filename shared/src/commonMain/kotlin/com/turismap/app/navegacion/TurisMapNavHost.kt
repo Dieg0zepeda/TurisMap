@@ -103,7 +103,7 @@ fun TurisMapNavHost(
             PlanesComercioScreen(
                 onBack = { controladorNavegacion.popBackStack() },
                 onSolicitarPlan = { plan ->
-                    controladorNavegacion.navigate(Pantalla.RegistroComercio.crearRuta(plan.id))
+                    controladorNavegacion.navigate(Pantalla.RegistroComercio.crearRuta(plan.documentId))
                 }
             )
         }

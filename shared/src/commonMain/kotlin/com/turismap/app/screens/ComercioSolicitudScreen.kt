@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.CategoriaComercio
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.ComercioRepository
@@ -51,6 +52,8 @@ fun ComercioSolicitudScreen(
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var cargandoLugares by remember { mutableStateOf(true) }
     var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
+    var coordenadaSeleccionada by remember { mutableStateOf<Coordenada?>(null) }
+    var seleccionandoUbicacion by remember { mutableStateOf(false) }
     var nombreCompleto by remember { mutableStateOf(nombreCompletoInicial) }
     val email = emailInicial.trim()
     var nombreNegocio by remember { mutableStateOf("") }
@@ -70,6 +73,7 @@ fun ComercioSolicitudScreen(
     var cargandoCategorias by remember { mutableStateOf(true) }
     var categoriasError by remember { mutableStateOf<String?>(null) }
     var planNombre by remember { mutableStateOf("") }
+    var planPrecio by remember { mutableStateOf<String?>(null) }
     var cargandoPlan by remember { mutableStateOf(true) }
     var planError by remember { mutableStateOf<String?>(null) }
     var intentoCarga by remember { mutableStateOf(0) }
@@ -86,6 +90,8 @@ fun ComercioSolicitudScreen(
         lugaresError = null
         categoriasError = null
         planError = null
+        planNombre = ""
+        planPrecio = null
 
         try {
             lugares = LugaresRepository.obtenerTodos()
@@ -128,6 +134,7 @@ fun ComercioSolicitudScreen(
         try {
             val plan = ComercioRepository.obtenerPlanDisponible(planId)
             planNombre = plan?.nombre.orEmpty()
+            planPrecio = plan?.precioFormateado()
             planError = if (plan == null) "El plan seleccionado ya no está disponible." else null
         } catch (cancelacion: CancellationException) {
             throw cancelacion
@@ -142,7 +149,20 @@ fun ComercioSolicitudScreen(
         }
     }
 
-    Scaffold(
+    if (seleccionandoUbicacion) {
+        val lugar = lugarSeleccionado
+        if (lugar != null) {
+            SeleccionarUbicacionComercioScreen(
+                coordenadaInicial = lugar.ubicacionCoordenadas,
+                coordenadaGuardada = coordenadaSeleccionada,
+                onBack = { seleccionandoUbicacion = false },
+                onGuardar = { coordenada ->
+                    coordenadaSeleccionada = coordenada
+                    seleccionandoUbicacion = false
+                }
+            )
+        }
+    } else Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Registrar mi comercio") },
@@ -214,7 +234,9 @@ fun ComercioSolicitudScreen(
                                     text = { Text(lugar.nombre) },
                                     onClick = {
                                         lugarSeleccionado = lugar
+                                        coordenadaSeleccionada = null
                                         selectorMunicipioAbierto = false
+                                        seleccionandoUbicacion = true
                                     }
                                 )
                             }
@@ -226,6 +248,30 @@ fun ComercioSolicitudScreen(
                         lugaresError?.let {
                             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
                         }
+                    }
+                }
+                lugarSeleccionado?.let { lugar ->
+                    Text(
+                        "Ubicación exacta",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Button(
+                        onClick = { seleccionandoUbicacion = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (coordenadaSeleccionada == null) {
+                                "Ubicar negocio en el mapa"
+                            } else {
+                                "Cambiar ubicación en el mapa"
+                            }
+                        )
+                    }
+                    coordenadaSeleccionada?.let { coordenada ->
+                        Text(
+                            "Coordenadas guardadas: ${coordenada.latitud}, ${coordenada.longitud}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
                 Column {
@@ -377,7 +423,14 @@ fun ComercioSolicitudScreen(
                 when {
                     cargandoPlan -> CircularProgressIndicator()
                     planError != null -> Text(planError.orEmpty(), color = MaterialTheme.colorScheme.error)
-                    else -> Text(planNombre, style = MaterialTheme.typography.titleMedium)
+                    else -> {
+                        Text(planNombre, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            planPrecio ?: "Precio no disponible",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 Text(
                     "Esta solicitud indica interés en el plan. El equipo confirmará contigo el alcance y las condiciones.",
@@ -406,6 +459,7 @@ fun ComercioSolicitudScreen(
                             email.isNotBlank() &&
                             nombreNegocio.isNotBlank() &&
                             categoriaId.isNotBlank() &&
+                            coordenadaSeleccionada != null &&
                             descripcion.isNotBlank() &&
                             direccion.isNotBlank() &&
                             telefono.isNotBlank() &&
@@ -433,7 +487,9 @@ fun ComercioSolicitudScreen(
                                             telefono = telefono,
                                             sitioWeb = sitioWeb,
                                             horario = horario,
-                                            planId = planId
+                                            planId = planId,
+                                            coordenadas = coordenadaSeleccionada
+                                                ?: throw IllegalStateException("Selecciona la ubicación exacta del negocio.")
                                         )
                                         solicitudEnviada = true
                                     } catch (cancelacion: CancellationException) {

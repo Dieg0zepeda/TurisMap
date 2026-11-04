@@ -172,6 +172,7 @@ service cloud.firestore {
           'sitioWeb',
           'horario',
           'planId',
+          'coordenadas',
           'estado',
           'fechaRegistro'
         ])
@@ -189,6 +190,7 @@ service cloud.firestore {
           'sitioWeb',
           'horario',
           'planId',
+          'coordenadas',
           'estado',
           'fechaRegistro'
         ])
@@ -222,6 +224,15 @@ service cloud.firestore {
         && request.resource.data.planId is string
         && exists(/databases/$(database)/documents/planes_comercio/$(request.resource.data.planId))
         && get(/databases/$(database)/documents/planes_comercio/$(request.resource.data.planId)).data.activo == true
+        && request.resource.data.coordenadas is map
+        && request.resource.data.coordenadas.keys().hasOnly(['latitud', 'longitud'])
+        && request.resource.data.coordenadas.keys().hasAll(['latitud', 'longitud'])
+        && request.resource.data.coordenadas.latitud is number
+        && request.resource.data.coordenadas.latitud >= -90
+        && request.resource.data.coordenadas.latitud <= 90
+        && request.resource.data.coordenadas.longitud is number
+        && request.resource.data.coordenadas.longitud >= -180
+        && request.resource.data.coordenadas.longitud <= 180
         && request.resource.data.estado == 'PENDIENTE'
         && request.resource.data.fechaRegistro is string
         && request.resource.data.fechaRegistro.size() > 0

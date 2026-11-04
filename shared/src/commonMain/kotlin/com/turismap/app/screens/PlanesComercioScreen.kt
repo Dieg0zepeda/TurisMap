@@ -120,7 +120,7 @@ fun PlanesComercioScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Aún no hay planes activos en planes_comercio. Agrega documentos con nombre, descripcion, beneficios, orden y activo: true.",
+                        "Aún no hay planes activos en planes_comercio. Agrega documentos con nombre, descripcion, beneficios, precio, moneda, periodicidad, orden y activo: true.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Button(onClick = { intentoCarga++ }) {
@@ -175,6 +175,13 @@ fun PlanesComercioScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
+                        Text(
+                            text = plan.precioFormateado() ?: "Precio no disponible",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
                         plan.beneficios.forEach { beneficio ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -196,7 +203,7 @@ fun PlanesComercioScreen(
                         Button(
                             onClick = { onSolicitarPlan(plan) },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !cargando && errorCarga == null && plan.id.isNotBlank()
+                            enabled = !cargando && errorCarga == null && plan.documentId.isNotBlank()
                         ) {
                             Text("Solicitar este plan")
                         }
