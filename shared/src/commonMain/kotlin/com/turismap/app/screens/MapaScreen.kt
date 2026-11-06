@@ -46,7 +46,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.turismap.app.theme.*
 
-private val ColorAirbnbPrimario = Color(0xFFFF385C)
+// Paleta corporativa corregida
+private val ColorTurismapPrimario = Color(0xFF1B5E20)
 private val ColorAirbnbOscuro: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF7F7F7) else Color(0xFF1E1E1E)
 private val ColorAirbnbGris: Color
@@ -212,20 +213,20 @@ fun MapaScreen(
         val lugaresDestino = if (filtroTipoMarcadores != "Comercios") lugaresFiltrados else emptyList()
         val lugaresComerciales = if (filtroTipoMarcadores != "Destinos") {
             comerciosFiltrados.map { comercio ->
-            val municipio = municipiosMap[comercio.lugarId.trim()]
-            Lugar(
-                id = "comercio:${comercio.id}",
-                nombre = comercio.nombre,
-                subtitulo = comercio.categoria.replaceFirstChar { it.uppercase() },
-                categoria = CategoriaLugar.TODOS,
-                ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
-                ubicacionCorta = comercio.direccion,
-                ubicacionLarga = municipio?.nombre.orEmpty(),
-                calificacion = comercio.calificacionPromedio ?: 0.0,
-                cantidadResenas = comercio.cantidadResenas ?: 0,
-                historia = comercio.descripcion,
-                imagenPortadaUrl = comercio.imagenUrls.firstOrNull().orEmpty()
-            )
+                val municipio = municipiosMap[comercio.lugarId.trim()]
+                Lugar(
+                    id = "comercio:${comercio.id}",
+                    nombre = comercio.nombre,
+                    subtitulo = comercio.categoria.replaceFirstChar { it.uppercase() },
+                    categoria = CategoriaLugar.TODOS,
+                    ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
+                    ubicacionCorta = comercio.direccion,
+                    ubicacionLarga = municipio?.nombre.orEmpty(),
+                    calificacion = comercio.calificacionPromedio ?: 0.0,
+                    cantidadResenas = comercio.cantidadResenas ?: 0,
+                    historia = comercio.descripcion,
+                    imagenPortadaUrl = comercio.imagenUrls.firstOrNull().orEmpty()
+                )
             }
         } else {
             emptyList()
@@ -491,7 +492,7 @@ fun MapaScreen(
                                 Text(
                                     text = comercio?.categoria?.replaceFirstChar { it.uppercase() }
                                         ?: lugar.categoria.etiqueta,
-                                    color = ColorAirbnbPrimario,
+                                    color = ColorTurismapPrimario, // Tono verde corporativo
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -573,7 +574,7 @@ fun MapaScreen(
 
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ColorAirbnbPrimario),
+                                colors = ButtonDefaults.buttonColors(containerColor = ColorTurismapPrimario), // Tono verde corporativo
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
@@ -614,7 +615,7 @@ fun MapaScreen(
         if (cargando) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = ColorAirbnbPrimario
+                color = ColorTurismapPrimario
             )
         } else if (lugaresParaElMapa.isEmpty()) {
             Column(
