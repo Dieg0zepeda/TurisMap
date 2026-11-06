@@ -1,5 +1,7 @@
 package com.turismap.app.data.repository
 
+import com.turismap.app.data.models.CategoriaComercio
+import com.turismap.app.data.models.Coordenada
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
@@ -8,6 +10,9 @@ import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.firestore.where
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlin.time.Clock
+import kotlin.uuid.Uuid
 
 @Serializable
 data class Comercio(
@@ -43,8 +48,66 @@ data class Resena(
     val actualizadoEn: Timestamp? = null
 )
 
+@Serializable
+data class PlanComercio(
+    val nombre: String = "",
+    val descripcion: String = "",
+    val beneficios: List<String> = emptyList(),
+    val precio: Double? = null,
+    val moneda: String = "",
+    val periodicidad: String = "",
+    val orden: Int = 0,
+    val activo: Boolean = true,
+    val id: String? = null,
+    @Transient val documentId: String = ""
+) {
+    fun precioFormateado(): String? {
+        val valor = precio?.takeIf { it.isFinite() && it >= 0.0 } ?: return null
+        val valorTexto = valor.toString()
+        val precioTexto = if (valorTexto.endsWith(".0")) valorTexto.dropLast(2) else valorTexto
+        val importe = listOf(precioTexto, moneda.trim())
+            .filter(String::isNotBlank)
+            .joinToString(" ")
+        return listOf(importe, periodicidad.trim())
+            .filter(String::isNotBlank)
+            .joinToString(" / ")
+            .ifBlank { null }
+    }
+}
+
 object ComercioRepository {
     private val firestore by lazy { Firebase.firestore }
+
+    suspend fun obtenerPlanesDisponibles(): List<PlanComercio> =
+        firestore.collection("planes_comercio")
+            .where { "activo" equalTo true }
+            .get()
+            .documents
+            .map { documento ->
+                documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
+            }
+            .sortedBy(PlanComercio::orden)
+
+    suspend fun obtenerPlanDisponible(id: String): PlanComercio? {
+        val documento = firestore.collection("planes_comercio").document(id).get()
+        return if (documento.exists) {
+            documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
+                .takeIf(PlanComercio::activo)
+        } else {
+            null
+        }
+    }
+
+    suspend fun obtenerCategorias(): List<CategoriaComercio> =
+        firestore.collection("categorias_comercio")
+            .where { "activo" equalTo true }
+            .get()
+            .documents
+            .map { documento ->
+                documento.data(CategoriaComercio.serializer()).copy(id = documento.id)
+            }
+            .filter { it.etiqueta.isNotBlank() }
+            .sortedBy(CategoriaComercio::orden)
 
     suspend fun obtenerPublicados(): List<Comercio> =
         firestore.collection("comercios")
@@ -106,6 +169,69 @@ object ComercioRepository {
                 "estado" to "pendiente",
                 "creadoEn" to ahoraServidor,
                 "actualizadoEn" to ahoraServidor
+            )
+        )
+    }
+
+    suspend fun enviarSolicitudComercio(
+        nombreCompleto: String,
+        email: String,
+        municipio: String,
+        nombreNegocio: String,
+        categoria: String,
+        descripcion: String,
+        direccion: String,
+        telefono: String,
+        sitioWeb: String,
+        horario: String,
+        planId: String,
+        coordenadas: Coordenada
+    ) {
+        val usuario = Firebase.auth.currentUser
+            ?: throw IllegalStateException("Inicia sesión para enviar una solicitud.")
+        val correoAutenticado = usuario.email?.trim()
+            ?.takeIf(String::isNotBlank)
+            ?: throw IllegalStateException("La sesión actual no tiene un correo electrónico asociado.")
+        require(email.trim().equals(correoAutenticado, ignoreCase = true)) {
+            "El correo debe coincidir con el de la sesión actual."
+        }
+        require(planId.isNotBlank()) { "Selecciona un plan disponible." }
+        require(nombreCompleto.trim().length in 1..120) { "El nombre completo debe tener entre 1 y 120 caracteres." }
+        require(municipio.trim().length in 1..100) { "La ubicación debe tener entre 1 y 100 caracteres." }
+        require(nombreNegocio.trim().length in 1..120) { "El nombre del negocio debe tener entre 1 y 120 caracteres." }
+        require(categoria.isNotBlank()) { "Selecciona una categoría disponible." }
+        require(descripcion.trim().length in 1..2000) { "La descripción debe tener entre 1 y 2000 caracteres." }
+        require(direccion.trim().length in 1..300) { "La dirección debe tener entre 1 y 300 caracteres." }
+        require(telefono.trim().length in 1..40) { "El teléfono debe tener entre 1 y 40 caracteres." }
+        require(coordenadas.latitud.isFinite() && coordenadas.latitud in -90.0..90.0) {
+            "La latitud debe estar entre -90 y 90."
+        }
+        require(coordenadas.longitud.isFinite() && coordenadas.longitud in -180.0..180.0) {
+            "La longitud debe estar entre -180 y 180."
+        }
+
+        val referencia = firestore.collection("solicitudes_comercio").document(Uuid.random().toString())
+        referencia.set(
+            mapOf(
+                "id" to referencia.id,
+                "propietarioUid" to usuario.uid,
+                "nombreCompleto" to nombreCompleto.trim(),
+                "email" to correoAutenticado,
+                "municipio" to municipio.trim(),
+                "nombreNegocio" to nombreNegocio.trim(),
+                "categoria" to categoria.trim(),
+                "descripcion" to descripcion.trim(),
+                "direccion" to direccion.trim(),
+                "telefono" to telefono.trim(),
+                "sitioWeb" to sitioWeb.trim(),
+                "horario" to horario.trim(),
+                "planId" to planId,
+                "coordenadas" to mapOf(
+                    "latitud" to coordenadas.latitud,
+                    "longitud" to coordenadas.longitud
+                ),
+                "estado" to "PENDIENTE",
+                "fechaRegistro" to Clock.System.now().toString()
             )
         )
     }

@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.turismap.app.data.models.Lugar
+import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.screens.*
@@ -90,7 +91,37 @@ fun TurisMapNavHost(
 
         // 4. Perfil
         composable(Pantalla.Perfil.ruta) {
-            PerfilScreen(onCerrarSesionClick = onCerrarSesion)
+            PerfilScreen(
+                onCerrarSesionClick = onCerrarSesion,
+                onVerPlanesClick = {
+                    controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
+                }
+            )
+        }
+
+        composable(Pantalla.PlanesComercio.ruta) {
+            PlanesComercioScreen(
+                onBack = { controladorNavegacion.popBackStack() },
+                onSolicitarPlan = { plan ->
+                    controladorNavegacion.navigate(Pantalla.RegistroComercio.crearRuta(plan.documentId))
+                }
+            )
+        }
+
+        composable(
+            route = Pantalla.RegistroComercio.ruta,
+            arguments = listOf(navArgument("planId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val planId = backStackEntry.arguments?.getString("planId") ?: return@composable
+            ComercioSolicitudScreen(
+                nombreCompletoInicial = AutenticacionRepository.usuarioActual?.displayName.orEmpty(),
+                emailInicial = AutenticacionRepository.usuarioActual?.email.orEmpty(),
+                planId = planId,
+                onBack = { controladorNavegacion.popBackStack() },
+                onSubmitted = {
+                    controladorNavegacion.popBackStack(Pantalla.PlanesComercio.ruta, inclusive = false)
+                }
+            )
         }
 
         // Detalle de Lugar

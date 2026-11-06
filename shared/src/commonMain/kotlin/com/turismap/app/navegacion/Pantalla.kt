@@ -5,6 +5,10 @@ sealed class Pantalla(val ruta: String) {
     object Mapa : Pantalla("mapa")
     object Guia : Pantalla("guia")
     object Perfil : Pantalla("perfil")
+    object PlanesComercio : Pantalla("planes_comercio")
+    object RegistroComercio : Pantalla("registro_comercio/{planId}") {
+        fun crearRuta(planId: String) = "registro_comercio/$planId"
+    }
 
     // RUTA DINÁMICA
     object DetalleLugar : Pantalla("detalle_lugar/{lugarId}") {
