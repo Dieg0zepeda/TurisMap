@@ -55,11 +55,20 @@ object UsuarioRepository {
     suspend fun actualizarFoto(perfil: Boolean, url: String) {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException("Inicia sesión para actualizar tus fotos.")
-        require(url.isBlank() || url.startsWith("https://", ignoreCase = true)) {
-            "La imagen debe ser una URL HTTPS pública."
+
+        val urlLimpia = url.trim()
+        val esRutaValida = urlLimpia.isBlank() ||
+                urlLimpia.startsWith("https://", ignoreCase = true) ||
+                urlLimpia.startsWith("http://", ignoreCase = true) ||
+                urlLimpia.startsWith("content://", ignoreCase = true) ||
+                urlLimpia.startsWith("file://", ignoreCase = true)
+
+        require(esRutaValida) {
+            "Formato de ruta de imagen no válido."
         }
+
         val campo = if (perfil) "fotoPerfil" else "fotoPortada"
-        firestore.collection("usuarios").document(uid).update(campo to url.trim())
+        firestore.collection("usuarios").document(uid).update(campo to urlLimpia)
     }
 
     suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {

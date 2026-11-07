@@ -27,11 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.turismap.app.components.RemoteImage
+import com.turismap.app.components.rememberSelectorImagen
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.data.repository.UsuarioBD
 import kotlinx.coroutines.CancellationException
 import com.turismap.app.theme.*
+import kotlinx.coroutines.flow.flowOf
 
 private const val TURISMAP_WEB_URL = "https://urldeprueba.com"
 
@@ -42,7 +44,6 @@ fun PerfilScreen(
     onCerrarSesionClick: () -> Unit = {},
     onVerPlanesClick: () -> Unit = {}
 ) {
-    // --- VARIABLES DE APARIENCIA ---
     val verdeEsmeralda = Color(0xFF1B4934)
     val terracota = Color(0xFFD96B52)
     val fondoApp = MaterialTheme.colorScheme.background
@@ -52,14 +53,15 @@ fun PerfilScreen(
     val colorDivisor = MaterialTheme.colorScheme.outlineVariant
     val uriHandler = LocalUriHandler.current
 
-    // --- CONEXIÓN A FIREBASE (REAL) ---
     var usuarioBD by remember { mutableStateOf<UsuarioBD?>(null) }
     var estaCargando by remember { mutableStateOf(true) }
     var visitas by remember { mutableStateOf(0) }
     var errorPerfil by remember { mutableStateOf<String?>(null) }
 
-    // Extraemos el ID dinámico de la sesión actual
     val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
+
+    val favoritosFlujo = remember(usuarioBD) { flowOf(usuarioBD?.favoritos ?: emptyList()) }
+    val favoritosActuales by favoritosFlujo.collectAsState(initial = emptyList())
 
     LaunchedEffect(idUsuarioActual) {
         estaCargando = true
@@ -85,16 +87,10 @@ fun PerfilScreen(
         }
     }
 
-    val nombreMostrar = usuarioBD?.nombre?.takeIf { it.isNotBlank() }
-        ?: if (estaCargando) "Cargando..." else "Usuario"
-    val correoMostrar = usuarioBD?.email?.takeIf { it.isNotBlank() }
-        ?: AutenticacionRepository.usuarioActual?.email
-        ?: if (estaCargando) "Cargando..." else "Correo no disponible"
-    val cantidadFavoritos = usuarioBD?.favoritos?.size?.toString() ?: "0"
+    val nombreMostrar = usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: if (estaCargando) "Cargando..." else "Usuario"
+    val correoMostrar = usuarioBD?.email?.takeIf { it.isNotBlank() } ?: AutenticacionRepository.usuarioActual?.email ?: if (estaCargando) "Cargando..." else "Correo no disponible"
+    val cantidadFavoritos = favoritosFlujo.let { favoritosActuales.size.toString() }
 
-    // Variables para las fotos
-
-    // --- VARIABLES INTERACTIVAS ---
     var idiomaSeleccionado by remember { mutableStateOf("Español") }
     var notificacionesActivas by remember { mutableStateOf(true) }
     var perfilPublico by remember { mutableStateOf(true) }
@@ -103,13 +99,28 @@ fun PerfilScreen(
     var mostrarDialogoEditar by remember { mutableStateOf(false) }
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
     var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
-    var mostrarOpcionesFoto by remember { mutableStateOf(false) }
-    var urlFotoTemporal by remember { mutableStateOf("") }
-    var tipoFotoSeleccionada by remember { mutableStateOf("perfil") } // "perfil" o "portada"
     var cerrandoSesion by remember { mutableStateOf(false) }
+    var tipoFotoSeleccionada by remember { mutableStateOf("perfil") }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // 🚀 PUENTE KMP PARA ABRIR LA GALERÍA NATIVA Y ACTUALIZAR PERFIL/PORTADA
+    val abrirGaleriaNativa = rememberSelectorImagen { uriLocal ->
+        coroutineScope.launch {
+            try {
+                UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", uriLocal)
+                usuarioBD = if (tipoFotoSeleccionada == "perfil") {
+                    usuarioBD?.copy(fotoPerfil = uriLocal)
+                } else {
+                    usuarioBD?.copy(fotoPortada = uriLocal)
+                }
+                snackbarHostState.showSnackbar("¡Foto actualizada con éxito! ✅")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Error: ${error.message}")
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -119,7 +130,6 @@ fun PerfilScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- 1. ENCABEZADO (FOTOS) ---
             Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                 // FOTO DE PORTADA
                 Box(
@@ -129,11 +139,10 @@ fun PerfilScreen(
                         .background(verdeEsmeralda)
                         .clickable {
                             tipoFotoSeleccionada = "portada"
-                            urlFotoTemporal = usuarioBD?.fotoPortada.orEmpty()
-                            mostrarOpcionesFoto = true
+                            abrirGaleriaNativa()
                         }
                 ) {
-                    usuarioBD?.fotoPortada?.takeIf { it.startsWith("https://", true) }?.let { url ->
+                    usuarioBD?.fotoPortada?.takeIf { it.isNotBlank() }?.let { url ->
                         RemoteImage(
                             url = url,
                             contentDescription = "Foto de portada",
@@ -141,12 +150,23 @@ fun PerfilScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    IconButton(onClick = {
-                        tipoFotoSeleccionada = "portada"
-                        urlFotoTemporal = usuarioBD?.fotoPortada.orEmpty()
-                        mostrarOpcionesFoto = true
-                    }, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape).size(36.dp)) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = "Cambiar Portada", tint = Color.White, modifier = Modifier.size(20.dp))
+                    IconButton(
+                        onClick = {
+                            tipoFotoSeleccionada = "portada"
+                            abrirGaleriaNativa()
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                            .size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoCamera,
+                            contentDescription = "Cambiar Portada",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
@@ -160,13 +180,12 @@ fun PerfilScreen(
                             .border(4.dp, fondoApp, CircleShape)
                             .clickable {
                                 tipoFotoSeleccionada = "perfil"
-                                urlFotoTemporal = usuarioBD?.fotoPerfil.orEmpty()
-                                mostrarOpcionesFoto = true
+                                abrirGaleriaNativa()
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        val fotoPerfil = usuarioBD?.fotoPerfil?.takeIf { it.startsWith("https://", true) }
-                        if (fotoPerfil != null) {
+                        val fotoPerfil = usuarioBD?.fotoPerfil
+                        if (!fotoPerfil.isNullOrBlank()) {
                             RemoteImage(
                                 url = fotoPerfil,
                                 contentDescription = "Foto de perfil",
@@ -174,19 +193,36 @@ fun PerfilScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
-                            Icon(Icons.Default.Person, contentDescription = "Foto de perfil", modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Foto de perfil",
+                                modifier = Modifier.size(72.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
-                    // Botón flotante para editar nombre
-                    Box(modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-4).dp, y = (-4).dp).size(40.dp).background(terracota, CircleShape).border(2.dp, fondoApp, CircleShape).clickable { mostrarDialogoEditar = true }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar Perfil", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-4).dp, y = (-4).dp)
+                            .size(40.dp)
+                            .background(terracota, CircleShape)
+                            .border(2.dp, fondoApp, CircleShape)
+                            .clickable { mostrarDialogoEditar = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Editar Perfil",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 2. INFO DEL USUARIO ---
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = nombreMostrar, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorTextoPrincipal, modifier = Modifier.padding(horizontal = 16.dp))
                 Text(text = correoMostrar, fontSize = 14.sp, color = colorTextoSecundario, modifier = Modifier.padding(top = 4.dp))
@@ -195,7 +231,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 3. ESTADÍSTICAS ---
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 ItemEstadistica(valor = cantidadFavoritos, etiqueta = "Favoritos", colorEtiqueta = TerracotaTextoAdaptable, colorTexto = colorTextoPrincipal)
                 ItemEstadistica(valor = visitas.toString(), etiqueta = "Visitas", colorEtiqueta = colorTextoPrincipal, colorTexto = colorTextoPrincipal)
@@ -203,86 +238,31 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- 4. Banner TurisMap Negocios ---
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = verdeEsmeralda)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color.White.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                        text = "TurisMap Negocios",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    Surface(shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.15f)) {
+                        Text(text = "TurisMap Negocios", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                     }
-
                     Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                    text = "Promociona tu negocio en la Ruta",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-
+                    Text(text = "Promociona tu negocio en la Ruta", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                    text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.",
-                        fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.85f),
-                        lineHeight = 18.sp
-                    )
-
+                    Text(text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.", fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f), lineHeight = 18.sp)
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = onVerPlanesClick,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = terracota),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                text = "Ver planes para mi negocio",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                        Button(onClick = onVerPlanesClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = terracota), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
+                            Text(text = "Ver planes para mi negocio", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
                         OutlinedButton(
                             onClick = {
-                                try {
-                                    uriHandler.openUri(TURISMAP_WEB_URL)
-                                } catch (error: Exception) {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            error.message ?: "No se pudo abrir el sitio web."
-                                        )
-                                    }
-                                }
+                                try { uriHandler.openUri(TURISMAP_WEB_URL) } catch (error: Exception) { coroutineScope.launch { snackbarHostState.showSnackbar(error.message ?: "No se pudo abrir.") } }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                            shape = RoundedCornerShape(10.dp)
+                            modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White), shape = RoundedCornerShape(10.dp)
                         ) {
                             Text("Ver en la web")
                         }
@@ -292,9 +272,7 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 5. SECCIONES DE CONFIGURACIÓN ---
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-
                 Text("PERSONALIZACIÓN", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                 CardOpciones(fondoTarjeta) {
                     ItemMenuOpcion(icono = Icons.Default.Public, titulo = "Idioma", subtitulo = idiomaSeleccionado, colorTexto = colorTextoPrincipal, colorIcono = colorTextoPrincipal) { mostrarDialogoIdioma = true }
@@ -320,7 +298,6 @@ fun PerfilScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- BOTÓN CERRAR SESIÓN REAL ---
                 OutlinedButton(
                     onClick = {
                         if (!cerrandoSesion) {
@@ -329,20 +306,13 @@ fun PerfilScreen(
                                 try {
                                     AutenticacionRepository.cerrarSesion()
                                     onCerrarSesionClick()
-                                } catch (error: CancellationException) {
-                                    throw error
                                 } catch (error: Exception) {
-                                    snackbarHostState.showSnackbar(error.message ?: "No se pudo cerrar la sesión.")
-                                } finally {
-                                    cerrandoSesion = false
-                                }
+                                    snackbarHostState.showSnackbar(error.message ?: "Error.")
+                                } finally { cerrandoSesion = false }
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TerracotaTextoAdaptable),
-                    border = BorderStroke(2.dp, TerracotaTextoAdaptable), shape = RoundedCornerShape(16.dp),
-                    enabled = !cerrandoSesion
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = TerracotaTextoAdaptable), border = BorderStroke(2.dp, TerracotaTextoAdaptable), shape = RoundedCornerShape(16.dp), enabled = !cerrandoSesion
                 ) {
                     if (cerrandoSesion) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), color = TerracotaTextoAdaptable)
@@ -356,55 +326,10 @@ fun PerfilScreen(
             Spacer(modifier = Modifier.height(40.dp))
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     // --- DIÁLOGOS EMERGENTES ---
-
-    if (mostrarOpcionesFoto) {
-        val tituloDialogo = if (tipoFotoSeleccionada == "perfil") "Actualizar Foto de Perfil" else "Actualizar Foto de Portada"
-        AlertDialog(
-            onDismissRequest = { mostrarOpcionesFoto = false },
-            containerColor = fondoTarjeta,
-            title = { Text(tituloDialogo, fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
-            text = {
-                Column {
-                    Text("Usa una URL HTTPS pública. La app no sube archivos ni utiliza Firebase Storage.")
-                    OutlinedTextField(
-                        value = urlFotoTemporal,
-                        onValueChange = { urlFotoTemporal = it },
-                        label = { Text("URL de imagen") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    coroutineScope.launch {
-                        try {
-                            UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", urlFotoTemporal)
-                            usuarioBD = if (tipoFotoSeleccionada == "perfil") {
-                                usuarioBD?.copy(fotoPerfil = urlFotoTemporal.trim())
-                            } else {
-                                usuarioBD?.copy(fotoPortada = urlFotoTemporal.trim())
-                            }
-                            mostrarOpcionesFoto = false
-                            snackbarHostState.showSnackbar("Imagen actualizada.")
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (error: Exception) {
-                            snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar la imagen.")
-                        }
-                    }
-                }) { Text("Guardar", color = verdeEsmeralda) }
-            },
-            dismissButton = { TextButton(onClick = { mostrarOpcionesFoto = false }) { Text("Cancelar", color = TerracotaTextoAdaptable) } }
-        )
-    }
 
     if (mostrarDialogoPrivacidad) {
         AlertDialog(
@@ -442,6 +367,7 @@ fun PerfilScreen(
 
     if (mostrarDialogoEditar) {
         var tempNombre by remember { mutableStateOf(nombreMostrar) }
+        var tempTelefono by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { mostrarDialogoEditar = false },
             containerColor = fondoTarjeta,
@@ -449,6 +375,8 @@ fun PerfilScreen(
             text = {
                 Column {
                     OutlinedTextField(value = tempNombre, onValueChange = { tempNombre = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = tempTelefono, onValueChange = { tempTelefono = it }, label = { Text("Teléfono de Contacto") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
                 }
             },
             confirmButton = {
@@ -459,10 +387,8 @@ fun PerfilScreen(
                             usuarioBD = usuarioBD?.copy(nombre = tempNombre.trim())
                             mostrarDialogoEditar = false
                             snackbarHostState.showSnackbar("Perfil actualizado.")
-                        } catch (error: CancellationException) {
-                            throw error
                         } catch (error: Exception) {
-                            snackbarHostState.showSnackbar(error.message ?: "No se pudo actualizar el perfil.")
+                            snackbarHostState.showSnackbar(error.message ?: "Error al actualizar.")
                         }
                     }
                 }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
@@ -492,10 +418,6 @@ fun PerfilScreen(
         )
     }
 }
-
-// ==========================================
-// --- COMPONENTES AUXILIARES PRIVADOS ---
-// ==========================================
 
 @Composable
 private fun ItemEstadistica(valor: String, etiqueta: String, colorEtiqueta: Color, colorTexto: Color) {

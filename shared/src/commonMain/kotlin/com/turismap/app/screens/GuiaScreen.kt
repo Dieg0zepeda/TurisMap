@@ -1,8 +1,10 @@
 package com.turismap.app.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,40 +16,32 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalUriHandler
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.theme.*
 import kotlinx.coroutines.launch
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import com.turismap.app.theme.*
-
-// Paleta oficial de Airbnb (Modo oscuro adaptativo)
 private val AirbnbBlack: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF7F7F7) else Color(0xFF222222)
 private val AirbnbGray: Color
@@ -57,8 +51,9 @@ private val AirbnbLightGray: Color
 private val AirbnbBorder: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFEBEBEB)
 private val AirbnbPrimary = Color(0xFFFF385C)
+private val ColorPremium = Color(0xFFD4AF37) // Dorado VIP
+private val ColorDestacado = Color(0xFF1B5E20) // Verde TurisMap
 
-// Formateo numérico en Kotlin puro sin depender de librerías Java
 private fun formatearCalificacion(cal: Double?): String {
     if (cal == null || cal <= 0.0) return "4.9"
     val entero = cal.toInt()
@@ -134,11 +129,14 @@ fun GuiaScreen(
         }
     }
 
+    // ORDENAMIENTO REQUERIDO: Premium(3) primero, Estándar(2) después, Básicos(1) al final
     val gruposPorMunicipio = remember(comerciosFiltrados, mapaMunicipios) {
-        comerciosFiltrados.groupBy { item ->
-            val nombre = mapaMunicipios[item.lugarId]
-            if (!nombre.isNullOrBlank()) nombre else "Ruta de las Flores"
-        }
+        comerciosFiltrados
+            .sortedByDescending { it.nivelPlan }
+            .groupBy { item ->
+                val nombre = mapaMunicipios[item.lugarId]
+                if (!nombre.isNullOrBlank()) nombre else "Ruta de las Flores"
+            }
     }
 
     Column(
@@ -147,171 +145,168 @@ fun GuiaScreen(
             .background(androidx.compose.material3.MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
-            // Buscador estilo cápsula flotante
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 10.dp)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp)
+                    .heightIn(min = 54.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(32.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.08f),
+                        spotColor = Color.Black.copy(alpha = 0.12f)
+                    )
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(FondoBlancoAdaptable)
+                    .border(0.8.dp, AirbnbBorder, RoundedCornerShape(32.dp))
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Buscar",
+                    tint = AirbnbBlack,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            "Empieza la búsqueda",
+                            color = AirbnbBlack,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
+        ) {
+            items(categoriasFiltros) { cat ->
+                val activa = cat.id.equals(categoriaSeleccionada, ignoreCase = true)
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 54.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(32.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.08f),
-                            spotColor = Color.Black.copy(alpha = 0.12f)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (activa) AirbnbLightGray else FondoBlancoAdaptable)
+                        .border(
+                            width = if (activa) 1.5.dp else 1.dp,
+                            color = if (activa) AirbnbBlack else AirbnbBorder,
+                            shape = RoundedCornerShape(24.dp)
                         )
-                        .clip(RoundedCornerShape(32.dp))
-                        .background(FondoBlancoAdaptable)
-                        .border(0.8.dp, AirbnbBorder, RoundedCornerShape(32.dp))
-                        .padding(horizontal = 16.dp),
+                        .clickable { categoriaSeleccionada = cat.id }
+                        .padding(horizontal = 16.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar",
-                        tint = AirbnbBlack,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = {
-                            Text(
-                                "Empieza la búsqueda",
-                                color = AirbnbBlack,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
+                    Text(text = cat.icono, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = cat.etiqueta,
+                        color = AirbnbBlack,
+                        fontSize = 13.sp,
+                        fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
                     )
                 }
             }
+        }
 
-            // Píldoras de filtros de categoría
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
-            ) {
-                items(categoriasFiltros) { cat ->
-                    val activa = cat.id.equals(categoriaSeleccionada, ignoreCase = true)
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(if (activa) AirbnbLightGray else FondoBlancoAdaptable)
-                            .border(
-                                width = if (activa) 1.5.dp else 1.dp,
-                                color = if (activa) AirbnbBlack else AirbnbBorder,
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .clickable { categoriaSeleccionada = cat.id }
-                            .padding(horizontal = 16.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = cat.icono, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = cat.etiqueta,
-                            color = AirbnbBlack,
-                            fontSize = 13.sp,
-                            fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
-                        )
-                    }
-                }
-            }
+        HorizontalDivider(color = AirbnbBorder, thickness = 0.8.dp)
 
-            HorizontalDivider(color = AirbnbBorder, thickness = 0.8.dp)
-
-            // Contenedor principal
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (cargando) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = AirbnbPrimary
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = AirbnbPrimary
+                )
+            } else if (errorCarga != null) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = errorCarga ?: "Error al conectar",
+                        color = AirbnbGray,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
                     )
-                } else if (errorCarga != null) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = errorCarga ?: "Error al conectar",
-                            color = AirbnbGray,
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    cargando = true
-                                    errorCarga = null
-                                    try {
-                                        listaComercios = ComercioRepository.obtenerPublicados()
-                                    } catch (e: Exception) {
-                                        errorCarga = e.message
-                                    } finally {
-                                        cargando = false
-                                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                cargando = true
+                                errorCarga = null
+                                try {
+                                    listaComercios = ComercioRepository.obtenerPublicados()
+                                } catch (e: Exception) {
+                                    errorCarga = e.message
+                                } finally {
+                                    cargando = false
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack)
-                        ) {
-                            Text("Reintentar")
-                        }
-                    }
-                } else if (comerciosFiltrados.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No se encontraron negocios para esta búsqueda.",
-                            color = AirbnbGray,
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(28.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        gruposPorMunicipio.forEach { (nombreMunicipio, comerciosEnMunicipio) ->
-                            item(key = nombreMunicipio) {
-                                SeccionMunicipioAirbnb(
-                                    titulo = "Lugares en $nombreMunicipio",
-                                    comercios = comerciosEnMunicipio,
-                                    onComercioClick = { comercioSeleccionado = it }
-                                )
                             }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack)
+                    ) {
+                        Text("Reintentar")
+                    }
+                }
+            } else if (comerciosFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No se encontraron negocios para esta búsqueda.",
+                        color = AirbnbGray,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(28.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    gruposPorMunicipio.forEach { (nombreMunicipio, comerciosEnMunicipio) ->
+                        item(key = nombreMunicipio) {
+                            SeccionMunicipioAirbnb(
+                                titulo = "Lugares en $nombreMunicipio",
+                                comercios = comerciosEnMunicipio,
+                                onComercioClick = { comercioSeleccionado = it },
+                                onActionClick = onLlamarComercio // Para Quick Actions
+                            )
                         }
                     }
                 }
+            }
         }
     }
 
-    // Modal Bottom Sheet interactivo
     if (comercioSeleccionado != null) {
         ModalBottomSheet(
             onDismissRequest = { comercioSeleccionado = null },
@@ -345,7 +340,8 @@ fun GuiaScreen(
 fun SeccionMunicipioAirbnb(
     titulo: String,
     comercios: List<Comercio>,
-    onComercioClick: (Comercio) -> Unit
+    onComercioClick: (Comercio) -> Unit,
+    onActionClick: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -363,87 +359,155 @@ fun SeccionMunicipioAirbnb(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp
             )
-
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(AirbnbLightGray)
-                    .clickable { },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "Ver todos",
-                    tint = AirbnbBlack,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
         }
-
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Creador del Carrusel Dinámico según nivel del plan
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(comercios, key = { it.id }) { comercio ->
-                TarjetaMiniAirbnb(
-                    comercio = comercio,
-                    onClick = { onComercioClick(comercio) }
-                )
+                when (comercio.nivelPlan) {
+                    3 -> TarjetaPremium(comercio, { onComercioClick(comercio) }, { onActionClick(comercio.telefono) })
+                    2 -> TarjetaEstandar(comercio, { onComercioClick(comercio) })
+                    else -> TarjetaBasica(comercio, { onComercioClick(comercio) })
+                }
             }
         }
     }
 }
 
+// ---------------------------------------------------------
+// PLAN 3: SOCIO PREMIUM ($25) - Tarjeta VIP
+// ---------------------------------------------------------
 @Composable
-fun TarjetaMiniAirbnb(
-    comercio: Comercio,
-    onClick: () -> Unit
-) {
+fun TarjetaPremium(comercio: Comercio, onClick: () -> Unit, onQuickActionClick: () -> Unit) {
+    var esFavorito by remember { mutableStateOf(false) }
+    val precio = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Consultar precio"
+    val calificacion = formatearCalificacion(comercio.calificacionPromedio)
+
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
+        border = BorderStroke(1.5.dp, ColorPremium.copy(alpha = 0.5f)), // Borde Dorado
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        modifier = Modifier.width(280.dp).clickable(onClick = onClick)
+    ) {
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                RemoteImage(
+                    url = comercio.imagenUrls.firstOrNull() ?: "",
+                    contentDescription = comercio.nombre,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Insignia VIP
+                Box(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("👑", fontSize = 12.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Favorito de la Ruta", color = ColorPremium, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                // Botón de Favorito
+                Box(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .size(34.dp)
+                        .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                        .clickable { esFavorito = !esFavorito }
+                        .align(Alignment.TopEnd),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorito",
+                        tint = if (esFavorito) AirbnbPrimary else AirbnbBlack,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                // Tag de Fotos HD
+                Box(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .align(Alignment.BottomEnd)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Fotos HD", color = Color.White, fontSize = 10.sp)
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(comercio.nombre, color = AirbnbBlack, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.Star, contentDescription = null, tint = AirbnbBlack, modifier = Modifier.size(14.dp))
+                    Text(calificacion, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+                Text("${comercio.categoria} · ${comercio.cantidadResenas ?: 0} reseñas", color = AirbnbGray, fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(precio, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Acción Rápida (WhatsApp / Contacto directo)
+                Button(
+                    onClick = onQuickActionClick,
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Contactar Rápido", fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------
+// PLAN 2: SOCIO TURISMAP ($15) - Tarjeta Estándar
+// ---------------------------------------------------------
+@Composable
+fun TarjetaEstandar(comercio: Comercio, onClick: () -> Unit) {
     var esFavorito by remember { mutableStateOf(false) }
     val precio = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Consultar precio"
     val calificacion = formatearCalificacion(comercio.calificacionPromedio)
 
     Column(
-        modifier = Modifier
-            .width(220.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
+        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(AirbnbLightGray)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(18.dp)).background(AirbnbLightGray)) {
             RemoteImage(
                 url = comercio.imagenUrls.firstOrNull() ?: "",
                 contentDescription = comercio.nombre,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-
+            // Badge Verde Destacado
             Box(
                 modifier = Modifier
                     .padding(top = 12.dp, start = 12.dp)
-                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(FondoBlancoAdaptable)
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .background(ColorDestacado, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
                     .align(Alignment.TopStart)
             ) {
-                Text(
-                    text = "Favorito de la Ruta",
-                    color = AirbnbBlack,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("★ Destacado", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-
+            // Botón Favorito
             Box(
                 modifier = Modifier
                     .padding(top = 10.dp, end = 10.dp)
@@ -461,42 +525,59 @@ fun TarjetaMiniAirbnb(
                 )
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = comercio.nombre,
-            color = AirbnbBlack,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = "$precio por consumo",
-            color = AirbnbGray,
-            fontSize = 13.sp
-        )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = AirbnbBlack,
-                modifier = Modifier.size(13.dp)
-            )
+            // Píldora de estado (Abierto)
+            Box(modifier = Modifier.size(8.dp).background(Color(0xFF4CAF50), CircleShape))
+            Spacer(Modifier.width(6.dp))
+            Text(comercio.nombre, color = AirbnbBlack, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+        Text("$precio por consumo", color = AirbnbGray, fontSize = 13.sp)
+        Spacer(modifier = Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Star, contentDescription = null, tint = AirbnbBlack, modifier = Modifier.size(13.dp))
             Spacer(modifier = Modifier.width(3.dp))
-            Text(
-                text = calificacion,
-                color = AirbnbBlack,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Text(calificacion, color = AirbnbBlack, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(" · ${comercio.cantidadResenas ?: 0} reseñas", color = AirbnbGray, fontSize = 12.sp)
         }
     }
 }
 
+// ---------------------------------------------------------
+// PLAN 1: BÁSICO ($5) - Tarjeta Simple
+// ---------------------------------------------------------
+@Composable
+fun TarjetaBasica(comercio: Comercio, onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
+        border = BorderStroke(1.dp, AirbnbBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.width(260.dp).clickable(onClick = onClick)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Foto pequeña
+            Box(modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)).background(AirbnbLightGray)) {
+                RemoteImage(
+                    url = comercio.imagenUrls.firstOrNull() ?: "",
+                    contentDescription = comercio.nombre,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(comercio.nombre, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(comercio.categoria, color = AirbnbGray, fontSize = 12.sp)
+                // Sin botones ni estrellas en portada
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------
+// (El resto del código de la VentanaDetalleAirbnb se mantiene igual)
+// ---------------------------------------------------------
 @Composable
 fun VentanaDetalleAirbnb(
     comercio: Comercio,
@@ -720,7 +801,6 @@ fun VentanaDetalleAirbnb(
             }
         }
 
-        // Barra inferior fija con botones balanceados
         HorizontalDivider(color = AirbnbBorder, thickness = 0.8.dp)
 
         Column(
@@ -767,7 +847,6 @@ fun VentanaDetalleAirbnb(
                     }
                 }
 
-                // Botón Iniciar Ruta destacado
                 Button(
                     onClick = onIniciarRuta,
                     modifier = Modifier.weight(1f),

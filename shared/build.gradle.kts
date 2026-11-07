@@ -53,10 +53,10 @@ kotlin {
             // Firebase integrado usando la referencia completa de dependencias del proyecto
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.firestore)
-            
+
             // Coil para cargar imágenes en Android
             implementation(libs.coil.compose)
-            
+
             // Google Play Services Location para obtener ubicación del usuario
             implementation("com.google.android.gms:play-services-location:21.1.0")
         }
@@ -75,11 +75,13 @@ kotlin {
 
             // Navegación Multiplatform para App.kt y TurisMapNavHost
             implementation(libs.navigation.compose)
-            
-            // Serialización JSON y Firebase Firestore (de la rama)
+
+            // Serialización JSON y GitLive Firebase Multiplatform
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
             implementation("dev.gitlive:firebase-firestore:1.11.1")
             implementation("dev.gitlive:firebase-auth:1.11.1")
+            // 🚀 AQUÍ SE AÑADIÓ LA DEPENDENCIA PARA FIREBASE STORAGE
+            implementation("dev.gitlive:firebase-storage:1.11.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
