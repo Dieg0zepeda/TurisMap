@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,18 +38,18 @@ import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.logo_turismap
 
 @Composable
-fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
-    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
-    // Colores basados en el diseño adaptables
+fun LoginScreen(
+    onLoginExitoso: () -> Unit = {},
+    onSolicitarGoogleSignIn: ((onTokenRecibido: (String) -> Unit) -> Unit)? = null
+) {
+    val esOscuro = isSystemInDarkTheme()
     val colorFondoArriba = if (esOscuro) Color(0xFF12221A) else Color(0xFFE8F0EC)
     val colorFondoAbajo = if (esOscuro) Color(0xFF0F1A14) else Color(0xFFF7FAF8)
     val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
     val terracota = if (esOscuro) Color(0xFFFF8A65) else Color(0xFFD96B52)
     val grisTexto = if (esOscuro) Color(0xFFB0BEC5) else Color(0xFF555555)
     val fondoCampos = if (esOscuro) Color(0xFF1E1E1E) else Color.White
-    val colorTextoPrincipal = if (esOscuro) Color.White else Color(0xFF1A202C)
 
-    // Estados para los campos de texto
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -57,10 +58,10 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
     var passwordError by remember { mutableStateOf<String?>(null) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
     var cargando by remember { mutableStateOf(false) }
+    var cargandoGoogle by remember { mutableStateOf(false) }
     var restablecimientoEnviado by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Función de validación (Ahora usa Kotlin puro para KMP)
     fun validarFormulario(): Boolean {
         var isValid = true
         emailError = null
@@ -96,18 +97,18 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
     ) {
         Spacer(modifier = Modifier.height(40.dp))
 
-        // 1. Logo (Imagen real de 4 cuadrantes)
+        // Logo
         Box(
             modifier = Modifier
-                .size(150.dp) // Un poco más grande para que luzca bien
+                .size(150.dp)
                 .clip(CircleShape)
                 .background(fondoCampos)
-                .padding(5.dp), // Menos padding para aprovechar el espacio
+                .padding(5.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = org.jetbrains.compose.resources.painterResource(Res.drawable.logo_turismap),
-                contentDescription = "Logo TurisMap 4 Cuadrantes",
+                painter = painterResource(Res.drawable.logo_turismap),
+                contentDescription = "Logo TurisMap",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = androidx.compose.ui.layout.ContentScale.Fit
             )
@@ -115,7 +116,6 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Etiqueta "PUEBLOS VIVOS"
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = fondoCampos,
@@ -133,7 +133,6 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 2. Textos de Bienvenida
         Text(
             text = "RUTA DE LAS FLORES - EL SALVADOR",
             fontSize = 10.sp,
@@ -159,7 +158,6 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. Formulario
         // Campo Correo
         Column(modifier = Modifier.fillMaxWidth()) {
             Text("Correo electrónico", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = grisTexto)
@@ -220,16 +218,19 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
                 Text(text = passwordError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
             }
         }
+
         mensajeError?.let { mensaje ->
+            Spacer(modifier = Modifier.height(8.dp))
             Text(mensaje, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
+
         if (restablecimientoEnviado) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text("Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.", color = verdeOscuro, fontSize = 13.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Recuperación de contraseña
         Text(
             text = "¿Olvidaste tu contraseña?",
             fontSize = 13.sp,
@@ -259,10 +260,10 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón Ingresar
+        // Botón Ingresar Tradicional
         Button(
             onClick = {
-                if (validarFormulario() && !cargando) {
+                if (validarFormulario() && !cargando && !cargandoGoogle) {
                     cargando = true
                     mensajeError = null
                     coroutineScope.launch {
@@ -281,10 +282,10 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp),
+                .heightIn(min = 54.dp),
             colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
             shape = RoundedCornerShape(16.dp),
-            enabled = !cargando
+            enabled = !cargando && !cargandoGoogle
         ) {
             if (cargando) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
@@ -295,7 +296,85 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Separador con texto "o continúa con"
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f), color = grisTexto.copy(alpha = 0.3f))
+            Text(
+                text = "o continúa con",
+                color = grisTexto,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f), color = grisTexto.copy(alpha = 0.3f))
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Botón de Inicio con Google
+        OutlinedButton(
+            onClick = {
+                if (!cargando && !cargandoGoogle) {
+                    mensajeError = null
+                    cargandoGoogle = true
+                    onSolicitarGoogleSignIn?.invoke { idToken ->
+                        coroutineScope.launch {
+                            try {
+                                AutenticacionRepository.iniciarSesionConGoogle(idToken)
+                                onLoginExitoso()
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                mensajeError = error.message ?: "Error al autenticar con Google."
+                            } finally {
+                                cargandoGoogle = false
+                            }
+                        }
+                    } ?: run {
+                        cargandoGoogle = false
+                        mensajeError = "Servicio de Google Sign-In no configurado."
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 54.dp),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, if (esOscuro) Color(0xFF333333) else Color(0xFFDDDDDD)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = fondoCampos
+            ),
+            enabled = !cargando && !cargandoGoogle
+        ) {
+            if (cargandoGoogle) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = verdeOscuro)
+            } else {
+                // Icono 'G' de Google
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp),
+                    shadowElevation = 1.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("G", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color(0xFF4285F4))
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Continuar con Google",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (esOscuro) Color.White else Color(0xFF333333)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Enlace Registro
         Row(
@@ -313,32 +392,28 @@ fun LoginScreen(onLoginExitoso: () -> Unit = {}) {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        // ... aquí termina tu diseño principal de Login
 
         if (mostrarVentanaRegistro) {
             VentanaRegistro(
-                onDismiss = { mostrarVentanaRegistro = false }, // Para cerrar si tocan afuera
+                onDismiss = { mostrarVentanaRegistro = false },
                 onRegistroExitoso = {
                     mostrarVentanaRegistro = false
                     onLoginExitoso()
                 }
             )
         }
-    } // Fin de LoginScreen
-
+    }
 }
 
-
-
-// Validación usando Regex de Kotlin (Compatible con KMP)
 fun esEmailValido(email: String): Boolean {
     val emailRegex = "^[A-Za-z](.*)([@]{1})(.{1,})(\\.)(.{1,})".toRegex()
     return emailRegex.matches(email)
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
-    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+    val esOscuro = isSystemInDarkTheme()
     val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
     val colorFondo = if (esOscuro) Color(0xFF1E1E1E) else Color(0xFFF7FAF8)
     val grisTexto = if (esOscuro) Color(0xFFB0BEC5) else Color(0xFF555555)
@@ -354,7 +429,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
     var mensajeError by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Intereses (Chips)
     var interesCascadas by remember { mutableStateOf(false) }
     var interesCafe by remember { mutableStateOf(false) }
     var interesArtesanias by remember { mutableStateOf(false) }
@@ -373,14 +447,12 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 .padding(bottom = 32.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Título
             Text("Crea tu cuenta de viajero", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = verdeOscuro)
             Spacer(modifier = Modifier.height(8.dp))
             Text("Descubre rutas secretas, guarda tus municipios favoritos y planifica tu aventura.", fontSize = 14.sp, color = grisTexto)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Campo Nombre
             OutlinedTextField(
                 value = nombre, onValueChange = { nombre = it },
                 label = { Text("Nombre completo") },
@@ -393,7 +465,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Correo
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
                 label = { Text("Correo electrónico") },
@@ -407,7 +478,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Contraseña
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
                 label = { Text("Crea una clave segura") },
@@ -428,7 +498,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Intereses
             Text("¿Qué te inspira explorar?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = verdeOscuro)
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -444,7 +513,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Términos
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = aceptoTerminos, onCheckedChange = { aceptoTerminos = it }, colors = CheckboxDefaults.colors(checkedColor = verdeOscuro))
                 Text("Acepto los Términos y Condiciones", fontSize = 12.sp, color = grisTexto)
@@ -456,7 +524,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón Crear Cuenta
             Button(
                 onClick = {
                     if (!cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos) {
@@ -501,7 +568,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
 @Composable
 fun ChipInteres(texto: String, seleccionado: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val esOscuro = androidx.compose.foundation.isSystemInDarkTheme()
+    val esOscuro = isSystemInDarkTheme()
     val verdeOscuro = if (esOscuro) Color(0xFF4CAF50) else Color(0xFF1B4934)
     val fondoChip = if (esOscuro) Color(0xFF1E1E1E) else Color.White
     val colorBorde = if (esOscuro) Color(0xFF333333) else Color.LightGray

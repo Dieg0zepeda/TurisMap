@@ -39,7 +39,8 @@ fun TurisMapNavHost(
     modificador: Modifier = Modifier,
     mostrarBarraInferior: Boolean = true,
     onCerrarSesion: () -> Unit = {},
-    destinoInicial: String = Pantalla.Explorar.ruta
+    destinoInicial: String = Pantalla.Explorar.ruta,
+    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
 ) {
     NavHost(
         navController = controladorNavegacion,
@@ -100,7 +101,7 @@ fun TurisMapNavHost(
             }
         }
 
-        // 3. Guía Comercial (Airbnb Style)
+        // 3. Guía Comercial
         composable(route = Pantalla.Guia.ruta) {
             GuiaScreen(
                 onComercioClick = { comercioId ->
@@ -108,9 +109,7 @@ fun TurisMapNavHost(
                 },
                 onIniciarRuta = { _ ->
                     controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
-                        popUpTo(Pantalla.Guia.ruta) {
-                            inclusive = true
-                        }
+                        popUpTo(Pantalla.Guia.ruta) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -160,7 +159,7 @@ fun TurisMapNavHost(
             )
         }
 
-        // 5. Detalle de Lugar (Pueblos / Destinos)
+        // 5. Detalle de Lugar
         composable(
             route = Pantalla.DetalleLugar.ruta,
             arguments = listOf(navArgument("lugarId") { type = NavType.StringType })
@@ -175,7 +174,6 @@ fun TurisMapNavHost(
             var mensajeAccion by remember { mutableStateOf<String?>(null) }
             val scope = rememberCoroutineScope()
 
-            // Observación reactiva de favoritos desde Firestore
             val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
             val favoritoGuardado = remember(usuarioActual?.favoritos, lugarId) {
                 usuarioActual?.favoritos?.contains(lugarId) == true
@@ -252,9 +250,7 @@ fun TurisMapNavHost(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(errorCarga ?: "No se encontró el lugar.")
                         if (errorCarga != null) {
-                            Button(onClick = { intentoCarga++ }) {
-                                Text("Reintentar")
-                            }
+                            Button(onClick = { intentoCarga++ }) { Text("Reintentar") }
                         }
                     }
                 }
@@ -278,13 +274,13 @@ fun TurisMapNavHost(
         // 7. Inicio de Sesión
         composable(Pantalla.InicioSesion.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
-                PantallaInicioSesion(
+                LoginScreen(
                     onLoginExitoso = {
                         controladorNavegacion.navigate(Pantalla.Explorar.ruta) {
                             popUpTo(Pantalla.InicioSesion.ruta) { inclusive = true }
                         }
                     },
-                    onNavegarARegistro = {}
+                    onSolicitarGoogleSignIn = onSolicitarGoogleSignIn
                 )
             }
         }

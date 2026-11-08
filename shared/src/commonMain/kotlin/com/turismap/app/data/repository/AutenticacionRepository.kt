@@ -2,6 +2,7 @@ package com.turismap.app.data.repository
 
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
 
@@ -16,7 +17,11 @@ object AutenticacionRepository {
         val usuario = resultado.user
             ?: throw IllegalStateException("Firebase no devolvió el usuario autenticado.")
         try {
-            UsuarioRepository.asegurarPerfil(usuario.email ?: email.trim(), usuario.displayName.orEmpty())
+            UsuarioRepository.asegurarPerfil(
+                email = usuario.email ?: email.trim(),
+                nombre = usuario.displayName.orEmpty(),
+                fotoUrl = usuario.photoURL
+            )
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -39,7 +44,32 @@ object AutenticacionRepository {
             UsuarioRepository.asegurarPerfil(
                 email = usuario.email ?: email.trim(),
                 nombre = nombre.trim(),
-                intereses = intereses
+                intereses = intereses,
+                fotoUrl = usuario.photoURL
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            auth.signOut()
+            throw error
+        }
+    }
+
+    /**
+     * Autenticación con Google usando el idToken obtenido del dispositivo.
+     * Guarda la foto de perfil oficial y asegura el rol 'viajero'.
+     */
+    suspend fun iniciarSesionConGoogle(idToken: String) {
+        val credencial = GoogleAuthProvider.credential(idToken = idToken, accessToken = null)
+        val resultado = auth.signInWithCredential(credencial)
+        val usuario = resultado.user
+            ?: throw IllegalStateException("No se pudo obtener el usuario de Google.")
+
+        try {
+            UsuarioRepository.asegurarPerfil(
+                email = usuario.email.orEmpty(),
+                nombre = usuario.displayName.orEmpty().ifBlank { "Viajero TurisMap" },
+                fotoUrl = usuario.photoURL
             )
         } catch (error: CancellationException) {
             throw error

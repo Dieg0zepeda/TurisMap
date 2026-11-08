@@ -14,7 +14,8 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
-
+// Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)

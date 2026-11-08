@@ -56,7 +56,17 @@ object UsuarioRepository {
     // 2. CONSULTAS PUNTUALES
     // ==========================================
 
-    suspend fun asegurarPerfil(email: String, nombre: String = "", intereses: List<String> = emptyList()) {
+    /**
+     * Asegura la existencia del documento en Firestore.
+     * Si el usuario es nuevo, lo crea con rol "viajero" y su foto de perfil.
+     * Si ya existe pero no tenía foto, le asigna la foto traída de Google.
+     */
+    suspend fun asegurarPerfil(
+        email: String,
+        nombre: String = "",
+        intereses: List<String> = emptyList(),
+        fotoUrl: String? = null
+    ) {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException("No hay una sesión autenticada.")
         val referencia = firestore.collection("usuarios").document(usuario.uid)
@@ -66,11 +76,23 @@ object UsuarioRepository {
             referencia.set(
                 UsuarioBD.serializer(),
                 UsuarioBD(
-                    email = email,
-                    nombre = nombre,
-                    intereses = intereses
+                    email = email.trim(),
+                    rol = "viajero",
+                    nombre = nombre.trim(),
+                    intereses = intereses,
+                    fotoPerfil = fotoUrl.orEmpty()
                 )
             )
+        } else {
+            val usuarioBD = try {
+                documento.data(UsuarioBD.serializer())
+            } catch (_: Exception) {
+                null
+            }
+
+            if (usuarioBD != null && usuarioBD.fotoPerfil.isBlank() && !fotoUrl.isNullOrBlank()) {
+                referencia.update("fotoPerfil" to fotoUrl.trim())
+            }
         }
     }
 
@@ -88,11 +110,11 @@ object UsuarioRepository {
             ?: throw IllegalStateException("No hay una sesión autenticada.")
 
         val docRef = firestore.collection("usuarios").document(usuario.uid)
-        docRef.update("nombre" to nombre)
+        docRef.update("nombre" to nombre.trim())
         if (telefono.isNotBlank()) {
             docRef.update("telefono" to telefono.trim())
         }
-        usuario.updateProfile(displayName = nombre)
+        usuario.updateProfile(displayName = nombre.trim())
     }
 
     suspend fun actualizarFoto(perfil: Boolean, url: String) {
@@ -125,7 +147,12 @@ object UsuarioRepository {
         val documento = referencia.get()
 
         if (!documento.exists) {
-            asegurarPerfil(Firebase.auth.currentUser?.email.orEmpty())
+            val user = Firebase.auth.currentUser
+            asegurarPerfil(
+                email = user?.email.orEmpty(),
+                nombre = user?.displayName.orEmpty(),
+                fotoUrl = user?.photoURL
+            )
         }
 
         val operacion = if (guardar) {

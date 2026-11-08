@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.turismap.app.components.FigmaBottomBar
@@ -49,30 +48,30 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun App() {
+fun App(
+    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
+) {
     val esModoOscuro = isSystemInDarkTheme()
     val controladorNavegacion = rememberNavController()
     var usuarioAutenticado by remember { mutableStateOf(AutenticacionRepository.usuarioActual != null) }
 
-    // Observador reactivo del estado de navegación
     val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
 
-    // Rutas con visibilidad de barra inferior
-    val rutasConBarra = listOf(
+    // Comprueba si la ruta actual coincide o inicia con alguna de las pantallas principales
+    val mostrarBarraInferior = rutaActual == null || listOf(
         Pantalla.Explorar.ruta,
         Pantalla.Mapa.ruta,
         Pantalla.Guia.ruta,
         Pantalla.Perfil.ruta
-    )
-    val mostrarBarraInferior = rutaActual == null || rutaActual in rutasConBarra
+    ).any { rutaBase -> rutaActual.startsWith(rutaBase) }
 
-    // Sincronización del índice activo según la ruta actual de la pila
-    val indiceSeleccionado = when (rutaActual) {
-        Pantalla.Explorar.ruta -> 0
-        Pantalla.Mapa.ruta -> 1
-        Pantalla.Guia.ruta -> 2
-        Pantalla.Perfil.ruta -> 3
+    // Sincronización del índice activo reconociendo rutas con argumentos
+    val indiceSeleccionado = when {
+        rutaActual?.startsWith(Pantalla.Explorar.ruta) == true -> 0
+        rutaActual?.startsWith(Pantalla.Mapa.ruta) == true -> 1
+        rutaActual?.startsWith(Pantalla.Guia.ruta) == true -> 2
+        rutaActual?.startsWith(Pantalla.Perfil.ruta) == true -> 3
         else -> 0
     }
 
@@ -81,7 +80,8 @@ fun App() {
     ) {
         if (!usuarioAutenticado) {
             LoginScreen(
-                onLoginExitoso = { usuarioAutenticado = true }
+                onLoginExitoso = { usuarioAutenticado = true },
+                onSolicitarGoogleSignIn = onSolicitarGoogleSignIn
             )
         } else {
             Scaffold(
@@ -104,7 +104,7 @@ fun App() {
 
                                     if (!volvioAUnaPestanaExistente) {
                                         controladorNavegacion.navigate(destino) {
-                                            popUpTo(id = controladorNavegacion.graph.findStartDestination().id) {
+                                            popUpTo(Pantalla.Explorar.ruta) {
                                                 saveState = true
                                             }
                                             launchSingleTop = true

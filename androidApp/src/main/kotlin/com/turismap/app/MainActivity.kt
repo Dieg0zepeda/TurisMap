@@ -8,38 +8,68 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 class MainActivity : ComponentActivity() {
-    private var locationPermissionGranted by mutableStateOf(false)
+    private var callbackTokenGoogle: ((String) -> Unit)? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        locationPermissionGranted = isGranted
+    ) { /* Permiso gestionado */ }
+
+    // Launcher que captura la respuesta del selector de Google
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        if (resultado.resultCode == RESULT_OK) {
+            val tarea = GoogleSignIn.getSignedInAccountFromIntent(resultado.data)
+            try {
+                val cuenta = tarea.getResult(ApiException::class.java)
+                val idToken = cuenta.idToken
+                if (!idToken.isNullOrBlank()) {
+                    callbackTokenGoogle?.invoke(idToken)
+                }
+            } catch (_: Exception) {
+                // Cancelación o fallo de red
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Verificar permisos de ubicación
-        locationPermissionGranted = ContextCompat.checkSelfPermission(
+        val locationGranted = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        // Solicitar permisos si no están concedidos
-        if (!locationPermissionGranted) {
+        if (!locationGranted) {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
+        // Cliente Google Sign-In con el Web Client ID generado por google-services
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .requestProfile()
+            .build()
+        val googleClient = GoogleSignIn.getClient(this, gso)
+
+        // Acción que pasamos directamente a App()
+        val solicitarGoogleSignIn: ((String) -> Unit) -> Unit = { callback ->
+            callbackTokenGoogle = callback
+            googleClient.signOut().addOnCompleteListener {
+                googleSignInLauncher.launch(googleClient.signInIntent)
+            }
+        }
+
         setContent {
-            App()
+            App(onSolicitarGoogleSignIn = solicitarGoogleSignIn)
         }
     }
 }
