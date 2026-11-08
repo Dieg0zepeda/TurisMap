@@ -32,6 +32,7 @@ data class Comercio(
     val estado: String = "pendiente",
     val destacado: Boolean = false,
     val nivelPlan: Int = 1, // 1 = Básico, 2 = Estándar, 3 = Premium
+    val tipoPlan: String = "Socio TurisMap ($15/mes)",
     @SerialName("calificacionPromedio") val calificacionPromedio: Double? = 0.0,
     @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,

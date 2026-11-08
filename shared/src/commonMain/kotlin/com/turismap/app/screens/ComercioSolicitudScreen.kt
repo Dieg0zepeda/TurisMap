@@ -7,14 +7,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -31,14 +35,22 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.turismap.app.data.models.Coordenada
+import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.CategoriaComercio
+import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+
+data class HorarioDia(
+    val apertura: String = "",
+    val cierre: String = ""
+)
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +61,14 @@ fun ComercioSolicitudScreen(
     onBack: () -> Unit,
     onSubmitted: () -> Unit
 ) {
+    val planIdNormalizado = remember(planId) { planId.trim().lowercase() }
+    val esSocio = remember(planIdNormalizado) {
+        planIdNormalizado.contains("socio") || planIdNormalizado.contains("premium")
+    }
+    val esPremium = remember(planIdNormalizado) {
+        planIdNormalizado.contains("premium")
+    }
+
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var cargandoLugares by remember { mutableStateOf(true) }
     var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
@@ -64,6 +84,8 @@ fun ComercioSolicitudScreen(
     var telefono by remember { mutableStateOf("") }
     var sitioWeb by remember { mutableStateOf("") }
     var horario by remember { mutableStateOf("") }
+    var promocionEspecial by remember { mutableStateOf("") }
+
     var lugaresError by remember { mutableStateOf<String?>(null) }
     var errorEnvio by remember { mutableStateOf<String?>(null) }
     var enviando by remember { mutableStateOf(false) }
@@ -79,7 +101,7 @@ fun ComercioSolicitudScreen(
     var intentoCarga by remember { mutableStateOf(0) }
     var mostrarHorarioDetallado by remember { mutableStateOf(false) }
     var diasSeleccionados by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var horariosPorDia by remember { mutableStateOf<Map<String, Pair<String, String>>>(emptyMap()) }
+    var horariosPorDia: Map<String, HorarioDia> by remember { mutableStateOf(emptyMap()) }
     var solicitudEnviada by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -115,7 +137,7 @@ fun ComercioSolicitudScreen(
         try {
             categorias = ComercioRepository.obtenerCategorias()
             categoriasError = if (categorias.isEmpty()) {
-                "No hay categorías activas en categorias_comercio. Verifica que tengan activo: true y un nombre, descripción o ID."
+                "No hay categorías activas en categorias_comercio."
             } else {
                 null
             }
@@ -168,7 +190,7 @@ fun ComercioSolicitudScreen(
                 title = { Text("Registrar mi comercio") },
                 navigationIcon = {
                     IconButton(onClick = onBack, enabled = !enviando) {
-                        androidx.compose.material3.Icon(
+                        Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver"
                         )
@@ -183,214 +205,265 @@ fun ComercioSolicitudScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-                Text("Tus datos de contacto")
-                CampoSolicitud(
-                    etiqueta = "Nombre completo",
-                    valor = nombreCompleto,
-                    alCambiar = { nombreCompleto = it }
-                )
-                CampoSolicitud(
-                    etiqueta = "Correo electrónico",
-                    valor = email,
-                    alCambiar = {},
-                    soloLectura = true
-                )
-
-                Text("Datos del comercio")
-                CampoSolicitud(
-                    etiqueta = "Nombre del comercio",
-                    valor = nombreNegocio,
-                    alCambiar = { nombreNegocio = it }
-                )
-                Column {
-                    Box {
-                        OutlinedTextField(
-                            value = lugarSeleccionado?.nombre.orEmpty(),
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Ubicación del negocio") },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { selectorMunicipioAbierto = true },
-                                    enabled = !cargandoLugares && lugaresError == null && lugares.isNotEmpty()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Seleccionar ubicación"
-                                    )
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        DropdownMenu(
-                            expanded = selectorMunicipioAbierto,
-                            onDismissRequest = { selectorMunicipioAbierto = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
-                        ) {
-                            lugares.forEach { lugar ->
-                                DropdownMenuItem(
-                                    text = { Text(lugar.nombre) },
-                                    onClick = {
-                                        lugarSeleccionado = lugar
-                                        coordenadaSeleccionada = null
-                                        selectorMunicipioAbierto = false
-                                        seleccionandoUbicacion = true
-                                    }
-                                )
-                            }
-                        }
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = when {
+                        esPremium -> Color(0xFFFEF3C7)
+                        esSocio -> Color(0xFFEEF2FF)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
                     }
-                    if (cargandoLugares) {
-                        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-                    } else {
-                        lugaresError?.let {
-                            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
-                        }
-                    }
-                }
-                lugarSeleccionado?.let { lugar ->
-                    Text(
-                        "Ubicación exacta",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Button(
-                        onClick = { seleccionandoUbicacion = true },
-                        modifier = Modifier.fillMaxWidth()
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            if (coordenadaSeleccionada == null) {
-                                "Ubicar negocio en el mapa"
-                            } else {
-                                "Cambiar ubicación en el mapa"
+                            text = planNombre.ifBlank { "Plan Seleccionado" },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = when {
+                                esPremium -> Color(0xFF92400E)
+                                esSocio -> Color(0xFF3730A3)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
-                    }
-                    coordenadaSeleccionada?.let { coordenada ->
-                        Text(
-                            "Coordenadas guardadas: ${coordenada.latitud}, ${coordenada.longitud}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Column {
-                    Box {
-                        OutlinedTextField(
-                            value = categoria,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Categoría") },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { selectorCategoriaAbierto = true },
-                                    enabled = !cargandoCategorias && categoriasError == null && categorias.isNotEmpty()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Seleccionar categoría"
-                                    )
+                        planPrecio?.let {
+                            Text(
+                                text = it,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = when {
+                                    esPremium -> Color(0xFFB45309)
+                                    esSocio -> Color(0xFF4F46E5)
+                                    else -> MaterialTheme.colorScheme.primary
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        DropdownMenu(
-                            expanded = selectorCategoriaAbierto,
-                            onDismissRequest = { selectorCategoriaAbierto = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
-                        ) {
-                            categorias.forEach { opcion ->
-                                DropdownMenuItem(
-                                    text = { Text(opcion.etiqueta) },
-                                    onClick = {
-                                        categoria = opcion.etiqueta
-                                        categoriaId = opcion.id
-                                        selectorCategoriaAbierto = false
-                                    }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = when {
+                            esPremium -> "Plan VIP: Incluye presencia en inicio, redes, horarios y promoción destacada."
+                            esSocio -> "Plan Crecimiento: Incluye enlaces a redes sociales y horarios de atención."
+                            else -> "Plan Básico: Presencia esencial en el directorio y mapa turístico."
+                        },
+                        fontSize = 12.5.sp,
+                        color = Color(0xFF475569)
+                    )
+                }
+            }
+
+            Text("Tus datos de contacto", fontWeight = FontWeight.Bold)
+            CampoSolicitud(
+                etiqueta = "Nombre completo",
+                valor = nombreCompleto,
+                alCambiar = { nombreCompleto = it }
+            )
+            CampoSolicitud(
+                etiqueta = "Correo electrónico",
+                valor = email,
+                alCambiar = {},
+                soloLectura = true
+            )
+
+            Text("Datos del comercio", fontWeight = FontWeight.Bold)
+            CampoSolicitud(
+                etiqueta = "Nombre del comercio",
+                valor = nombreNegocio,
+                alCambiar = { nombreNegocio = it }
+            )
+
+            Column {
+                Box {
+                    OutlinedTextField(
+                        value = lugarSeleccionado?.nombre.orEmpty(),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Ubicación del negocio (Pueblo)") },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { selectorMunicipioAbierto = true },
+                                enabled = !cargandoLugares && lugaresError == null && lugares.isNotEmpty()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Seleccionar ubicación"
                                 )
                             }
-                        }
-                    }
-                    if (cargandoCategorias) {
-                        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-                    } else {
-                        categoriasError?.let {
-                            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    DropdownMenu(
+                        expanded = selectorMunicipioAbierto,
+                        onDismissRequest = { selectorMunicipioAbierto = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        lugares.forEach { lugar ->
+                            DropdownMenuItem(
+                                text = { Text(lugar.nombre) },
+                                onClick = {
+                                    lugarSeleccionado = lugar
+                                    coordenadaSeleccionada = null
+                                    selectorMunicipioAbierto = false
+                                    seleccionandoUbicacion = true
+                                }
+                            )
                         }
                     }
                 }
+                if (cargandoLugares) {
+                    CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                } else {
+                    lugaresError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+
+            lugarSeleccionado?.let {
+                Button(
+                    onClick = { seleccionandoUbicacion = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (coordenadaSeleccionada == null) "Ubicar negocio en el mapa"
+                        else "Cambiar ubicación en el mapa"
+                    )
+                }
+                coordenadaSeleccionada?.let { coordenada ->
+                    Text(
+                        "Coordenadas guardadas: ${coordenada.latitud}, ${coordenada.longitud}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Column {
+                Box {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Categoría") },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { selectorCategoriaAbierto = true },
+                                enabled = !cargandoCategorias && categoriasError == null && categorias.isNotEmpty()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Seleccionar categoría"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    DropdownMenu(
+                        expanded = selectorCategoriaAbierto,
+                        onDismissRequest = { selectorCategoriaAbierto = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        categorias.forEach { opcion ->
+                            DropdownMenuItem(
+                                text = { Text(opcion.etiqueta) },
+                                onClick = {
+                                    categoria = opcion.etiqueta
+                                    categoriaId = opcion.id
+                                    selectorCategoriaAbierto = false
+                                }
+                            )
+                        }
+                    }
+                }
+                if (cargandoCategorias) {
+                    CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                } else {
+                    categoriasError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+
+            CampoSolicitud(
+                etiqueta = "Descripción breve",
+                valor = descripcion,
+                alCambiar = { descripcion = it },
+                multilinea = true
+            )
+            CampoSolicitud(
+                etiqueta = "Dirección física",
+                valor = direccion,
+                alCambiar = { direccion = it }
+            )
+            CampoSolicitud(
+                etiqueta = "Teléfono de contacto",
+                valor = telefono,
+                alCambiar = { telefono = it }
+            )
+
+            if (esSocio) {
+                Text("Detalles de Operación y Redes", fontWeight = FontWeight.Bold)
                 CampoSolicitud(
-                    etiqueta = "Descripción breve",
-                    valor = descripcion,
-                    alCambiar = { descripcion = it },
-                    multilinea = true
-                )
-                CampoSolicitud(
-                    etiqueta = "Dirección",
-                    valor = direccion,
-                    alCambiar = { direccion = it }
-                )
-                CampoSolicitud(
-                    etiqueta = "Teléfono",
-                    valor = telefono,
-                    alCambiar = { telefono = it }
-                )
-                CampoSolicitud(
-                    etiqueta = "Sitio web (opcional, HTTPS)",
+                    etiqueta = "Sitio web o Instagram (ej. https://...)",
                     valor = sitioWeb,
                     alCambiar = { sitioWeb = it }
                 )
+
                 Column {
-                    Text("Horario (opcional)", style = MaterialTheme.typography.labelLarge)
+                    Text("Horario de atención", style = MaterialTheme.typography.labelLarge)
                     TextButton(onClick = { mostrarHorarioDetallado = !mostrarHorarioDetallado }) {
-                        Text(if (mostrarHorarioDetallado) "Ocultar horario detallado" else "Configurar horario detallado")
+                        Text(if (mostrarHorarioDetallado) "Escribir horario manual" else "Configurar horario por días")
                     }
                     if (mostrarHorarioDetallado) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo").forEach { dia ->
                                 val seleccionado = diasSeleccionados.contains(dia)
+                                val horarioDia = horariosPorDia[dia] ?: HorarioDia()
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(
                                             checked = seleccionado,
                                             onCheckedChange = { checked ->
-                                                diasSeleccionados = if (checked) {
-                                                    diasSeleccionados + dia
-                                                } else {
-                                                    diasSeleccionados - dia
-                                                }
+                                                diasSeleccionados = if (checked) diasSeleccionados + dia else diasSeleccionados - dia
                                             }
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(dia)
                                     }
                                     if (seleccionado) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             OutlinedTextField(
-                                                value = horariosPorDia[dia]?.first ?: "",
+                                                value = horarioDia.apertura,
                                                 onValueChange = { nuevoValor ->
-                                                    horariosPorDia = horariosPorDia.toMutableMap().apply {
-                                                        put(dia, Pair(nuevoValor, horariosPorDia[dia]?.second ?: ""))
-                                                    }
+                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(apertura = nuevoValor))
                                                 },
-                                                label = { Text("Apertura") },
-                                                modifier = Modifier.width(100.dp),
+                                                label = { Text("Abre") },
+                                                modifier = Modifier.width(90.dp),
                                                 singleLine = true
                                             )
                                             Text("a")
                                             OutlinedTextField(
-                                                value = horariosPorDia[dia]?.second ?: "",
+                                                value = horarioDia.cierre,
                                                 onValueChange = { nuevoValor ->
-                                                    horariosPorDia = horariosPorDia.toMutableMap().apply {
-                                                        put(dia, Pair(horariosPorDia[dia]?.first ?: "", nuevoValor))
-                                                    }
+                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(cierre = nuevoValor))
                                                 },
-                                                label = { Text("Cierre") },
-                                                modifier = Modifier.width(100.dp),
+                                                label = { Text("Cierra") },
+                                                modifier = Modifier.width(90.dp),
                                                 singleLine = true
                                             )
                                         }
@@ -398,56 +471,50 @@ fun ComercioSolicitudScreen(
                                 }
                             }
                         }
-                        // Generar string de horario automáticamente
+
                         LaunchedEffect(diasSeleccionados, horariosPorDia) {
                             horario = if (diasSeleccionados.isEmpty()) {
                                 ""
                             } else {
                                 diasSeleccionados.joinToString(", ") { dia ->
-                                    val (apertura, cierre) = horariosPorDia[dia] ?: Pair("", "")
-                                    "$dia: $apertura - $cierre"
+                                    val horarioDia = horariosPorDia[dia] ?: HorarioDia()
+                                    "$dia: ${horarioDia.apertura} a ${horarioDia.cierre}"
                                 }
                             }
                         }
                     } else {
                         CampoSolicitud(
-                            etiqueta = "Horario (texto libre)",
+                            etiqueta = "Horario (ej. Lun a Dom 8:00 AM - 6:00 PM)",
                             valor = horario,
-                            alCambiar = { horario = it },
-                            multilinea = true
+                            alCambiar = { horario = it }
                         )
                     }
                 }
+            }
 
-                Text("Plan solicitado")
-                when {
-                    cargandoPlan -> CircularProgressIndicator()
-                    planError != null -> Text(planError.orEmpty(), color = MaterialTheme.colorScheme.error)
-                    else -> {
-                        Text(planNombre, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            planPrecio ?: "Precio no disponible",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                Text(
-                    "Esta solicitud indica interés en el plan. El equipo confirmará contigo el alcance y las condiciones.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (esPremium) {
+                Text("Beneficio VIP TurisMap", fontWeight = FontWeight.Bold)
+                CampoSolicitud(
+                    etiqueta = "Promoción exclusiva para turistas (ej. 10% en café)",
+                    valor = promocionEspecial,
+                    alCambiar = { promocionEspecial = it }
                 )
-                errorEnvio?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                }
-                if (solicitudEnviada) {
-                    Text(
-                        "Solicitud enviada. Un administrador debe revisarla antes de publicarse.",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        enabled = !enviando &&
+            }
+
+            errorEnvio?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+            if (solicitudEnviada) {
+                Text(
+                    "Solicitud enviada con éxito. Será revisada y publicada desde el panel administrativo.",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    enabled = !enviando &&
                             !cargandoLugares &&
                             lugaresError == null &&
                             !cargandoCategorias &&
@@ -464,63 +531,60 @@ fun ComercioSolicitudScreen(
                             direccion.isNotBlank() &&
                             telefono.isNotBlank() &&
                             !solicitudEnviada,
-                        onClick = {
-                            if (sitioWeb.isNotBlank() &&
-                                !sitioWeb.startsWith("https://", ignoreCase = true)
-                            ) {
-                                errorEnvio = "El sitio web debe comenzar con https://."
-                            } else {
-                                enviando = true
-                                errorEnvio = null
-                                scope.launch {
-                                    try {
-                                        val lugar = lugarSeleccionado
-                                            ?: throw IllegalStateException("Selecciona una ubicación.")
-                                        ComercioRepository.enviarSolicitudComercio(
-                                            nombreCompleto = nombreCompleto,
-                                            email = email,
-                                            municipio = lugar.nombre,
-                                            nombreNegocio = nombreNegocio,
-                                            categoria = categoriaId,
-                                            descripcion = descripcion,
-                                            direccion = direccion,
-                                            telefono = telefono,
-                                            sitioWeb = sitioWeb,
-                                            horario = horario,
-                                            planId = planId,
-                                            coordenadas = coordenadaSeleccionada
-                                                ?: throw IllegalStateException("Selecciona la ubicación exacta del negocio.")
-                                        )
-                                        solicitudEnviada = true
-                                    } catch (cancelacion: CancellationException) {
-                                        throw cancelacion
-                                    } catch (error: Exception) {
-                                        errorEnvio = error.message ?: "No se pudo enviar la solicitud."
-                                    } finally {
-                                        enviando = false
+                    onClick = {
+                        if (sitioWeb.isNotBlank() && !sitioWeb.startsWith("https://", ignoreCase = true)) {
+                            errorEnvio = "El sitio web debe comenzar con https://."
+                        } else {
+                            enviando = true
+                            errorEnvio = null
+                            scope.launch {
+                                try {
+                                    val lugar = lugarSeleccionado ?: throw IllegalStateException("Selecciona una ubicación.")
+
+                                    val descripcionFinal = if (esPremium && promocionEspecial.isNotBlank()) {
+                                        "$descripcion\n\n[PROMO TURISMAP]: $promocionEspecial"
+                                    } else {
+                                        descripcion
                                     }
+
+                                    ComercioRepository.enviarSolicitudComercio(
+                                        nombreCompleto = nombreCompleto,
+                                        email = email,
+                                        municipio = lugar.nombre,
+                                        nombreNegocio = nombreNegocio,
+                                        categoria = categoriaId,
+                                        descripcion = descripcionFinal,
+                                        direccion = direccion,
+                                        telefono = telefono,
+                                        sitioWeb = if (esSocio) sitioWeb else "",
+                                        horario = if (esSocio) horario else "",
+                                        planId = planId,
+                                        coordenadas = coordenadaSeleccionada
+                                            ?: throw IllegalStateException("Selecciona la ubicación exacta del negocio.")
+                                    )
+                                    solicitudEnviada = true
+                                } catch (cancelacion: CancellationException) {
+                                    throw cancelacion
+                                } catch (error: Exception) {
+                                    errorEnvio = error.message ?: "No se pudo enviar la solicitud."
+                                } finally {
+                                    enviando = false
                                 }
                             }
                         }
-                    ) {
-                        if (enviando) CircularProgressIndicator()
-                        else Text(if (solicitudEnviada) "Solicitud enviada" else "Enviar solicitud")
                     }
-                    TextButton(onClick = if (solicitudEnviada) onSubmitted else onBack, enabled = !enviando) {
-                        Text(if (solicitudEnviada) "Volver a planes" else "Cancelar")
-                    }
+                ) {
+                    if (enviando) CircularProgressIndicator()
+                    else Text(if (solicitudEnviada) "Solicitud enviada" else "Enviar solicitud")
                 }
-                if (lugaresError != null || categoriasError != null || planError != null) {
-                    TextButton(
-                        onClick = { intentoCarga++ },
-                        enabled = !cargandoLugares && !cargandoCategorias && !cargandoPlan && !enviando
-                    ) {
-                        Text("Reintentar carga")
-                    }
+
+                TextButton(onClick = if (solicitudEnviada) onSubmitted else onBack, enabled = !enviando) {
+                    Text(if (solicitudEnviada) "Volver a planes" else "Cancelar")
                 }
             }
         }
     }
+}
 
 private fun mensajeErrorCarga(
     error: Exception,

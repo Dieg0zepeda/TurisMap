@@ -4,6 +4,9 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.firestore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -11,6 +14,7 @@ data class UsuarioBD(
     val email: String = "",
     val rol: String = "viajero",
     val nombre: String = "",
+    val telefono: String = "",
     val favoritos: List<String> = emptyList(),
     val intereses: List<String> = emptyList(),
     val fotoPerfil: String = "",
@@ -21,6 +25,36 @@ object UsuarioRepository {
     private val firestore by lazy { Firebase.firestore }
 
     fun obtenerIdUsuarioActual(): String? = Firebase.auth.currentUser?.uid
+
+    // ==========================================
+    // 1. OBSERVADORES EN TIEMPO REAL (FLOW)
+    // ==========================================
+
+    /**
+     * Emite el perfil actualizado cada vez que cambia el documento en Firestore
+     * (por ejemplo, al agregar o quitar favoritos desde cualquier pantalla).
+     */
+    fun observarUsuarioActual(): Flow<UsuarioBD?> {
+        val uid = obtenerIdUsuarioActual() ?: return flowOf(null)
+        return firestore.collection("usuarios").document(uid).snapshots.map { snapshot ->
+            if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+        }
+    }
+
+    fun observarUsuarioPorId(idUsuario: String): Flow<UsuarioBD?> =
+        firestore.collection("usuarios").document(idUsuario).snapshots.map { snapshot ->
+            if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+        }
+
+    fun observarContadorVisitas(idUsuario: String): Flow<Int> =
+        firestore.collection("usuarios").document(idUsuario)
+            .collection("historial_rutas")
+            .snapshots
+            .map { it.documents.size }
+
+    // ==========================================
+    // 2. CONSULTAS PUNTUALES
+    // ==========================================
 
     suspend fun asegurarPerfil(email: String, nombre: String = "", intereses: List<String> = emptyList()) {
         val usuario = Firebase.auth.currentUser
@@ -45,10 +79,19 @@ object UsuarioRepository {
         return if (documento.exists) documento.data(UsuarioBD.serializer()) else null
     }
 
-    suspend fun actualizarPerfil(nombre: String) {
+    // ==========================================
+    // 3. MUTACIONES DE PERFIL Y FOTOS
+    // ==========================================
+
+    suspend fun actualizarPerfil(nombre: String, telefono: String = "") {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException("No hay una sesión autenticada.")
-        firestore.collection("usuarios").document(usuario.uid).update("nombre" to nombre)
+
+        val docRef = firestore.collection("usuarios").document(usuario.uid)
+        docRef.update("nombre" to nombre)
+        if (telefono.isNotBlank()) {
+            docRef.update("telefono" to telefono.trim())
+        }
         usuario.updateProfile(displayName = nombre)
     }
 
@@ -70,6 +113,10 @@ object UsuarioRepository {
         val campo = if (perfil) "fotoPerfil" else "fotoPortada"
         firestore.collection("usuarios").document(uid).update(campo to urlLimpia)
     }
+
+    // ==========================================
+    // 4. FAVORITOS Y RUTAS
+    // ==========================================
 
     suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {
         val uid = obtenerIdUsuarioActual()
@@ -109,4 +156,21 @@ object UsuarioRepository {
             .get()
             .documents
             .size
+
+    suspend fun obtenerHistorialVisitas(idUsuario: String): List<String> = try {
+        firestore.collection("usuarios").document(idUsuario)
+            .collection("historial_rutas")
+            .get()
+            .documents
+            .mapNotNull { doc ->
+                try {
+                    doc.get<String>("lugarId")
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            .distinct()
+    } catch (_: Exception) {
+        emptyList()
+    }
 }

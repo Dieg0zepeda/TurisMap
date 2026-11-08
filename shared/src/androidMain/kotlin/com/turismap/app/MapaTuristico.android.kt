@@ -108,6 +108,9 @@ private fun estiloMarcadorComercio(categoria: String): MarcadorComercio {
 @OptIn(MapsComposeExperimentalApi::class)
 actual fun MapaTuristico(
     lugares: List<Lugar>,
+    latInicial: Double?,
+    lngInicial: Double?,
+    zoomInicial: Float?,
     onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {
@@ -163,27 +166,49 @@ actual fun MapaTuristico(
         shouldRequestPermission = false
     }
 
-    // AJUSTE 1: Aterrizaje Táctico (Inicia más cerca, zoom 11.5f en lugar de 6f)
+    // Posición inicial: si vienen coordenadas específicas se fija en ellas
+    val posicionInicio = remember(latInicial, lngInicial, centroRuta) {
+        if (latInicial != null && lngInicial != null) {
+            LatLng(latInicial, lngInicial)
+        } else {
+            centroRuta
+        }
+    }
+
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.Builder()
-            .target(centroRuta)
-            .zoom(11.5f)
+            .target(posicionInicio)
+            .zoom(if (latInicial != null) (zoomInicial ?: 15.5f) else 11.5f)
             .tilt(0f)
             .build()
     }
 
-    LaunchedEffect(mapaCargado) {
+    // Animación de cámara prioritaria: si hay coordenadas viaja al municipio
+    LaunchedEffect(mapaCargado, latInicial, lngInicial) {
         if (mapaCargado) {
-            cameraPositionState.animate(
-                CameraUpdateFactory.newCameraPosition(
-                    CameraPosition.Builder()
-                        .target(userLocation ?: centroRuta)
-                        .zoom(15f) // Nivel de acercamiento óptimo sin exagerar
-                        .tilt(60f)
-                        .build()
-                ),
-                durationMs = 1200 // Animación rápida y ágil
-            )
+            if (latInicial != null && lngInicial != null) {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder()
+                            .target(LatLng(latInicial, lngInicial))
+                            .zoom(zoomInicial ?: 15.5f)
+                            .tilt(45f)
+                            .build()
+                    ),
+                    durationMs = 1000
+                )
+            } else {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.Builder()
+                            .target(userLocation ?: centroRuta)
+                            .zoom(15f)
+                            .tilt(60f)
+                            .build()
+                    ),
+                    durationMs = 1200
+                )
+            }
         }
     }
 
@@ -221,7 +246,7 @@ actual fun MapaTuristico(
             isBuildingEnabled = false,
             isIndoorEnabled = false,
             latLngBoundsForCameraTarget = limitesElSalvador,
-            minZoomPreference = 11f // AJUSTE 2: Impide que el usuario se aleje y se pierda
+            minZoomPreference = 11f
         )
     }
 
@@ -231,7 +256,7 @@ actual fun MapaTuristico(
             myLocationButtonEnabled = hasPermission,
             rotationGesturesEnabled = true,
             tiltGesturesEnabled = true,
-            mapToolbarEnabled = false // AJUSTE 3: Borra los botones estorbo de Google Maps
+            mapToolbarEnabled = false
         )
     }
 

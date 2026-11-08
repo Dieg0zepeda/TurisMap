@@ -6,21 +6,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
@@ -36,7 +32,6 @@ fun ExplorarScreen(
     onLugarClick: (Lugar) -> Unit = {},
     onComercioClick: (String) -> Unit = {}
 ) {
-    // Estados reactivos para la carga asíncrona
     var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
     var lugarDestacado by remember { mutableStateOf<Lugar?>(null) }
     var cargando by remember { mutableStateOf(true) }
@@ -60,7 +55,11 @@ fun ExplorarScreen(
         }
     }
 
-    // Renderizado condicional basado en el estado de carga
+    // Filtra la lista para no duplicar el destino que ya está en el banner superior
+    val destinosSinDestacado = remember(lugares, lugarDestacado) {
+        lugares.filter { it.id != lugarDestacado?.id }
+    }
+
     if (cargando) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = VerdePrimario)
@@ -85,48 +84,30 @@ fun ExplorarScreen(
                 .background(GrisFondo)
                 .padding(bottom = 24.dp)
         ) {
-            Row(
+            // Cabecera limpia sin icono de notificaciones
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Column {
-                    Text(
-                        text = "TURISMAP",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = VerdeTextoAdaptable,
-                        letterSpacing = 1.2.sp
-                    )
-                    Text(
-                        text = "Explorar la Ruta",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoPrincipalOscuro
-                    )
-                }
-
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape = CircleShape,
-                    color = FondoBlancoAdaptable,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = VerdeTextoAdaptable,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = "TURISMAP",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = VerdeTextoAdaptable,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "Explorar la Ruta",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoPrincipalOscuro
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Banner superior: Destino Destacado
             if (lugarDestacado != null) {
                 Card(
                     modifier = Modifier
@@ -139,7 +120,6 @@ fun ExplorarScreen(
                     colors = CardDefaults.cardColors(containerColor = VerdePrimario)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // INTEGRACIÓN REMOTE IMAGE: Fondo de Lugar Destacado
                         val urlImagenDestacado = lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
                         if (urlImagenDestacado.isNotEmpty()) {
                             RemoteImage(
@@ -150,12 +130,11 @@ fun ExplorarScreen(
                             )
                         }
 
-                        // Gradiente oscuro para que el texto resalte
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(
-                                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    brush = Brush.verticalGradient(
                                         colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
                                         startY = 300f
                                     )
@@ -214,11 +193,12 @@ fun ExplorarScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Carrusel horizontal sin el elemento repetido
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(lugares) { lugar ->
+                items(destinosSinDestacado, key = { it.id }) { lugar ->
                     Card(
                         modifier = Modifier
                             .width(140.dp)
@@ -233,7 +213,6 @@ fun ExplorarScreen(
                                     .fillMaxWidth()
                                     .height(90.dp)
                             ) {
-                                // INTEGRACIÓN REMOTE IMAGE: Miniatura de la lista
                                 val urlImagen = lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
                                 if (urlImagen.isNotEmpty()) {
                                     RemoteImage(
@@ -297,14 +276,18 @@ fun ExplorarScreen(
                 )
             } else {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     experienciasDestacadas.forEach { experiencia ->
                         Card(
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                onComercioClick(experiencia.id)
-                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onComercioClick(experiencia.id)
+                                },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable)
                         ) {
@@ -314,28 +297,43 @@ fun ExplorarScreen(
                                         url = url,
                                         contentDescription = experiencia.nombre,
                                         contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxWidth().height(150.dp)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(150.dp)
                                     )
                                     Spacer(Modifier.height(12.dp))
                                 }
-                                Text(experiencia.nombre, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
+                                Text(
+                                    text = experiencia.nombre,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoPrincipalOscuro
+                                )
                                 Spacer(Modifier.height(4.dp))
-                                Text(experiencia.descripcion, color = GrisTextoSecundario)
+                                Text(
+                                    text = experiencia.descripcion,
+                                    color = GrisTextoSecundario
+                                )
                                 experiencia.precioDesde?.let {
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Desde $it", color = TerracotaAcento, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        text = "Desde $it",
+                                        color = TerracotaAcento,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = { onComercioClick(experiencia.id) },
                                     colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario)
-                                ) { Text("Ver detalle") }
+                                ) {
+                                    Text("Ver detalle")
+                                }
                             }
                         }
                     }
                 }
             }
-
         }
     }
 }

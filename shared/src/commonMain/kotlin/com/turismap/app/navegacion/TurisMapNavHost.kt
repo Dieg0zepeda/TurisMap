@@ -9,6 +9,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.turismap.app.data.CoordenadasRuta
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.LugaresRepository
@@ -58,10 +60,36 @@ fun TurisMapNavHost(
             }
         }
 
-        // 2. Mapa
-        composable(Pantalla.Mapa.ruta) {
+        // 2. Mapa con soporte de centrado en destino
+        composable(
+            route = "${Pantalla.Mapa.ruta}?lat={lat}&lng={lng}&zoom={zoom}",
+            arguments = listOf(
+                navArgument("lat") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("lng") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("zoom") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val lat = backStackEntry.arguments?.getString("lat")?.toDoubleOrNull()
+            val lng = backStackEntry.arguments?.getString("lng")?.toDoubleOrNull()
+            val zoom = backStackEntry.arguments?.getString("zoom")?.toFloatOrNull()
+
             Box(modifier = Modifier.fillMaxSize()) {
                 MapaScreen(
+                    latInicial = lat,
+                    lngInicial = lng,
+                    zoomInicial = zoom,
                     onAbrirDetalle = { lugar ->
                         controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
                     },
@@ -95,10 +123,17 @@ fun TurisMapNavHost(
                 onCerrarSesionClick = onCerrarSesion,
                 onVerPlanesClick = {
                     controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
+                },
+                onComercioClick = { comercioId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                },
+                onLugarClick = { lugarId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugarId))
                 }
             )
         }
 
+        // Planes de Comercio
         composable(Pantalla.PlanesComercio.ruta) {
             PlanesComercioScreen(
                 onBack = { controladorNavegacion.popBackStack() },
@@ -108,6 +143,7 @@ fun TurisMapNavHost(
             )
         }
 
+        // Solicitud de Registro de Comercio
         composable(
             route = Pantalla.RegistroComercio.ruta,
             arguments = listOf(navArgument("planId") { type = NavType.StringType })
@@ -124,7 +160,7 @@ fun TurisMapNavHost(
             )
         }
 
-        // Detalle de Lugar
+        // 5. Detalle de Lugar (Pueblos / Destinos)
         composable(
             route = Pantalla.DetalleLugar.ruta,
             arguments = listOf(navArgument("lugarId") { type = NavType.StringType })
@@ -135,10 +171,15 @@ fun TurisMapNavHost(
             var cargando by remember { mutableStateOf(true) }
             var errorCarga by remember { mutableStateOf<String?>(null) }
             var intentoCarga by remember { mutableStateOf(0) }
-            var favoritoGuardado by remember { mutableStateOf(false) }
             var favoritoCargando by remember { mutableStateOf(false) }
             var mensajeAccion by remember { mutableStateOf<String?>(null) }
             val scope = rememberCoroutineScope()
+
+            // Observación reactiva de favoritos desde Firestore
+            val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+            val favoritoGuardado = remember(usuarioActual?.favoritos, lugarId) {
+                usuarioActual?.favoritos?.contains(lugarId) == true
+            }
 
             LaunchedEffect(lugarId, intentoCarga) {
                 cargando = true
@@ -147,16 +188,6 @@ fun TurisMapNavHost(
                 try {
                     lugarCompleto = LugaresRepository.obtenerPorId(lugarId)
                     if (lugarCompleto != null) {
-                        try {
-                            val uid = UsuarioRepository.obtenerIdUsuarioActual()
-                                ?: throw IllegalStateException("No hay una sesión autenticada.")
-                            val perfil = UsuarioRepository.obtenerUsuarioPorId(uid)
-                            favoritoGuardado = perfil?.favoritos?.contains(lugarId) == true
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (error: Exception) {
-                            mensajeAccion = error.message ?: "No se pudieron consultar tus favoritos."
-                        }
                         try {
                             UsuarioRepository.registrarVisita(lugarId)
                         } catch (error: CancellationException) {
@@ -184,15 +215,21 @@ fun TurisMapNavHost(
                         favoritoGuardado = favoritoGuardado,
                         favoritoCargando = favoritoCargando,
                         onIrAGuia = { controladorNavegacion.navigate(Pantalla.Guia.ruta) },
+                        onVerAtractivoEnMapa = { _ ->
+                            lugarCompleto?.let { lugar ->
+                                val coords = CoordenadasRuta.obtener(lugar.id)
+                                controladorNavegacion.navigate(
+                                    "${Pantalla.Mapa.ruta}?lat=${coords.latitud}&lng=${coords.longitud}&zoom=${coords.zoom}"
+                                )
+                            }
+                        },
                         onToggleFavorito = {
                             if (!favoritoCargando) {
                                 favoritoCargando = true
                                 mensajeAccion = null
                                 scope.launch {
                                     try {
-                                        val nuevoEstado = !favoritoGuardado
-                                        UsuarioRepository.cambiarFavorito(lugarId, nuevoEstado)
-                                        favoritoGuardado = nuevoEstado
+                                        UsuarioRepository.cambiarFavorito(lugarId, !favoritoGuardado)
                                     } catch (error: CancellationException) {
                                         throw error
                                     } catch (error: Exception) {
@@ -224,7 +261,7 @@ fun TurisMapNavHost(
             }
         }
 
-        // Detalle de Experiencia / Comercio
+        // 6. Detalle de Experiencia / Comercio
         composable(
             route = Pantalla.DetalleExperiencia.ruta,
             arguments = listOf(navArgument("comercioId") { type = NavType.StringType })
@@ -238,7 +275,7 @@ fun TurisMapNavHost(
             }
         }
 
-        // Inicio de Sesión
+        // 7. Inicio de Sesión
         composable(Pantalla.InicioSesion.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PantallaInicioSesion(

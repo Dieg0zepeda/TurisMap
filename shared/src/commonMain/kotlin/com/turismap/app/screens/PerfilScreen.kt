@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,26 +25,38 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.components.rememberSelectorImagen
 import com.turismap.app.data.repository.AutenticacionRepository
+import com.turismap.app.data.repository.ComercioRepository
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
-import com.turismap.app.data.repository.UsuarioBD
-import kotlinx.coroutines.CancellationException
 import com.turismap.app.theme.*
-import kotlinx.coroutines.flow.flowOf
 
 private const val TURISMAP_WEB_URL = "https://urldeprueba.com"
+
+private data class ItemFavoritoUi(
+    val id: String,
+    val nombre: String,
+    val categoria: String,
+    val imagenUrl: String,
+    val calificacion: Double,
+    val esComercio: Boolean
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     onCerrarSesionClick: () -> Unit = {},
-    onVerPlanesClick: () -> Unit = {}
+    onVerPlanesClick: () -> Unit = {},
+    onComercioClick: (String) -> Unit = {},
+    onLugarClick: (String) -> Unit = {}
 ) {
     val verdeEsmeralda = Color(0xFF1B4934)
     val terracota = Color(0xFFD96B52)
@@ -53,15 +67,23 @@ fun PerfilScreen(
     val colorDivisor = MaterialTheme.colorScheme.outlineVariant
     val uriHandler = LocalUriHandler.current
 
-    var usuarioBD by remember { mutableStateOf<UsuarioBD?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
+
+    // 1. Observación reactiva en tiempo real del usuario desde Firestore
+    val usuarioBD by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+
     var estaCargando by remember { mutableStateOf(true) }
     var visitas by remember { mutableStateOf(0) }
     var errorPerfil by remember { mutableStateOf<String?>(null) }
 
-    val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
-
-    val favoritosFlujo = remember(usuarioBD) { flowOf(usuarioBD?.favoritos ?: emptyList()) }
-    val favoritosActuales by favoritosFlujo.collectAsState(initial = emptyList())
+    // Control del modal de favoritos y filtro por categoría
+    var mostrarVentanaFavoritos by remember { mutableStateOf(false) }
+    var cargandoFavoritos by remember { mutableStateOf(false) }
+    var listaFavoritosDetallados by remember { mutableStateOf<List<ItemFavoritoUi>>(emptyList()) }
+    var categoriaFavoritoSeleccionada by remember { mutableStateOf("Todos") } // "Todos", "Destinos", "Comercios"
 
     LaunchedEffect(idUsuarioActual) {
         estaCargando = true
@@ -74,8 +96,6 @@ fun PerfilScreen(
                     email = AutenticacionRepository.usuarioActual?.email.orEmpty(),
                     nombre = AutenticacionRepository.usuarioActual?.displayName.orEmpty()
                 )
-                usuarioBD = UsuarioRepository.obtenerUsuarioPorId(idUsuarioActual)
-                    ?: throw IllegalStateException("No se encontró el perfil del usuario.")
                 visitas = UsuarioRepository.contarVisitas(idUsuarioActual)
             }
         } catch (error: CancellationException) {
@@ -87,12 +107,71 @@ fun PerfilScreen(
         }
     }
 
+    // Carga y mapeo reactivo de favoritos distinguiendo Lugares (Destinos) y Comercios
+    LaunchedEffect(mostrarVentanaFavoritos, usuarioBD?.favoritos) {
+        if (mostrarVentanaFavoritos) {
+            cargandoFavoritos = true
+            try {
+                val favoritosIds = usuarioBD?.favoritos ?: emptyList()
+                if (favoritosIds.isEmpty()) {
+                    listaFavoritosDetallados = emptyList()
+                } else {
+                    val todosLugares = try { LugaresRepository.obtenerTodos().associateBy { it.id.trim() } } catch (_: Exception) { emptyMap() }
+                    val todosComercios = try { ComercioRepository.obtenerPublicados().associateBy { it.id.trim() } } catch (_: Exception) { emptyMap() }
+
+                    val resueltos = favoritosIds.mapNotNull { idOriginal ->
+                        val idLimpio = idOriginal.trim()
+                        val lugar = todosLugares[idLimpio]
+                        if (lugar != null) {
+                            ItemFavoritoUi(
+                                id = lugar.id,
+                                nombre = lugar.nombre,
+                                categoria = lugar.categoria.etiqueta,
+                                imagenUrl = lugar.imagenPortadaUrl,
+                                calificacion = lugar.calificacion,
+                                esComercio = false
+                            )
+                        } else {
+                            val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
+                            val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
+                            if (comercio != null) {
+                                ItemFavoritoUi(
+                                    id = comercio.id,
+                                    nombre = comercio.nombre,
+                                    categoria = comercio.categoria,
+                                    imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
+                                    calificacion = comercio.calificacionPromedio ?: 4.9,
+                                    esComercio = true
+                                )
+                            } else null
+                        }
+                    }
+                    listaFavoritosDetallados = resueltos
+                }
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Error al cargar favoritos: ${error.message}")
+            } finally {
+                cargandoFavoritos = false
+            }
+        }
+    }
+
+    val cantDestinos = remember(listaFavoritosDetallados) { listaFavoritosDetallados.count { !it.esComercio } }
+    val cantComercios = remember(listaFavoritosDetallados) { listaFavoritosDetallados.count { it.esComercio } }
+
+    val favoritosFiltrados = remember(listaFavoritosDetallados, categoriaFavoritoSeleccionada) {
+        when (categoriaFavoritoSeleccionada) {
+            "Destinos" -> listaFavoritosDetallados.filter { !it.esComercio }
+            "Comercios" -> listaFavoritosDetallados.filter { it.esComercio }
+            else -> listaFavoritosDetallados
+        }
+    }
+
     val nombreMostrar = usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: if (estaCargando) "Cargando..." else "Usuario"
     val correoMostrar = usuarioBD?.email?.takeIf { it.isNotBlank() } ?: AutenticacionRepository.usuarioActual?.email ?: if (estaCargando) "Cargando..." else "Correo no disponible"
-    val cantidadFavoritos = favoritosFlujo.let { favoritosActuales.size.toString() }
+    val cantidadFavoritos = (usuarioBD?.favoritos?.size ?: 0).toString()
 
     var idiomaSeleccionado by remember { mutableStateOf("Español") }
-    var notificacionesActivas by remember { mutableStateOf(true) }
     var perfilPublico by remember { mutableStateOf(true) }
     var compartirUbicacion by remember { mutableStateOf(false) }
 
@@ -102,19 +181,10 @@ fun PerfilScreen(
     var cerrandoSesion by remember { mutableStateOf(false) }
     var tipoFotoSeleccionada by remember { mutableStateOf("perfil") }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-
-    // 🚀 PUENTE KMP PARA ABRIR LA GALERÍA NATIVA Y ACTUALIZAR PERFIL/PORTADA
     val abrirGaleriaNativa = rememberSelectorImagen { uriLocal ->
         coroutineScope.launch {
             try {
                 UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", uriLocal)
-                usuarioBD = if (tipoFotoSeleccionada == "perfil") {
-                    usuarioBD?.copy(fotoPerfil = uriLocal)
-                } else {
-                    usuarioBD?.copy(fotoPortada = uriLocal)
-                }
                 snackbarHostState.showSnackbar("¡Foto actualizada con éxito! ✅")
             } catch (error: Exception) {
                 snackbarHostState.showSnackbar("Error: ${error.message}")
@@ -131,7 +201,7 @@ fun PerfilScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
-                // FOTO DE PORTADA
+                // Foto de Portada
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -170,7 +240,7 @@ fun PerfilScreen(
                     }
                 }
 
-                // FOTO DE PERFIL
+                // Foto de Perfil
                 Box(modifier = Modifier.size(130.dp).align(Alignment.BottomCenter)) {
                     Box(
                         modifier = Modifier
@@ -231,13 +301,26 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Métricas
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                ItemEstadistica(valor = cantidadFavoritos, etiqueta = "Favoritos", colorEtiqueta = TerracotaTextoAdaptable, colorTexto = colorTextoPrincipal)
-                ItemEstadistica(valor = visitas.toString(), etiqueta = "Visitas", colorEtiqueta = colorTextoPrincipal, colorTexto = colorTextoPrincipal)
+                ItemEstadistica(
+                    valor = cantidadFavoritos,
+                    etiqueta = "Favoritos",
+                    colorEtiqueta = TerracotaTextoAdaptable,
+                    colorTexto = colorTextoPrincipal,
+                    onClick = { mostrarVentanaFavoritos = true }
+                )
+                ItemEstadistica(
+                    valor = visitas.toString(),
+                    etiqueta = "Visitas",
+                    colorEtiqueta = colorTextoPrincipal,
+                    colorTexto = colorTextoPrincipal
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Tarjeta TurisMap Negocios
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(18.dp),
@@ -272,23 +355,11 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Configuración
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("PERSONALIZACIÓN", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                 CardOpciones(fondoTarjeta) {
                     ItemMenuOpcion(icono = Icons.Default.Public, titulo = "Idioma", subtitulo = idiomaSeleccionado, colorTexto = colorTextoPrincipal, colorIcono = colorTextoPrincipal) { mostrarDialogoIdioma = true }
-                }
-
-                Text("ALERTAS", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
-                CardOpciones(fondoTarjeta) {
-                    Row(modifier = Modifier.fillMaxWidth().clickable { notificacionesActivas = !notificacionesActivas }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Notifications, contentDescription = null, tint = colorTextoPrincipal, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Notificaciones", fontSize = 16.sp, color = colorTextoPrincipal, fontWeight = FontWeight.Medium)
-                            Text(if (notificacionesActivas) "Activadas" else "Desactivadas", fontSize = 12.sp, color = colorTextoSecundario)
-                        }
-                        Switch(checked = notificacionesActivas, onCheckedChange = { notificacionesActivas = it }, colors = SwitchDefaults.colors(checkedThumbColor = VerdeTextoAdaptable, checkedTrackColor = VerdeTextoAdaptable.copy(alpha = 0.5f)))
-                    }
                 }
 
                 Text("PRIVACIDAD & SEGURIDAD", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
@@ -329,7 +400,213 @@ fun PerfilScreen(
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
-    // --- DIÁLOGOS EMERGENTES ---
+    // Modal Bottom Sheet: Mis Favoritos con Pestañas / Chips
+    if (mostrarVentanaFavoritos) {
+        ModalBottomSheet(
+            onDismissRequest = { mostrarVentanaFavoritos = false },
+            containerColor = fondoTarjeta,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            dragHandle = { BottomSheetDefaults.DragHandle(color = colorDivisor) }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .padding(horizontal = 20.dp)
+                    .navigationBarsPadding()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("❤️", fontSize = 22.sp)
+                        Column {
+                            Text("Mis Favoritos", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colorTextoPrincipal)
+                            Text("${listaFavoritosDetallados.size} guardados en total", fontSize = 12.sp, color = colorTextoSecundario)
+                        }
+                    }
+                    IconButton(onClick = { mostrarVentanaFavoritos = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = colorTextoSecundario)
+                    }
+                }
+
+                // Pestañas / Filtro de categorías: Todos, Destinos y Comercios
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "Todos" to listaFavoritosDetallados.size,
+                        "Destinos" to cantDestinos,
+                        "Comercios" to cantComercios
+                    ).forEach { (tipo, count) ->
+                        val activa = categoriaFavoritoSeleccionada == tipo
+                        FilterChip(
+                            selected = activa,
+                            onClick = { categoriaFavoritoSeleccionada = tipo },
+                            label = {
+                                Text(
+                                    text = "$tipo ($count)",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = verdeEsmeralda,
+                                selectedLabelColor = Color.White,
+                                containerColor = fondoApp,
+                                labelColor = colorTextoPrincipal
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = activa,
+                                borderColor = if (activa) verdeEsmeralda else colorDivisor
+                            )
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = colorDivisor)
+
+                when {
+                    cargandoFavoritos -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = verdeEsmeralda)
+                        }
+                    }
+                    favoritosFiltrados.isEmpty() -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                if (categoriaFavoritoSeleccionada == "Destinos") "📍" else if (categoriaFavoritoSeleccionada == "Comercios") "🏪" else "🧭",
+                                fontSize = 48.sp
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = when (categoriaFavoritoSeleccionada) {
+                                    "Destinos" -> "No tienes destinos guardados"
+                                    "Comercios" -> "No tienes comercios guardados"
+                                    else -> "Aún no tienes favoritos"
+                                },
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colorTextoPrincipal
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "Pulsa el corazón en ${if (categoriaFavoritoSeleccionada == "Destinos") "los pueblos o destinos" else "los restaurantes y tiendas"} para agregarlos a esta lista.",
+                                fontSize = 13.sp,
+                                color = colorTextoSecundario,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(favoritosFiltrados, key = { it.id }) { item ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            mostrarVentanaFavoritos = false
+                                            if (item.esComercio) onComercioClick(item.id)
+                                            else onLugarClick(item.id)
+                                        },
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = fondoApp),
+                                    border = BorderStroke(1.dp, colorDivisor)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(64.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        ) {
+                                            if (item.imagenUrl.isNotBlank()) {
+                                                RemoteImage(
+                                                    url = item.imagenUrl,
+                                                    contentDescription = item.nombre,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    Text(if (item.esComercio) "🏪" else "📍", fontSize = 24.sp)
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(Modifier.width(12.dp))
+
+                                        Column(Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = item.categoria.uppercase(),
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = if (item.esComercio) VerdeTextoAdaptable else TerracotaTextoAdaptable
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("★ ${item.calificacion}", fontSize = 11.sp, color = Color(0xFFF59E0B), fontWeight = FontWeight.Bold)
+                                            }
+                                            Text(
+                                                text = item.nombre,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colorTextoPrincipal,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = if (item.esComercio) "Comercio verificado" else "Destino turístico",
+                                                fontSize = 11.5.sp,
+                                                color = colorTextoSecundario
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    try {
+                                                        UsuarioRepository.cambiarFavorito(item.id, false)
+                                                        snackbarHostState.showSnackbar("Eliminado de favoritos")
+                                                    } catch (e: Exception) {
+                                                        snackbarHostState.showSnackbar(e.message ?: "Error al actualizar")
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Favorite,
+                                                contentDescription = "Quitar de favoritos",
+                                                tint = terracota,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if (mostrarDialogoPrivacidad) {
         AlertDialog(
@@ -367,7 +644,7 @@ fun PerfilScreen(
 
     if (mostrarDialogoEditar) {
         var tempNombre by remember { mutableStateOf(nombreMostrar) }
-        var tempTelefono by remember { mutableStateOf("") }
+        var tempTelefono by remember { mutableStateOf(usuarioBD?.telefono.orEmpty()) }
         AlertDialog(
             onDismissRequest = { mostrarDialogoEditar = false },
             containerColor = fondoTarjeta,
@@ -383,8 +660,7 @@ fun PerfilScreen(
                 Button(onClick = {
                     coroutineScope.launch {
                         try {
-                            UsuarioRepository.actualizarPerfil(tempNombre.trim())
-                            usuarioBD = usuarioBD?.copy(nombre = tempNombre.trim())
+                            UsuarioRepository.actualizarPerfil(tempNombre.trim(), tempTelefono.trim())
                             mostrarDialogoEditar = false
                             snackbarHostState.showSnackbar("Perfil actualizado.")
                         } catch (error: Exception) {
@@ -420,8 +696,21 @@ fun PerfilScreen(
 }
 
 @Composable
-private fun ItemEstadistica(valor: String, etiqueta: String, colorEtiqueta: Color, colorTexto: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun ItemEstadistica(
+    valor: String,
+    etiqueta: String,
+    colorEtiqueta: Color,
+    colorTexto: Color,
+    onClick: (() -> Unit)? = null
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .then(
+                if (onClick != null) Modifier.clip(RoundedCornerShape(12.dp)).clickable { onClick() }.padding(horizontal = 12.dp, vertical = 6.dp)
+                else Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+    ) {
         Text(text = valor, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorTexto)
         Text(text = etiqueta, fontSize = 12.sp, color = colorEtiqueta, fontWeight = FontWeight.Medium)
     }
@@ -442,8 +731,8 @@ private fun ItemMenuOpcion(icono: ImageVector, titulo: String, subtitulo: String
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = titulo, fontSize = 16.sp, color = colorTexto, fontWeight = FontWeight.Medium)
-            if (subtitulo.isNotEmpty()) Text(text = subtitulo, fontSize = 12.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
+            if (subtitulo.isNotEmpty()) Text(text = subtitulo, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
