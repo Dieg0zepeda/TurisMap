@@ -1,5 +1,6 @@
 package com.turismap.app.screens
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,13 +23,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
@@ -78,6 +84,34 @@ private val categoriasFiltros = listOf(
     CategoriaFiltro("atractivo", "Experiencias", "🎈")
 )
 
+// ---------------------------------------------------------
+// MODIFICADOR DE ANIMACIÓN SHIMMER (ESQUELETO)
+// ---------------------------------------------------------
+fun Modifier.shimmerEffect(): Modifier = composed {
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val startOffsetX by transition.animateFloat(
+        initialValue = -2 * size.width.toFloat(),
+        targetValue = 2 * size.width.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = LinearEasing)
+        ),
+        label = "shimmer_x"
+    )
+
+    background(
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFE0E0E0),
+                Color(0xFFF5F5F5),
+                Color(0xFFE0E0E0)
+            ),
+            start = Offset(startOffsetX, 0f),
+            end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
+        )
+    ).onGloballyPositioned { size = it.size }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuiaScreen(
@@ -97,7 +131,6 @@ fun GuiaScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // 1. Observación reactiva de favoritos del usuario autenticado
     val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
     val favoritosUsuario = remember(usuarioActual?.favoritos) {
         usuarioActual?.favoritos?.toSet() ?: emptySet()
@@ -255,10 +288,37 @@ fun GuiaScreen(
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (cargando) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = AirbnbPrimary
-                )
+                // ---------------------------------------------------------
+                // PANTALLAS ESQUELETO MIENTRAS CARGA FIREBASE
+                // ---------------------------------------------------------
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(28.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(3) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Título simulado
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 20.dp, vertical = 6.dp)
+                                    .width(180.dp)
+                                    .height(24.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmerEffect()
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            // Carrusel horizontal de esqueletos
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(3) { TarjetaEsqueleto() }
+                            }
+                        }
+                    }
+                }
             } else if (errorCarga != null) {
                 Column(
                     modifier = Modifier
@@ -408,8 +468,9 @@ fun SeccionMunicipioAirbnb(
 }
 
 // ---------------------------------------------------------
-// PLAN 3: SOCIO PREMIUM ($25) - Tarjeta VIP
+// COMPONENTES DE TARJETAS
 // ---------------------------------------------------------
+
 @Composable
 fun TarjetaPremium(
     comercio: Comercio,
@@ -436,7 +497,6 @@ fun TarjetaPremium(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                // Insignia VIP
                 Box(
                     modifier = Modifier
                         .padding(12.dp)
@@ -450,8 +510,6 @@ fun TarjetaPremium(
                         Text("Favorito de la Ruta", color = ColorPremium, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-
-                // Botón Favorito reactivo
                 Box(
                     modifier = Modifier
                         .padding(12.dp)
@@ -468,8 +526,6 @@ fun TarjetaPremium(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-
-                // Tag Fotos HD
                 Box(
                     modifier = Modifier
                         .padding(12.dp)
@@ -493,14 +549,15 @@ fun TarjetaPremium(
                 Text("${comercio.categoria} · ${comercio.cantidadResenas ?: 0} reseñas", color = AirbnbGray, fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(precio, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Button(
                     onClick = onQuickActionClick,
                     modifier = Modifier.fillMaxWidth().height(36.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color.Black,
+                        contentColor = Color.White
+                    ),
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -512,9 +569,6 @@ fun TarjetaPremium(
     }
 }
 
-// ---------------------------------------------------------
-// PLAN 2: SOCIO TURISMAP ($15) - Tarjeta Estándar
-// ---------------------------------------------------------
 @Composable
 fun TarjetaEstandar(
     comercio: Comercio,
@@ -535,7 +589,6 @@ fun TarjetaEstandar(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            // Badge Verde Destacado
             Box(
                 modifier = Modifier
                     .padding(top = 12.dp, start = 12.dp)
@@ -545,8 +598,6 @@ fun TarjetaEstandar(
             ) {
                 Text("★ Destacado", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-
-            // Botón Favorito reactivo
             Box(
                 modifier = Modifier
                     .padding(top = 10.dp, end = 10.dp)
@@ -581,9 +632,6 @@ fun TarjetaEstandar(
     }
 }
 
-// ---------------------------------------------------------
-// PLAN 1: BÁSICO ($5) - Tarjeta Simple
-// ---------------------------------------------------------
 @Composable
 fun TarjetaBasica(comercio: Comercio, onClick: () -> Unit) {
     Card(
@@ -608,5 +656,44 @@ fun TarjetaBasica(comercio: Comercio, onClick: () -> Unit) {
                 Text(comercio.categoria, color = AirbnbGray, fontSize = 12.sp)
             }
         }
+    }
+}
+
+// ---------------------------------------------------------
+// COMPONENTE DE TARJETA ESQUELETO
+// ---------------------------------------------------------
+@Composable
+fun TarjetaEsqueleto() {
+    Column(
+        modifier = Modifier
+            .width(220.dp)
+            .clip(RoundedCornerShape(18.dp))
+    ) {
+        // Bloque de la imagen
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .shimmerEffect()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        // Bloque del nombre
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(20.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .shimmerEffect()
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        // Bloque del texto secundario
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .height(16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .shimmerEffect()
+        )
     }
 }

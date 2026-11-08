@@ -230,15 +230,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 ) {
                                     when {
                                         esPremium -> {
-                                            Surface(color = Color.Black.copy(alpha = 0.75f), shape = RoundedCornerShape(8.dp)) {
-                                                Text(
-                                                    "📷 Galería Ilimitada (${fotos.size}+ HD)",
-                                                    color = Color.White,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                )
-                                            }
+
                                             Surface(color = Color(0xFFF59E0B), shape = RoundedCornerShape(8.dp)) {
                                                 Text(
                                                     "🏷️ 10% dto. TurisMap",
@@ -365,21 +357,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     )
                                 }
 
-                                if (esPremium) {
-                                    Surface(
-                                        color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, Color(0xFFF59E0B)),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Text(
-                                            "EXCLUSIVO",
-                                            color = if (esOscuro) Color(0xFFFBBF24) else Color(0xFFB45309),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
                             }
 
                             Spacer(Modifier.height(4.dp))
@@ -893,7 +870,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 ) {
                                     Text(
                                         when {
-                                            esPremium -> "📍 Iniciar ruta VIP"
+                                            esPremium -> "📍 Iniciar ruta"
                                             esSocio -> "📍 Iniciar ruta"
                                             else -> "📍 Iniciar ruta"
                                         },

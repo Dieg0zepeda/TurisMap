@@ -1,45 +1,36 @@
 package com.turismap.app.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.PlanComercio
 import kotlinx.coroutines.CancellationException
 
+// Paleta Elegante y Sutil
+private val GoldPremium = Color(0xFFD4AF37) // VIP
+private val GreenSocio = Color(0xFF1B5E20)  // Socio
+private val SlateBasic = Color(0xFF64748B)  // BÁSICO: Gris azulado elegante
+private val SoftGrayBorder = Color(0xFFE0E0E0)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanesComercioScreen(
     onBack: () -> Unit,
@@ -63,7 +54,7 @@ fun PlanesComercioScreen(
                 mensaje.contains("PERMISSION_DENIED", ignoreCase = true) ||
                 mensaje.contains("missing or insufficient permissions", ignoreCase = true)
             ) {
-                "Firestore no permite leer los planes. Publica las reglas de planes_comercio y verifica que los documentos tengan activo: true."
+                "Error de permisos en Firestore. Verifica las reglas."
             } else {
                 mensaje.ifBlank { "No se pudieron cargar los planes." }
             }
@@ -72,143 +63,200 @@ fun PlanesComercioScreen(
         }
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Planes de negocio", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            // Distribución dinámica del espacio vertical
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            TextButton(
-                onClick = onBack,
-                contentPadding = PaddingValues(horizontal = 0.dp)
+            // Cabecera Elegante
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = "Impulsa tu negocio",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                Text("Volver al perfil")
+                Text(
+                    text = "Elige la membresía que mejor se adapte a ti para atraer turistas en la Ruta de las Flores.",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 22.sp
+                )
             }
-
-            Text(
-                text = "Planes para tu negocio",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Conoce las opciones disponibles y solicita información del plan que te interesa. Las condiciones y detalles se confirmarán contigo.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             when {
-                cargando -> CircularProgressIndicator()
-                errorCarga != null -> Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        errorCarga.orEmpty(),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Button(onClick = { intentoCarga++ }) {
-                        Text("Reintentar")
-                    }
+                cargando -> Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-                planes.isEmpty() -> Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Aún no hay planes activos en planes_comercio. Agrega documentos con nombre, descripcion, beneficios, precio, moneda, periodicidad, orden y activo: true.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                errorCarga != null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(errorCarga.orEmpty(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    Button(onClick = { intentoCarga++ }) { Text("Reintentar") }
+                }
+                planes.isEmpty() -> Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("Aún no hay planes configurados.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            // Lista de Tarjetas
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                planes.sortedBy { it.precio }.forEach { plan ->
+                    TarjetaElegante(
+                        plan = plan,
+                        onSolicitar = { onSolicitarPlan(plan) },
+                        habilitado = !cargando && errorCarga == null
                     )
-                    Button(onClick = { intentoCarga++ }) {
-                        Text("Volver a cargar")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun TarjetaElegante(
+    plan: PlanComercio,
+    onSolicitar: () -> Unit,
+    habilitado: Boolean
+) {
+    val planNombre = plan.nombre.lowercase()
+    val esPremium = planNombre.contains("premium") || planNombre.contains("25")
+    val esSocio = !esPremium && (planNombre.contains("socio") || planNombre.contains("15"))
+
+    // Definición sutil de colores (Básico ahora usa SlateBasic)
+    val colorAcento = when {
+        esPremium -> GoldPremium
+        esSocio -> GreenSocio
+        else -> SlateBasic
+    }
+
+    val colorFondoTarjeta = MaterialTheme.colorScheme.surface
+    val colorBorde = if (esPremium || esSocio) colorAcento.copy(alpha = 0.5f) else SoftGrayBorder
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = colorFondoTarjeta),
+        border = BorderStroke(1.dp, colorBorde),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (esPremium) 4.dp else 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Encabezado
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = plan.nombre,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = plan.precioFormateado() ?: "Consultar",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colorAcento
+                    )
+                }
+
+                // Indicador visual sutil
+                if (esPremium || esSocio) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(colorAcento.copy(alpha = 0.1f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (esPremium) "Recomendado" else "Destacado",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorAcento
+                        )
                     }
                 }
             }
 
-            planes.forEach { plan ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+            Text(
+                text = plan.descripcion.ifBlank { "El equipo confirmará los detalles contigo." },
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 20.sp
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
+
+            // Beneficios
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                plan.beneficios.forEach { beneficio ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Business,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(10.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 12.dp)
-                            ) {
-                                Text(
-                                    text = plan.nombre,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = plan.descripcion.ifBlank {
-                                "El equipo de TurisMap confirmará los detalles de este plan."
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = colorAcento,
+                            modifier = Modifier.size(18.dp).offset(y = 2.dp)
                         )
-
                         Text(
-                            text = plan.precioFormateado() ?: "Precio no disponible",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            text = beneficio,
+                            fontSize = 13.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 18.sp
                         )
-
-                        plan.beneficios.forEach { beneficio ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Text(
-                                    text = "•",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = beneficio,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Button(
-                            onClick = { onSolicitarPlan(plan) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !cargando && errorCarga == null && plan.documentId.isNotBlank()
-                        ) {
-                            Text("Solicitar este plan")
-                        }
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Botón elegante estándar
+            Button(
+                onClick = onSolicitar,
+                enabled = habilitado && plan.documentId.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colorAcento)
+            ) {
+                Text("Solicitar plan", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
