@@ -333,15 +333,23 @@ fun ComercioSolicitudScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        if (coordenadaSeleccionada == null) "Ubicar negocio en el mapa"
-                        else "Cambiar ubicación en el mapa"
+                        if (coordenadaSeleccionada == null) "📍 Ubicar negocio en el mapa (Obligatorio)"
+                        else "✓ Ubicación seleccionada (Cambiar)"
                     )
                 }
-                coordenadaSeleccionada?.let { coordenada ->
+                if (coordenadaSeleccionada == null) {
                     Text(
-                        "Coordenadas guardadas: ${coordenada.latitud}, ${coordenada.longitud}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
+                        "⚠️ Debes fijar el punto exacto en el mapa para poder enviar tu solicitud.",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else {
+                    Text(
+                        "Coordenadas guardadas: ${coordenadaSeleccionada?.latitud}, ${coordenadaSeleccionada?.longitud}",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
@@ -551,6 +559,7 @@ fun ComercioSolicitudScreen(
                                         nombreCompleto = nombreCompleto,
                                         email = email,
                                         municipio = lugar.nombre,
+                                        lugarId = lugar.id,
                                         nombreNegocio = nombreNegocio,
                                         categoria = categoriaId,
                                         descripcion = descripcionFinal,

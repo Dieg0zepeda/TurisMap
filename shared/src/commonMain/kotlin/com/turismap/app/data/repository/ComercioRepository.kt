@@ -35,16 +35,26 @@ data class Comercio(
     val planId: String? = null,
     val plan: String? = null,
     val tipoPlan: String? = null,
+    // Coordenadas individuales para posicionamiento exacto
+    val latitud: Double? = null,
+    val longitud: Double? = null,
+    val coordenadas: Coordenada? = null,
     @SerialName("calificacionPromedio") val calificacionPromedio: Double? = 0.0,
     @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,
     val actualizadoEn: Timestamp? = null
 ) {
-    // Identificador unificado tolerante a cualquier nombre de campo en Firestore
+    // Retorna la coordenada válida del comercio si existe
+    val coordenadaValida: Coordenada?
+        get() = when {
+            latitud != null && longitud != null && latitud != 0.0 && longitud != 0.0 -> Coordenada(latitud, longitud)
+            coordenadas != null && coordenadas.latitud != 0.0 && coordenadas.longitud != 0.0 -> coordenadas
+            else -> null
+        }
+
     val planClave: String
         get() = listOfNotNull(planId, plan, tipoPlan).joinToString(" ").lowercase().trim()
 
-    // 1 = Básico, 2 = Socio, 3 = Premium
     val planInt: Int
         get() = when {
             planClave.contains("premium") || planClave.contains("25") || nivelPlan == 3 -> 3
@@ -61,7 +71,6 @@ data class Comercio(
     val esNivelBasico: Boolean
         get() = planInt == 1
 
-    // Límite de fotografías por suscripción: 2 (Básico), 4 (Socio), 8 (Premium)
     val maxFotosPermitidas: Int
         get() = when (planInt) {
             3 -> 8
@@ -177,39 +186,45 @@ object ComercioRepository {
         horario: String,
         precioDesde: Double?,
         servicios: List<String>,
-        imagenUrls: List<String>
+        imagenUrls: List<String>,
+        latitud: Double? = null,
+        longitud: Double? = null
     ) {
         val uid = Firebase.auth.currentUser?.uid
             ?: throw IllegalStateException("Inicia sesión para registrar un comercio.")
         val ahoraServidor = FieldValue.serverTimestamp
-        firestore.collection("comercios").add(
-            mapOf(
-                "propietarioUid" to uid,
-                "lugarId" to lugarId,
-                "nombre" to nombre,
-                "descripcion" to descripcion,
-                "categoria" to categoria,
-                "direccion" to direccion,
-                "telefono" to telefono,
-                "sitioWeb" to sitioWeb,
-                "horario" to horario,
-                "precioDesde" to precioDesde,
-                "servicios" to servicios,
-                "imagenUrls" to imagenUrls,
-                "calificacionPromedio" to 0.0,
-                "cantidadResenas" to 0,
-                "destacado" to false,
-                "estado" to "pendiente",
-                "creadoEn" to ahoraServidor,
-                "actualizadoEn" to ahoraServidor
-            )
+        val datos = mutableMapOf<String, Any?>(
+            "propietarioUid" to uid,
+            "lugarId" to lugarId,
+            "nombre" to nombre,
+            "descripcion" to descripcion,
+            "categoria" to categoria,
+            "direccion" to direccion,
+            "telefono" to telefono,
+            "sitioWeb" to sitioWeb,
+            "horario" to horario,
+            "precioDesde" to precioDesde,
+            "servicios" to servicios,
+            "imagenUrls" to imagenUrls,
+            "calificacionPromedio" to 0.0,
+            "cantidadResenas" to 0,
+            "destacado" to false,
+            "estado" to "pendiente",
+            "creadoEn" to ahoraServidor,
+            "actualizadoEn" to ahoraServidor
         )
+        if (latitud != null && longitud != null) {
+            datos["latitud"] = latitud
+            datos["longitud"] = longitud
+        }
+        firestore.collection("comercios").add(datos)
     }
 
     suspend fun enviarSolicitudComercio(
         nombreCompleto: String,
         email: String,
         municipio: String,
+        lugarId: String,
         nombreNegocio: String,
         categoria: String,
         descripcion: String,
@@ -248,6 +263,7 @@ object ComercioRepository {
             mapOf(
                 "id" to referencia.id,
                 "propietarioUid" to usuario.uid,
+                "lugarId" to lugarId.trim(),
                 "nombreCompleto" to nombreCompleto.trim(),
                 "email" to correoAutenticado,
                 "municipio" to municipio.trim(),
@@ -259,6 +275,8 @@ object ComercioRepository {
                 "sitioWeb" to sitioWeb.trim(),
                 "horario" to horario.trim(),
                 "planId" to planId,
+                "latitud" to coordenadas.latitud,
+                "longitud" to coordenadas.longitud,
                 "coordenadas" to mapOf(
                     "latitud" to coordenadas.latitud,
                     "longitud" to coordenadas.longitud

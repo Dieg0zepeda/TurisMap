@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.round
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import com.turismap.app.components.RemoteImage
@@ -72,18 +73,16 @@ fun PerfilScreen(
 
     val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
 
-    // 1. Observación reactiva en tiempo real del usuario desde Firestore
     val usuarioBD by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
 
     var estaCargando by remember { mutableStateOf(true) }
     var visitas by remember { mutableStateOf(0) }
     var errorPerfil by remember { mutableStateOf<String?>(null) }
 
-    // Control del modal de favoritos y filtro por categoría
     var mostrarVentanaFavoritos by remember { mutableStateOf(false) }
     var cargandoFavoritos by remember { mutableStateOf(false) }
     var listaFavoritosDetallados by remember { mutableStateOf<List<ItemFavoritoUi>>(emptyList()) }
-    var categoriaFavoritoSeleccionada by remember { mutableStateOf("Todos") } // "Todos", "Destinos", "Comercios"
+    var categoriaFavoritoSeleccionada by remember { mutableStateOf("Todos") }
 
     LaunchedEffect(idUsuarioActual) {
         estaCargando = true
@@ -107,7 +106,6 @@ fun PerfilScreen(
         }
     }
 
-    // Carga y mapeo reactivo de favoritos distinguiendo Lugares (Destinos) y Comercios
     LaunchedEffect(mostrarVentanaFavoritos, usuarioBD?.favoritos) {
         if (mostrarVentanaFavoritos) {
             cargandoFavoritos = true
@@ -201,7 +199,6 @@ fun PerfilScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
-                // Foto de Portada
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -240,7 +237,6 @@ fun PerfilScreen(
                     }
                 }
 
-                // Foto de Perfil
                 Box(modifier = Modifier.size(130.dp).align(Alignment.BottomCenter)) {
                     Box(
                         modifier = Modifier
@@ -301,7 +297,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Métricas
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 ItemEstadistica(
                     valor = cantidadFavoritos,
@@ -320,7 +315,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Tarjeta TurisMap Negocios
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(18.dp),
@@ -355,7 +349,6 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Configuración
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("PERSONALIZACIÓN", fontSize = 12.sp, color = colorTextoSecundario, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                 CardOpciones(fondoTarjeta) {
@@ -400,7 +393,6 @@ fun PerfilScreen(
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
-    // Modal Bottom Sheet: Mis Favoritos con Pestañas / Chips
     if (mostrarVentanaFavoritos) {
         ModalBottomSheet(
             onDismissRequest = { mostrarVentanaFavoritos = false },
@@ -432,7 +424,6 @@ fun PerfilScreen(
                     }
                 }
 
-                // Pestañas / Filtro de categorías: Todos, Destinos y Comercios
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -510,8 +501,8 @@ fun PerfilScreen(
                     }
                     else -> {
                         LazyColumn(
-                            contentPadding = PaddingValues(vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(favoritosFiltrados, key = { it.id }) { item ->
@@ -528,14 +519,17 @@ fun PerfilScreen(
                                     border = BorderStroke(1.dp, colorDivisor)
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(64.dp)
+                                                .size(60.dp)
                                                 .clip(RoundedCornerShape(10.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = Alignment.Center
                                         ) {
                                             if (item.imagenUrl.isNotBlank()) {
                                                 RemoteImage(
@@ -545,25 +539,55 @@ fun PerfilScreen(
                                                     contentScale = ContentScale.Crop
                                                 )
                                             } else {
-                                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                    Text(if (item.esComercio) "🏪" else "📍", fontSize = 24.sp)
-                                                }
+                                                Text(if (item.esComercio) "🏪" else "📍", fontSize = 24.sp)
                                             }
                                         }
 
                                         Spacer(Modifier.width(12.dp))
 
-                                        Column(Modifier.weight(1f)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(end = 4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
                                                 Text(
                                                     text = item.categoria.uppercase(),
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    color = if (item.esComercio) VerdeTextoAdaptable else TerracotaTextoAdaptable
+                                                    color = if (item.esComercio) VerdeTextoAdaptable else TerracotaTextoAdaptable,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f, fill = false)
                                                 )
-                                                Spacer(Modifier.width(6.dp))
-                                                Text("★ ${item.calificacion}", fontSize = 11.sp, color = Color(0xFFF59E0B), fontWeight = FontWeight.Bold)
+
+                                                if (item.calificacion > 0.0) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "★",
+                                                            fontSize = 11.sp,
+                                                            color = Color(0xFFF59E0B)
+                                                        )
+                                                        val califTexto = "${round(item.calificacion * 10.0) / 10.0}"
+                                                        Text(
+                                                            text = califTexto,
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFFF59E0B),
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                }
                                             }
+
                                             Text(
                                                 text = item.nombre,
                                                 fontSize = 15.sp,
@@ -572,12 +596,17 @@ fun PerfilScreen(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
+
                                             Text(
                                                 text = if (item.esComercio) "Comercio verificado" else "Destino turístico",
-                                                fontSize = 11.5.sp,
-                                                color = colorTextoSecundario
+                                                fontSize = 12.sp,
+                                                color = colorTextoSecundario,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
+
+                                        Spacer(Modifier.width(6.dp))
 
                                         IconButton(
                                             onClick = {
@@ -589,7 +618,8 @@ fun PerfilScreen(
                                                         snackbarHostState.showSnackbar(e.message ?: "Error al actualizar")
                                                     }
                                                 }
-                                            }
+                                            },
+                                            modifier = Modifier.size(36.dp)
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Favorite,

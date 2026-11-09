@@ -17,6 +17,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -166,7 +167,6 @@ actual fun MapaTuristico(
         shouldRequestPermission = false
     }
 
-    // Posición inicial: si vienen coordenadas específicas se fija en ellas
     val posicionInicio = remember(latInicial, lngInicial, centroRuta) {
         if (latInicial != null && lngInicial != null) {
             LatLng(latInicial, lngInicial)
@@ -183,7 +183,6 @@ actual fun MapaTuristico(
             .build()
     }
 
-    // Animación de cámara prioritaria: si hay coordenadas viaja al municipio
     LaunchedEffect(mapaCargado, latInicial, lngInicial) {
         if (mapaCargado) {
             if (latInicial != null && lngInicial != null) {
@@ -267,6 +266,8 @@ actual fun MapaTuristico(
         cameraPositionState = cameraPositionState,
         properties = mapProperties,
         uiSettings = mapUiSettings,
+        // Desplaza los controles nativos (brújula y botón GPS) hacia abajo para no solapar el buscador
+        contentPadding = PaddingValues(top = 80.dp, bottom = 24.dp),
         onMapLoaded = { mapaCargado = true }
     ) {
         Polyline(
