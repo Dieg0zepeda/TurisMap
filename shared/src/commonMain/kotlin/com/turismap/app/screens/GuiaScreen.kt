@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,7 +20,6 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,24 +55,18 @@ private val AirbnbLightGray: Color
 private val AirbnbBorder: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFF404040) else Color(0xFFEBEBEB)
 private val AirbnbPrimary = Color(0xFFFF385C)
-private val ColorPremium = Color(0xFFD4AF37)
-private val ColorDestacado = Color(0xFF1B5E20)
+private val VerdeTurisMap = Color(0xFF10B981)
+private val VerdeOscuroTurisMap = Color(0xFF047857)
 
-val Comercio.planInt: Int
-    get() {
-        val plan = (tipoPlan ?: "").lowercase()
-        return when {
-            plan.contains("premium") || plan.contains("25") -> 3
-            plan.contains("socio") || plan.contains("15") -> 2
-            else -> 1
-        }
-    }
-
-private fun formatearCalificacion(cal: Double?): String {
-    if (cal == null || cal <= 0.0) return "4.9"
-    val entero = cal.toInt()
-    val decimal = ((cal - entero) * 10).toInt()
-    return "$entero.$decimal"
+private fun normalizarTexto(txt: String?): String {
+    if (txt.isNullOrBlank()) return ""
+    return txt.lowercase()
+        .replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+        .trim()
 }
 
 private data class CategoriaFiltro(val id: String, val etiqueta: String, val icono: String)
@@ -84,15 +79,38 @@ private val categoriasFiltros = listOf(
     CategoriaFiltro("atractivo", "Experiencias", "🎈")
 )
 
-// ---------------------------------------------------------
-// MODIFICADOR DE ANIMACIÓN SHIMMER (ESQUELETO)
-// ---------------------------------------------------------
+private val municipiosRuta = listOf(
+    "Todos",
+    "Nahuizalco",
+    "Salcoatitán",
+    "Juayúa",
+    "Apaneca",
+    "Concepción de Ataco",
+    "Ahuachapán"
+)
+
+private fun coincideConCategoria(categoriaComercio: String?, filtroId: String): Boolean {
+    if (filtroId.equals("Todos", ignoreCase = true)) return true
+    val cat = normalizarTexto(categoriaComercio)
+    val f = normalizarTexto(filtroId)
+
+    return when (f) {
+        "restaurante" -> cat.contains("restauran") || cat.contains("cafe") || cat.contains("comida") || cat.contains("gastronom")
+        "hotel" -> cat.contains("hotel") || cat.contains("alojam") || cat.contains("hosped") || cat.contains("posada") || cat.contains("cabana")
+        "artesania" -> cat.contains("artesan") || cat.contains("souvenir") || cat.contains("tienda")
+        "atractivo" -> cat.contains("atractiv") || cat.contains("experienc") || cat.contains("tour") || cat.contains("aventura")
+        else -> cat.contains(f)
+    }
+}
+
+// Shimmer sin errores de sintaxis
 fun Modifier.shimmerEffect(): Modifier = composed {
     var size by remember { mutableStateOf(IntSize.Zero) }
     val transition = rememberInfiniteTransition(label = "shimmer")
+    val widthPx = if (size.width > 0) size.width.toFloat() else 300f
     val startOffsetX by transition.animateFloat(
-        initialValue = -2 * size.width.toFloat(),
-        targetValue = 2 * size.width.toFloat(),
+        initialValue = -2f * widthPx,
+        targetValue = 2f * widthPx,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1000, easing = LinearEasing)
         ),
@@ -123,6 +141,7 @@ fun GuiaScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("Todos") }
+    var municipioSeleccionado by remember { mutableStateOf("Todos") }
 
     var listaComercios: List<Comercio> by remember { mutableStateOf(emptyList()) }
     var mapaMunicipios: Map<String, String> by remember { mutableStateOf(emptyMap()) }
@@ -171,25 +190,29 @@ fun GuiaScreen(
         }
     }
 
-    val comerciosFiltrados = remember(searchQuery, categoriaSeleccionada, listaComercios) {
+    // Filtrado reactivo de comercios
+    val comerciosFiltrados = remember(searchQuery, categoriaSeleccionada, municipioSeleccionado, listaComercios, mapaMunicipios) {
         listaComercios.filter { item ->
-            val coincideCategoria = categoriaSeleccionada.equals("Todos", ignoreCase = true) ||
-                    item.categoria.equals(categoriaSeleccionada, ignoreCase = true)
-            val coincideBusqueda = searchQuery.isBlank() ||
-                    item.nombre.contains(searchQuery, ignoreCase = true) ||
-                    item.direccion.contains(searchQuery, ignoreCase = true) ||
-                    item.descripcion.contains(searchQuery, ignoreCase = true)
-            coincideCategoria && coincideBusqueda
-        }
+            val coincideCat = coincideConCategoria(item.categoria, categoriaSeleccionada)
+
+            val nombreMuni = mapaMunicipios[item.lugarId] ?: item.direccion
+            val coincideMuni = if (municipioSeleccionado.equals("Todos", ignoreCase = true)) true
+            else normalizarTexto(nombreMuni).contains(normalizarTexto(municipioSeleccionado))
+
+            val q = normalizarTexto(searchQuery)
+            val coincideBusqueda = q.isBlank() ||
+                    normalizarTexto(item.nombre).contains(q) ||
+                    normalizarTexto(item.direccion).contains(q) ||
+                    normalizarTexto(item.descripcion).contains(q) ||
+                    normalizarTexto(nombreMuni).contains(q)
+
+            coincideCat && coincideMuni && coincideBusqueda
+        }.sortedByDescending { it.planInt }
     }
 
-    val gruposPorMunicipio = remember(comerciosFiltrados, mapaMunicipios) {
-        comerciosFiltrados
-            .sortedByDescending { it.planInt }
-            .groupBy { item ->
-                val nombre = mapaMunicipios[item.lugarId]
-                if (!nombre.isNullOrBlank()) nombre else "Ruta de las Flores"
-            }
+    // Experiencias destacadas para el carrusel superior (Socios y Premium)
+    val comerciosDestacados = remember(comerciosFiltrados) {
+        comerciosFiltrados.filter { it.planInt >= 2 }
     }
 
     Column(
@@ -198,31 +221,32 @@ fun GuiaScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
+        // 1. Buscador superior
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 10.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 54.dp)
+                    .heightIn(min = 52.dp)
                     .shadow(
-                        elevation = 4.dp,
-                        shape = RoundedCornerShape(32.dp),
+                        elevation = 3.dp,
+                        shape = RoundedCornerShape(28.dp),
                         ambientColor = Color.Black.copy(alpha = 0.08f),
                         spotColor = Color.Black.copy(alpha = 0.12f)
                     )
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(FondoBlancoAdaptable)
-                    .border(0.8.dp, AirbnbBorder, RoundedCornerShape(32.dp))
+                    .border(0.8.dp, AirbnbBorder, RoundedCornerShape(28.dp))
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Buscar",
-                    tint = AirbnbBlack,
+                    tint = VerdeTurisMap,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -231,9 +255,9 @@ fun GuiaScreen(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            "Buscar restaurantes, hoteles o tiendas...",
-                            color = AirbnbBlack,
-                            fontSize = 15.sp,
+                            "Buscar en la Ruta de las Flores...",
+                            color = AirbnbGray,
+                            fontSize = 14.5.sp,
                             fontWeight = FontWeight.Medium
                         )
                     },
@@ -250,35 +274,67 @@ fun GuiaScreen(
             }
         }
 
+        // 2. Fila 1: Filtros de Categoría
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
         ) {
             items(categoriasFiltros) { cat ->
                 val activa = cat.id.equals(categoriaSeleccionada, ignoreCase = true)
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(if (activa) AirbnbLightGray else FondoBlancoAdaptable)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (activa) VerdeTurisMap else FondoBlancoAdaptable)
                         .border(
                             width = if (activa) 1.5.dp else 1.dp,
-                            color = if (activa) AirbnbBlack else AirbnbBorder,
-                            shape = RoundedCornerShape(24.dp)
+                            color = if (activa) VerdeTurisMap else AirbnbBorder,
+                            shape = RoundedCornerShape(20.dp)
                         )
                         .clickable { categoriaSeleccionada = cat.id }
-                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = cat.icono, fontSize = 14.sp)
+                    Text(text = cat.icono, fontSize = 13.sp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = cat.etiqueta,
-                        color = AirbnbBlack,
-                        fontSize = 13.sp,
+                        color = if (activa) Color.White else AirbnbBlack,
+                        fontSize = 12.5.sp,
                         fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // 3. Fila 2: Filtros de Pueblos / Municipios
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+        ) {
+            items(municipiosRuta) { muni ->
+                val activo = muni.equals(municipioSeleccionado, ignoreCase = true)
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (activo) VerdeOscuroTurisMap.copy(alpha = 0.15f) else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = if (activo) VerdeTurisMap else AirbnbBorder,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable { municipioSeleccionado = muni }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("📍", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (muni == "Todos") "Todos los Pueblos" else muni,
+                        color = if (activo) VerdeTurisMap else AirbnbGray,
+                        fontSize = 12.sp,
+                        fontWeight = if (activo) FontWeight.Bold else FontWeight.Medium
                     )
                 }
             }
@@ -286,44 +342,19 @@ fun GuiaScreen(
 
         HorizontalDivider(color = AirbnbBorder, thickness = 0.8.dp)
 
+        // 4. Feed de Comercios
         Box(modifier = Modifier.fillMaxSize()) {
             if (cargando) {
-                // ---------------------------------------------------------
-                // PANTALLAS ESQUELETO MIENTRAS CARGA FIREBASE
-                // ---------------------------------------------------------
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(28.dp),
+                    contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(3) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            // Título simulado
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 20.dp, vertical = 6.dp)
-                                    .width(180.dp)
-                                    .height(24.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .shimmerEffect()
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            // Carrusel horizontal de esqueletos
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(3) { TarjetaEsqueleto() }
-                            }
-                        }
-                    }
+                    items(3) { TarjetaEsqueletoFeed() }
                 }
             } else if (errorCarga != null) {
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -347,20 +378,18 @@ fun GuiaScreen(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AirbnbBlack)
+                        colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap)
                     ) {
-                        Text("Reintentar")
+                        Text("Reintentar", color = Color.White)
                     }
                 }
             } else if (comerciosFiltrados.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No se encontraron negocios para esta búsqueda.",
+                        text = "No se encontraron negocios con los filtros seleccionados.",
                         color = AirbnbGray,
                         fontSize = 15.sp,
                         textAlign = TextAlign.Center
@@ -368,19 +397,98 @@ fun GuiaScreen(
                 }
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(28.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(22.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    gruposPorMunicipio.forEach { (nombreMunicipio, comerciosEnMunicipio) ->
-                        item(key = nombreMunicipio) {
-                            SeccionMunicipioAirbnb(
-                                titulo = "Lugares en $nombreMunicipio",
-                                comercios = comerciosEnMunicipio,
-                                favoritosIds = favoritosUsuario,
-                                onComercioClick = { id -> onComercioClick(id) },
-                                onActionClick = onLlamarComercio,
-                                onToggleFavorito = onToggleFavorito
+                    // Carrusel superior de Destacados
+                    if (comerciosDestacados.isNotEmpty() && searchQuery.isBlank()) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("👑", fontSize = 16.sp)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "EXPERIENCIAS DESTACADAS",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = VerdeOscuroTurisMap,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 20.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(comerciosDestacados, key = { "dest_${it.id}" }) { destacado ->
+                                        val muniNombre = mapaMunicipios[destacado.lugarId] ?: "Ruta de las Flores"
+                                        TarjetaMiniDestacada(
+                                            comercio = destacado,
+                                            municipio = muniNombre,
+                                            onClick = { onComercioClick(destacado.id) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            HorizontalDivider(
+                                color = AirbnbBorder.copy(alpha = 0.5f),
+                                thickness = 0.8.dp,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    // Encabezado del feed con total
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (municipioSeleccionado == "Todos") "Guía de Comercios" else "Comercios en $municipioSeleccionado",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AirbnbBlack
+                            )
+                            Text(
+                                text = "${comerciosFiltrados.size} lugares",
+                                fontSize = 12.sp,
+                                color = AirbnbGray,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    // Feed vertical continuo
+                    items(comerciosFiltrados, key = { it.id }) { comercio ->
+                        val muniNombre = mapaMunicipios[comercio.lugarId] ?: "Ruta de las Flores"
+                        val esFavorito = favoritosUsuario.contains(comercio.id) || favoritosUsuario.contains("comercio:${comercio.id}")
+
+                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            TarjetaComercioInstagram(
+                                comercio = comercio,
+                                municipio = muniNombre,
+                                esFavorito = esFavorito,
+                                onToggleFavorito = { onToggleFavorito(comercio.id, !esFavorito) },
+                                onClick = { onComercioClick(comercio.id) },
+                                onAccionContacto = {
+                                    val tel = comercio.telefono.filter { it.isDigit() }
+                                    if (tel.isNotBlank()) onLlamarComercio(comercio.telefono)
+                                }
                             )
                         }
                     }
@@ -395,302 +503,391 @@ fun GuiaScreen(
     }
 }
 
-@Composable
-fun SeccionMunicipioAirbnb(
-    titulo: String,
-    comercios: List<Comercio>,
-    favoritosIds: Set<String>,
-    onComercioClick: (String) -> Unit,
-    onActionClick: (String) -> Unit,
-    onToggleFavorito: (String, Boolean) -> Unit
-) {
-    val uriHandler = LocalUriHandler.current
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = titulo,
-                modifier = Modifier.weight(1f),
-                color = AirbnbBlack,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.3).sp
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(comercios, key = { it.id }) { comercio ->
-                val esFavorito = favoritosIds.contains(comercio.id) || favoritosIds.contains("comercio:${comercio.id}")
-
-                when (comercio.planInt) {
-                    3 -> TarjetaPremium(
-                        comercio = comercio,
-                        esFavorito = esFavorito,
-                        onToggleFavorito = { onToggleFavorito(comercio.id, !esFavorito) },
-                        onClick = { onComercioClick(comercio.id) },
-                        onQuickActionClick = {
-                            val tel = comercio.telefono.filter { it.isDigit() }
-                            if (tel.isNotBlank()) {
-                                val url = if (tel.startsWith("503")) "https://wa.me/$tel" else "https://wa.me/503$tel"
-                                try {
-                                    uriHandler.openUri(url)
-                                } catch (e: Exception) {
-                                    onActionClick(comercio.telefono)
-                                }
-                            }
-                        }
-                    )
-                    2 -> TarjetaEstandar(
-                        comercio = comercio,
-                        esFavorito = esFavorito,
-                        onToggleFavorito = { onToggleFavorito(comercio.id, !esFavorito) },
-                        onClick = { onComercioClick(comercio.id) }
-                    )
-                    else -> TarjetaBasica(
-                        comercio = comercio,
-                        onClick = { onComercioClick(comercio.id) }
-                    )
-                }
-            }
-        }
-    }
-}
-
 // ---------------------------------------------------------
-// COMPONENTES DE TARJETAS
+// TARJETA PRINCIPAL CON LÍMITE DE FOTOS (2 BÁSICO / 4 SOCIO / 8 PREMIUM)
 // ---------------------------------------------------------
-
 @Composable
-fun TarjetaPremium(
+fun TarjetaComercioInstagram(
     comercio: Comercio,
+    municipio: String,
     esFavorito: Boolean,
     onToggleFavorito: () -> Unit,
     onClick: () -> Unit,
-    onQuickActionClick: () -> Unit
+    onAccionContacto: () -> Unit
 ) {
-    val precio = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Consultar precio"
-    val calificacion = formatearCalificacion(comercio.calificacionPromedio)
+    val uriHandler = LocalUriHandler.current
+    val esOscuro = isSystemInDarkTheme()
+
+    // Respeta el tope exacto según suscripción
+    val fotosReales = comercio.imagenUrls.filter { it.startsWith("http://") || it.startsWith("https://") }
+    val fotos = fotosReales.take(comercio.maxFotosPermitidas)
+
+    val esPremium = comercio.planInt == 3
+    val esSocio = comercio.planInt == 2
+
+    val precioTexto = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Precios accesibles"
+
+    val calificacion = if (comercio.calificacionPromedio != null && comercio.calificacionPromedio > 0.0) {
+        val entero = comercio.calificacionPromedio.toInt()
+        val dec = ((comercio.calificacionPromedio - entero) * 10).toInt()
+        "$entero.$dec"
+    } else "Nuevo"
 
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-        border = BorderStroke(1.5.dp, ColorPremium.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier = Modifier.width(280.dp).clickable(onClick = onClick)
+        border = BorderStroke(
+            width = if (esPremium) 1.5.dp else 1.dp,
+            color = if (esPremium) VerdeTurisMap.copy(alpha = 0.7f) else AirbnbBorder
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (esPremium) 4.dp else 1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
-                RemoteImage(
-                    url = comercio.imagenUrls.firstOrNull() ?: "",
-                    contentDescription = comercio.nombre,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("👑", fontSize = 12.sp)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Favorito de la Ruta", color = ColorPremium, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(210.dp)
+            ) {
+                if (fotos.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { fotos.size })
+
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { pagina ->
+                        RemoteImage(
+                            url = fotos[pagina],
+                            contentDescription = comercio.nombre,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .align(Alignment.TopCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
+                                )
+                            )
+                    )
+
+                    // Círculos indicadores que reflejan el número exacto de fotos permitidas
+                    if (fotos.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 10.dp)
+                                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(fotos.size) { index ->
+                                val esActivo = pagerState.currentPage == index
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (esActivo) 7.dp else 5.dp)
+                                        .clip(CircleShape)
+                                        .background(if (esActivo) Color.White else Color.White.copy(alpha = 0.45f))
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(AirbnbLightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(comercio.categoria, color = AirbnbGray, fontWeight = FontWeight.Bold)
                     }
                 }
-                Box(
+
+                // Insignias superiores
+                Row(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .padding(12.dp)
-                        .size(34.dp)
-                        .background(Color.White.copy(alpha = 0.9f), CircleShape)
-                        .clickable { onToggleFavorito() }
-                        .align(Alignment.TopEnd),
-                    contentAlignment = Alignment.Center
+                        .align(Alignment.TopCenter),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorito",
-                        tint = if (esFavorito) AirbnbPrimary else AirbnbBlack,
-                        modifier = Modifier.size(20.dp)
+                    if (esPremium) {
+                        Surface(
+                            color = VerdeTurisMap,
+                            shape = RoundedCornerShape(20.dp),
+                            shadowElevation = 3.dp
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text("👑", fontSize = 12.sp)
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Socio Premium",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+                    } else if (esSocio) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.75f),
+                            border = BorderStroke(1.dp, VerdeTurisMap),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    "✓ Socio TurisMap",
+                                    color = VerdeTurisMap,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                            .clickable { onToggleFavorito() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorito",
+                            tint = if (esFavorito) AirbnbPrimary else Color.White,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                }
+            }
+
+            // Información inferior
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = comercio.nombre,
+                            color = AirbnbBlack,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        if (esPremium) {
+                            Spacer(Modifier.width(6.dp))
+                            Text("👑", fontSize = 14.sp)
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = VerdeTurisMap,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = calificacion,
+                            color = AirbnbBlack,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📍", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$municipio · ${comercio.categoria}",
+                        color = AirbnbGray,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .align(Alignment.BottomEnd)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Fotos HD", color = Color.White, fontSize = 10.sp)
+                    Text(
+                        text = precioTexto,
+                        color = AirbnbBlack,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    if (comercio.telefono.isNotBlank()) {
+                        val telLimpio = comercio.telefono.filter { it.isDigit() }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (esSocio || esPremium) {
+                                Surface(
+                                    color = VerdeTurisMap.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.clickable {
+                                        val url = if (telLimpio.startsWith("503")) "https://wa.me/$telLimpio" else "https://wa.me/503$telLimpio"
+                                        try { uriHandler.openUri(url) } catch (e: Exception) { onAccionContacto() }
+                                    }
+                                ) {
+                                    Text(
+                                        text = "💬 WhatsApp",
+                                        color = VerdeOscuroTurisMap,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                color = if (esOscuro) Color(0xFF2C2C2C) else Color(0xFFF1F5F9),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.clickable { onAccionContacto() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = "Llamar",
+                                    tint = AirbnbBlack,
+                                    modifier = Modifier.padding(6.dp).size(14.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text(comercio.nombre, color = AirbnbBlack, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.Star, contentDescription = null, tint = AirbnbBlack, modifier = Modifier.size(14.dp))
-                    Text(calificacion, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                Text("${comercio.categoria} · ${comercio.cantidadResenas ?: 0} reseñas", color = AirbnbGray, fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(precio, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onQuickActionClick,
-                    modifier = Modifier.fillMaxWidth().height(36.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color.Black,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("WhatsApp / Contacto", fontSize = 13.sp)
-                }
-            }
         }
     }
 }
 
+// ---------------------------------------------------------
+// TARJETA DEL CARRUSEL SUPERIOR DESTACADO
+// ---------------------------------------------------------
 @Composable
-fun TarjetaEstandar(
+fun TarjetaMiniDestacada(
     comercio: Comercio,
-    esFavorito: Boolean,
-    onToggleFavorito: () -> Unit,
+    municipio: String,
     onClick: () -> Unit
 ) {
-    val precio = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Consultar precio"
-    val calificacion = formatearCalificacion(comercio.calificacionPromedio)
-
-    Column(
-        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)
-    ) {
-        Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(18.dp)).background(AirbnbLightGray)) {
-            RemoteImage(
-                url = comercio.imagenUrls.firstOrNull() ?: "",
-                contentDescription = comercio.nombre,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier
-                    .padding(top = 12.dp, start = 12.dp)
-                    .background(ColorDestacado, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .align(Alignment.TopStart)
-            ) {
-                Text("★ Destacado", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-            Box(
-                modifier = Modifier
-                    .padding(top = 10.dp, end = 10.dp)
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .clickable { onToggleFavorito() }
-                    .align(Alignment.TopEnd),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorito",
-                    tint = if (esFavorito) AirbnbPrimary else Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(8.dp).background(Color(0xFF4CAF50), CircleShape))
-            Spacer(Modifier.width(6.dp))
-            Text(comercio.nombre, color = AirbnbBlack, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        }
-        Text("$precio por consumo", color = AirbnbGray, fontSize = 13.sp)
-        Spacer(modifier = Modifier.height(2.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Star, contentDescription = null, tint = AirbnbBlack, modifier = Modifier.size(13.dp))
-            Spacer(modifier = Modifier.width(3.dp))
-            Text(calificacion, color = AirbnbBlack, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(" · ${comercio.cantidadResenas ?: 0} reseñas", color = AirbnbGray, fontSize = 12.sp)
-        }
-    }
-}
-
-@Composable
-fun TarjetaBasica(comercio: Comercio, onClick: () -> Unit) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-        border = BorderStroke(1.dp, AirbnbBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.width(260.dp).clickable(onClick = onClick)
+        border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .width(200.dp)
+            .clickable(onClick = onClick)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)).background(AirbnbLightGray)) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+            ) {
                 RemoteImage(
                     url = comercio.imagenUrls.firstOrNull() ?: "",
                     contentDescription = comercio.nombre,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+                if (comercio.planInt == 3) {
+                    Box(
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .align(Alignment.TopStart)
+                    ) {
+                        Text("👑 Socio Premium", color = VerdeTurisMap, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else if (comercio.planInt == 2) {
+                    Box(
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .align(Alignment.TopStart)
+                    ) {
+                        Text("✓ Socio TurisMap", color = VerdeTurisMap, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(comercio.nombre, color = AirbnbBlack, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(comercio.categoria, color = AirbnbGray, fontSize = 12.sp)
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = comercio.nombre,
+                    color = AirbnbBlack,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "$municipio · ${comercio.categoria}",
+                    color = AirbnbGray,
+                    fontSize = 11.5.sp,
+                    maxLines = 1
+                )
             }
         }
     }
 }
 
 // ---------------------------------------------------------
-// COMPONENTE DE TARJETA ESQUELETO
+// ESQUELETO DE CARGA
 // ---------------------------------------------------------
 @Composable
-fun TarjetaEsqueleto() {
+fun TarjetaEsqueletoFeed() {
     Column(
         modifier = Modifier
-            .width(220.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
     ) {
-        // Bloque de la imagen
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .height(210.dp)
                 .shimmerEffect()
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        // Bloque del nombre
+        Spacer(modifier = Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.7f)
+                .fillMaxWidth(0.6f)
                 .height(20.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .shimmerEffect()
         )
         Spacer(modifier = Modifier.height(6.dp))
-        // Bloque del texto secundario
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.5f)
+                .fillMaxWidth(0.4f)
                 .height(16.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .shimmerEffect()

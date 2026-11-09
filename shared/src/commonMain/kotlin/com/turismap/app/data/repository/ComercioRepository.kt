@@ -31,13 +31,44 @@ data class Comercio(
     val imagenUrls: List<String> = emptyList(),
     val estado: String = "pendiente",
     val destacado: Boolean = false,
-    val nivelPlan: Int = 1, // 1 = Básico, 2 = Estándar, 3 = Premium
-    val tipoPlan: String = "Socio TurisMap ($15/mes)",
+    val nivelPlan: Int = 1, // 1 = Básico, 2 = Socio, 3 = Premium
+    val planId: String? = null,
+    val plan: String? = null,
+    val tipoPlan: String? = null,
     @SerialName("calificacionPromedio") val calificacionPromedio: Double? = 0.0,
     @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,
     val actualizadoEn: Timestamp? = null
-)
+) {
+    // Identificador unificado tolerante a cualquier nombre de campo en Firestore
+    val planClave: String
+        get() = listOfNotNull(planId, plan, tipoPlan).joinToString(" ").lowercase().trim()
+
+    // 1 = Básico, 2 = Socio, 3 = Premium
+    val planInt: Int
+        get() = when {
+            planClave.contains("premium") || planClave.contains("25") || nivelPlan == 3 -> 3
+            planClave.contains("socio") || planClave.contains("turismap") || planClave.contains("15") || nivelPlan == 2 -> 2
+            else -> 1
+        }
+
+    val esNivelPremium: Boolean
+        get() = planInt == 3
+
+    val esNivelSocio: Boolean
+        get() = planInt == 2
+
+    val esNivelBasico: Boolean
+        get() = planInt == 1
+
+    // Límite de fotografías por suscripción: 2 (Básico), 4 (Socio), 8 (Premium)
+    val maxFotosPermitidas: Int
+        get() = when (planInt) {
+            3 -> 8
+            2 -> 4
+            else -> 2
+        }
+}
 
 @Serializable
 data class Resena(

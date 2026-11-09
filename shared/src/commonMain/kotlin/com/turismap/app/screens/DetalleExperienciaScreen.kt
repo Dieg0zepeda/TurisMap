@@ -42,6 +42,10 @@ import kotlinx.coroutines.launch
 fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     val esOscuro = isSystemInDarkTheme()
 
+    val VerdeTurisMap = Color(0xFF10B981)
+    val VerdeOscuroTurisMap = Color(0xFF047857)
+    val DoradoCorona = Color(0xFFF59E0B)
+
     val colorFondoPantalla = if (esOscuro) Color(0xFF0B0F17) else Color(0xFFF8FAFC)
     val colorTextoPrincipal = if (esOscuro) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val colorTextoSecundario = if (esOscuro) Color(0xFF94A3B8) else Color(0xFF64748B)
@@ -63,7 +67,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
 
-    // Observación en tiempo real del usuario desde Firestore
     val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
     val esFavorito = remember(usuarioActual?.favoritos, comercioId) {
         usuarioActual?.favoritos?.any { it == comercioId || it == "comercio:$comercioId" } == true
@@ -97,7 +100,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("📖", fontSize = 22.sp)
-                    Text("Menú Digital y Catálogo", fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                    Text("Menú Digital y Catálogo", fontWeight = FontWeight.Bold, color = VerdeTurisMap)
                 }
             },
             text = {
@@ -108,7 +111,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         color = colorTextoPrincipal
                     )
                     Text(
-                        "Como beneficio de Socio Premium, este comercio cuenta con carta digitalizada en alta resolución. Aquí se cargará el visor de platillos o catálogo.",
+                        "Como beneficio de Socio Premium, este comercio cuenta con carta digitalizada en alta resolución y catálogo de productos.",
                         color = colorTextoSecundario,
                         fontSize = 13.5.sp,
                         lineHeight = 19.sp
@@ -118,9 +121,9 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
             confirmButton = {
                 Button(
                     onClick = { mostrarModalMenu = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                    colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap)
                 ) {
-                    Text("Cerrar", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Cerrar", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = if (esOscuro) Color(0xFF1E1B18) else Color.White,
@@ -136,7 +139,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     ) {
         when {
             cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = VerdePrimario)
+                CircularProgressIndicator(color = VerdeTurisMap)
             }
             error != null -> Column(
                 Modifier.fillMaxSize().padding(24.dp),
@@ -145,31 +148,21 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
             ) {
                 Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = { intento++ }) { Text("Reintentar") }
+                Button(onClick = { intento++ }, colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap)) {
+                    Text("Reintentar", color = Color.White)
+                }
             }
             comercio != null -> {
                 val datos = comercio!!
                 val esPropietario = datos.propietarioUid == AutenticacionRepository.usuarioActual?.uid
 
-                val planNombre = (datos.tipoPlan ?: "").lowercase()
-                val esPremium = planNombre.contains("premium") || planNombre.contains("25")
-                val esSocio = !esPremium && (planNombre.contains("socio") || planNombre.contains("15"))
-                val esBasico = !esPremium && !esSocio
+                val esPremium = datos.planInt == 3
+                val esSocio = datos.planInt == 2
+                val esBasico = datos.planInt == 1
 
-                val colorAcento = when {
-                    esPremium -> if (esOscuro) Color(0xFFF59E0B) else Color(0xFFD97706)
-                    esSocio -> if (esOscuro) Color(0xFF10B981) else Color(0xFF059669)
-                    else -> if (esOscuro) Color(0xFF38BDF8) else Color(0xFF0284C7)
-                }
-
-                val fondoCardPlan = when {
-                    esPremium -> if (esOscuro) Color(0xFF1A1408) else Color(0xFFFFFBEB)
-                    esSocio -> if (esOscuro) Color(0xFF062217) else Color(0xFFF0FDF4)
-                    else -> if (esOscuro) Color(0xFF111827) else Color.White
-                }
-
+                // Límite de fotos: 8 para Premium, 4 para Socio, 2 para Básico
                 val fotosReales = datos.imagenUrls.filter { it.startsWith("http://") || it.startsWith("https://") }
-                val fotos = if (esBasico) fotosReales.take(1) else fotosReales
+                val fotos = fotosReales.take(datos.maxFotosPermitidas)
 
                 val telefonoLimpio = datos.telefono.filter { it.isDigit() }
                 val whatsappUrl = if (telefonoLimpio.startsWith("503")) "https://wa.me/$telefonoLimpio" else "https://wa.me/503$telefonoLimpio"
@@ -184,7 +177,23 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                     } else "$$pStr.00"
                 } else "$3.00"
 
-                val promedio = if (resenas.isEmpty()) 4.9 else resenas.map { it.calificacion }.average()
+                val totalResenasReal = if (resenas.isNotEmpty()) resenas.size else (datos.cantidadResenas ?: 0)
+                val promedioReal = if (resenas.isNotEmpty()) {
+                    resenas.map { it.calificacion }.average()
+                } else {
+                    datos.calificacionPromedio?.takeIf { it > 0.0 } ?: 0.0
+                }
+
+                val promedioTexto = if (promedioReal > 0.0) {
+                    val red = kotlin.math.round(promedioReal * 10) / 10
+                    "$red"
+                } else "Nuevo"
+
+                val resenasTexto = when (totalResenasReal) {
+                    0 -> "Sin reseñas aún"
+                    1 -> "1 reseña"
+                    else -> "$totalResenasReal reseñas"
+                }
 
                 Box(Modifier.fillMaxSize()) {
                     Column(
@@ -193,8 +202,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             .verticalScroll(rememberScrollState())
                             .padding(bottom = 90.dp)
                     ) {
-                        // 1. Zona Multimedia / Portada
-                        Box(Modifier.fillMaxWidth().height(250.dp)) {
+                        // 1. Cabecera Multimedia con Carrusel y Puntos Instagram
+                        Box(Modifier.fillMaxWidth().height(260.dp)) {
                             if (fotos.isNotEmpty()) {
                                 val pagerState = rememberPagerState(pageCount = { fotos.size })
 
@@ -215,50 +224,88 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                         .fillMaxSize()
                                         .background(
                                             Brush.verticalGradient(
-                                                listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                                                listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent, Color.Black.copy(alpha = 0.8f))
                                             )
                                         )
                                 )
 
+                                // PUNTOS INDICADORES ESTILO INSTAGRAM (Aparecen si tiene 2, 4 u 8 fotos)
+                                if (fotos.size > 1) {
+                                    Row(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(bottom = 24.dp)
+                                            .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        repeat(fotos.size) { index ->
+                                            val esActivo = pagerState.currentPage == index
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(if (esActivo) 7.dp else 5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (esActivo) Color.White else Color.White.copy(alpha = 0.45f))
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Insignia inferior descriptiva de fotos
                                 Row(
                                     Modifier
                                         .align(Alignment.BottomStart)
                                         .fillMaxWidth()
-                                        .padding(12.dp),
+                                        .padding(14.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     when {
                                         esPremium -> {
-
-                                            Surface(color = Color(0xFFF59E0B), shape = RoundedCornerShape(8.dp)) {
-                                                Text(
-                                                    "🏷️ 10% dto. TurisMap",
-                                                    color = Color.Black,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                )
+                                            Surface(
+                                                color = Color.Black.copy(alpha = 0.85f),
+                                                border = BorderStroke(1.dp, DoradoCorona),
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                ) {
+                                                    Text("👑", fontSize = 13.sp)
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Text(
+                                                        "SOCIO PREMIUM · ${pagerState.currentPage + 1}/${fotos.size} FOTOS",
+                                                        color = DoradoCorona,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        letterSpacing = 0.5.sp
+                                                    )
+                                                }
                                             }
                                         }
                                         esSocio -> {
-                                            Surface(color = Color.Black.copy(alpha = 0.75f), shape = RoundedCornerShape(8.dp)) {
+                                            Surface(
+                                                color = Color.Black.copy(alpha = 0.75f),
+                                                border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.6f)),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
                                                 Text(
-                                                    "📷 Galería de ${fotos.size} fotos (${pagerState.currentPage + 1} de ${fotos.size})",
-                                                    color = Color(0xFF34D399),
+                                                    "📷 Galería (${pagerState.currentPage + 1}/${fotos.size} fotos)",
+                                                    color = VerdeTurisMap,
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                                 )
                                             }
                                         }
                                         else -> {
-                                            Surface(color = Color.Black.copy(alpha = 0.75f), shape = RoundedCornerShape(8.dp)) {
+                                            Surface(color = Color.Black.copy(alpha = 0.7f), shape = RoundedCornerShape(8.dp)) {
                                                 Text(
-                                                    "📷 Foto de Portada (1 foto)",
-                                                    color = Color.White,
+                                                    if (fotos.size > 1) "📷 ${pagerState.currentPage + 1}/${fotos.size} fotos" else "📷 Foto Principal",
+                                                    color = Color.White.copy(alpha = 0.9f),
                                                     fontSize = 11.sp,
-                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontWeight = FontWeight.Medium,
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                                 )
                                             }
@@ -270,10 +317,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     Modifier.fillMaxSize().background(if (esOscuro) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(datos.categoria, color = colorAcento, fontWeight = FontWeight.Bold)
+                                    Text(datos.categoria, color = VerdeTurisMap, fontWeight = FontWeight.Bold)
                                 }
                             }
 
+                            // Botones superiores
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -281,28 +329,38 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     IconButton(
                                         onClick = onVolver,
-                                        modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape)
                                     ) {
                                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                                     }
 
                                     if (esPremium) {
-                                        Surface(color = Color(0xFFF59E0B), shape = RoundedCornerShape(20.dp)) {
-                                            Text(
-                                                "👑 Favorito VIP",
-                                                color = Color.Black,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.ExtraBold,
+                                        Surface(
+                                            color = VerdeTurisMap,
+                                            shape = RoundedCornerShape(20.dp),
+                                            shadowElevation = 4.dp
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                            )
+                                            ) {
+                                                Text("👑", fontSize = 12.sp)
+                                                Spacer(Modifier.width(4.dp))
+                                                Text(
+                                                    "Socio Premium",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
                                         }
                                     } else if (esSocio) {
-                                        Surface(color = Color(0xFF10B981), shape = RoundedCornerShape(20.dp)) {
+                                        Surface(color = VerdeTurisMap, shape = RoundedCornerShape(20.dp)) {
                                             Text(
-                                                "★ Favorito de la Ruta",
+                                                "✓ Socio TurisMap",
                                                 color = Color.White,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -324,14 +382,14 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                                     }
                                                 }
                                             },
-                                            modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                            modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape)
                                         ) {
                                             Text(if (esFavorito) "❤️" else "🤍", fontSize = 16.sp)
                                         }
                                     }
                                     IconButton(
                                         onClick = onVolver,
-                                        modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape)
                                     ) {
                                         Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
                                     }
@@ -347,46 +405,128 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("★", color = colorAcento, fontSize = 15.sp)
+                                    Text("★", color = VerdeTurisMap, fontSize = 15.sp)
                                     Spacer(Modifier.width(4.dp))
                                     Text(
-                                        "${kotlin.math.round(promedio * 10) / 10} · ${resenas.size.coerceAtLeast(14)} reseñas · ${datos.categoria}",
+                                        "$promedioTexto · $resenasTexto · ${datos.categoria}",
                                         color = colorTextoSecundario,
-                                        fontSize = 12.5.sp,
+                                        fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
-
                             }
 
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(6.dp))
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     datos.nombre,
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = colorTextoPrincipal
+                                    color = colorTextoPrincipal,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 if (esPremium) {
-                                    Text("👑", fontSize = 18.sp)
+                                    Text("👑", fontSize = 22.sp)
                                 } else if (esSocio) {
-                                    Text("✓", color = Color(0xFF10B981), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text("✓", color = VerdeTurisMap, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                                }
+                            }
+
+                            // 3. MÓDULO EXCLUSIVO PREMIUM: EXPERIENCIAS DESTACADAS
+                            if (esPremium) {
+                                Spacer(Modifier.height(14.dp))
+                                Card(
+                                    Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (esOscuro) Color(0xFF071F14) else Color(0xFFF0FDF4)
+                                    ),
+                                    border = BorderStroke(1.2.dp, VerdeTurisMap),
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("👑", fontSize = 16.sp)
+                                                Spacer(Modifier.width(6.dp))
+                                                Text(
+                                                    "EXPERIENCIAS DESTACADAS",
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    letterSpacing = 1.sp,
+                                                    color = VerdeOscuroTurisMap
+                                                )
+                                            }
+                                            Surface(
+                                                color = VerdeTurisMap,
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text(
+                                                    "PREMIUM",
+                                                    color = Color.White,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(8.dp))
+
+                                        Text(
+                                            "★ Experiencia recomendada en la Ruta de las Flores:",
+                                            color = colorTextoPrincipal,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            "Este comercio cuenta con atención prioritaria, especialidades insignia y promociones exclusivas para turistas.",
+                                            color = colorTextoSecundario,
+                                            fontSize = 12.5.sp,
+                                            lineHeight = 18.sp
+                                        )
+
+                                        Spacer(Modifier.height(12.dp))
+
+                                        Button(
+                                            onClick = { mostrarModalMenu = true },
+                                            colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentPadding = PaddingValues(vertical = 10.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("📖", fontSize = 14.sp)
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    "Ver Experiencias y Catálogo",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.5.sp
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
                             Spacer(Modifier.height(14.dp))
 
-                            // 3. Tarjeta: Ubicación
+                            // 4. Ubicación
                             Card(
                                 Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = fondoCardPlan),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (esOscuro) Color(0xFF131B26) else Color.White
+                                ),
                                 shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (esPremium) Color(0xFFF59E0B).copy(alpha = 0.4f) else colorBordeSuave
-                                )
+                                border = BorderStroke(1.dp, colorBordeSuave)
                             ) {
                                 Column(Modifier.padding(14.dp)) {
                                     Row(
@@ -403,8 +543,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                         )
                                         if (esPremium) {
                                             Text(
-                                                "A 5 min de tu trayecto",
-                                                color = if (esOscuro) Color(0xFF10B981) else Color(0xFF047857),
+                                                "Parada Recomendada",
+                                                color = VerdeTurisMap,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -437,23 +577,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                                         Button(
                                             onClick = { uriHandler.openUri(mapsUrl) },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = when {
-                                                    esPremium -> Color(0xFFF59E0B)
-                                                    esSocio -> Color(0xFF10B981)
-                                                    else -> Color(0xFF0284C7)
-                                                }
-                                            ),
+                                            colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
-                                                when {
-                                                    esPremium -> "◆ Abrir Ruta GPS"
-                                                    esSocio -> "🗺️ Ver en Mapa"
-                                                    else -> "↱ Ruta"
-                                                },
-                                                color = if (esPremium) Color.Black else Color.White,
+                                                "🗺️ Ver en Mapa",
+                                                color = Color.White,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.5.sp
                                             )
@@ -462,15 +592,15 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 4. Conectores Directos
-                            if (esSocio) {
+                            // 5. Canales de Contacto Directo (Socio y Premium)
+                            if (esSocio || esPremium) {
                                 Spacer(Modifier.height(16.dp))
                                 Row(
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("ENLACES DIRECTOS DE CONTACTO", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario)
-                                    Text("BENEFICIO SOCIO", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF10B981))
+                                    Text("ENLACES DIRECTOS", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario)
+                                    Text(if (esPremium) "CANAL PREMIUM" else "CANAL OFICIAL", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = VerdeTurisMap)
                                 }
 
                                 Spacer(Modifier.height(8.dp))
@@ -481,11 +611,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 ) {
                                     Button(
                                         onClick = { if (telefonoLimpio.isNotBlank()) uriHandler.openUri(whatsappUrl) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                        colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text("💬 WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("💬 WhatsApp Directo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
 
                                     OutlinedButton(
@@ -496,75 +626,15 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                             }
                                         },
                                         shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, colorBordeSuave),
+                                        border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text("🌐 Redes / Web", color = colorTextoPrincipal, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                                     }
                                 }
-                            } else if (esPremium) {
-                                Spacer(Modifier.height(16.dp))
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("CONECTORES VIP DIRECTOS", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario)
-                                    Text("BENEFICIO PREMIUM", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
-                                }
-
-                                Spacer(Modifier.height(8.dp))
-
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(
-                                        onClick = { if (telefonoLimpio.isNotBlank()) uriHandler.openUri(whatsappUrl) },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (esOscuro) Color(0xFF261E10) else Color(0xFFFEF3C7)
-                                        ),
-                                        border = BorderStroke(1.dp, Color(0xFFF59E0B)),
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("💬", fontSize = 14.sp)
-                                                Spacer(Modifier.width(8.dp))
-                                                Text(
-                                                    "WhatsApp Concierge 24/7",
-                                                    color = if (esOscuro) Color(0xFFFBBF24) else Color(0xFFB45309),
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                            Text("›", color = Color(0xFFF59E0B), fontSize = 18.sp)
-                                        }
-                                    }
-
-                                    Button(
-                                        onClick = { mostrarModalMenu = true },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("📖", fontSize = 14.sp)
-                                                Spacer(Modifier.width(8.dp))
-                                                Text("Ver Menú Digital y Catálogo", color = Color.Black, fontWeight = FontWeight.ExtraBold)
-                                            }
-                                            Text("↗", color = Color.Black, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
                             }
 
-                            // 5. Acerca de este lugar
+                            // 6. Descripción
                             Spacer(Modifier.height(18.dp))
                             Text("ACERCA DE ESTE LUGAR", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario, letterSpacing = 1.sp)
                             Spacer(Modifier.height(6.dp))
@@ -575,7 +645,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 lineHeight = 21.sp
                             )
 
-                            // 6. Servicios y Comodidades
+                            // 7. Servicios
                             if (datos.servicios.isNotEmpty()) {
                                 Spacer(Modifier.height(18.dp))
                                 Text("SERVICIOS Y COMODIDADES", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario, letterSpacing = 1.sp)
@@ -594,24 +664,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     ) {
                                         datos.servicios.forEach { servicio ->
                                             Surface(
-                                                color = if (esPremium) {
-                                                    if (esOscuro) Color(0xFF261E10) else Color(0xFFFEF3C7)
-                                                } else {
-                                                    if (esOscuro) Color(0xFF0F261E) else Color(0xFFDCFCE7)
-                                                },
-                                                border = BorderStroke(
-                                                    1.dp,
-                                                    if (esPremium) Color(0xFFF59E0B).copy(alpha = 0.5f) else Color(0xFF10B981).copy(alpha = 0.5f)
-                                                ),
+                                                color = if (esOscuro) Color(0xFF0F261E) else Color(0xFFDCFCE7),
+                                                border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.4f)),
                                                 shape = RoundedCornerShape(20.dp)
                                             ) {
                                                 Text(
                                                     "✦ $servicio",
-                                                    color = if (esPremium) {
-                                                        if (esOscuro) Color(0xFFFBBF24) else Color(0xFFB45309)
-                                                    } else {
-                                                        if (esOscuro) Color(0xFF34D399) else Color(0xFF047857)
-                                                    },
+                                                    color = if (esOscuro) Color(0xFF34D399) else Color(0xFF047857),
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -622,7 +681,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 7. Horario
+                            // 8. Horario
                             Spacer(Modifier.height(18.dp))
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -630,11 +689,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.size(8.dp).background(Color(0xFF10B981), CircleShape))
+                                    Box(Modifier.size(8.dp).background(VerdeTurisMap, CircleShape))
                                     Spacer(Modifier.width(6.dp))
                                     Text(
                                         if (esPremium) "Abierto todos los días" else "Abierto ahora",
-                                        color = if (esOscuro) Color(0xFF10B981) else Color(0xFF047857),
+                                        color = if (esOscuro) Color(0xFF34D399) else Color(0xFF047857),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.5.sp
                                     )
@@ -646,42 +705,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 )
                             }
 
-                            // Banner Promocional Premium
-                            if (esPremium) {
-                                Spacer(Modifier.height(16.dp))
-                                Card(
-                                    Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (esOscuro) Color(0xFF261D0C) else Color(0xFFFFFBEB)
-                                    ),
-                                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f)),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Row(
-                                        Modifier.padding(14.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Text("🎁", fontSize = 20.sp)
-                                        Column {
-                                            Text(
-                                                "Promoción activa de la semana con TurisMap",
-                                                color = if (esOscuro) Color(0xFFFBBF24) else Color(0xFFB45309),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.5.sp
-                                            )
-                                            Text(
-                                                "Muestra tu app al ordenar y recibe cortesía especial del local.",
-                                                color = colorTextoPrincipal.copy(alpha = 0.8f),
-                                                fontSize = 11.5.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Galería Miniaturas Socio
-                            if (esSocio && fotos.size > 1) {
+                            // 9. Galería inferior de miniaturas
+                            if (fotos.size > 1) {
                                 Spacer(Modifier.height(18.dp))
                                 Text("VISTA DE GALERÍA (${fotos.size} FOTOS)", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario, letterSpacing = 1.sp)
                                 Spacer(Modifier.height(8.dp))
@@ -689,7 +714,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    fotos.take(5).forEach { f ->
+                                    fotos.forEach { f ->
                                         RemoteImage(
                                             url = f,
                                             contentDescription = null,
@@ -700,24 +725,32 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 8. Reseñas
+                            // 10. Reseñas reales
                             Spacer(Modifier.height(28.dp))
-                            Text("Reseñas de Turistas", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorTextoPrincipal)
+                            Text("Reseñas de Visitantes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorTextoPrincipal)
                             Spacer(Modifier.height(6.dp))
 
-                            resenas.forEach { r ->
-                                Card(
-                                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (esOscuro) Color(0xFF1E293B).copy(alpha = 0.6f) else Color(0xFFF1F5F9)
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, colorBordeSuave)
-                                ) {
-                                    Column(Modifier.padding(12.dp)) {
-                                        Text("★".repeat(r.calificacion), color = colorAcento, fontSize = 13.sp)
-                                        Spacer(Modifier.height(4.dp))
-                                        Text(r.comentario.ifBlank { "Excelente lugar recomendado." }, color = colorTextoPrincipal, fontSize = 13.sp)
+                            if (resenas.isEmpty()) {
+                                Text(
+                                    "Aún no hay comentarios para este lugar. ¡Sé el primero en compartir tu experiencia!",
+                                    color = colorTextoSecundario,
+                                    fontSize = 13.sp
+                                )
+                            } else {
+                                resenas.forEach { r ->
+                                    Card(
+                                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (esOscuro) Color(0xFF1E293B).copy(alpha = 0.6f) else Color(0xFFF1F5F9)
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, colorBordeSuave)
+                                    ) {
+                                        Column(Modifier.padding(12.dp)) {
+                                            Text("★".repeat(r.calificacion), color = VerdeTurisMap, fontSize = 13.sp)
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(r.comentario.ifBlank { "Excelente lugar recomendado." }, color = colorTextoPrincipal, fontSize = 13.sp)
+                                        }
                                     }
                                 }
                             }
@@ -740,7 +773,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     ) {
                                         Text(
                                             if (valor <= calificacion) "★" else "☆",
-                                            color = colorAcento,
+                                            color = VerdeTurisMap,
                                             fontSize = 24.sp
                                         )
                                     }
@@ -759,7 +792,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     unfocusedTextColor = colorTextoPrincipal,
                                     focusedContainerColor = colorFondoInput,
                                     unfocusedContainerColor = colorFondoInput,
-                                    focusedBorderColor = colorAcento,
+                                    focusedBorderColor = VerdeTurisMap,
                                     unfocusedBorderColor = colorBordeSuave
                                 )
                             )
@@ -790,7 +823,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 enabled = AutenticacionRepository.usuarioActual != null && !esPropietario && !enviando,
                                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = colorAcento)
+                                colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap)
                             ) {
                                 if (enviando) {
                                     CircularProgressIndicator(Modifier.size(18.dp), color = Color.White)
@@ -801,7 +834,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         }
                     }
 
-                    // 9. Barra Inferior Fija Adaptativa
+                    // 11. Barra Inferior Fija
                     Surface(
                         Modifier
                             .align(Alignment.BottomCenter)
@@ -819,7 +852,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         ) {
                             Column {
                                 Text(
-                                    if (esPremium) "Mejor Valorado" else "por consumo",
+                                    if (esPremium) "Socio Premium" else "por consumo",
                                     fontSize = 11.sp,
                                     color = colorTextoSecundario
                                 )
@@ -844,13 +877,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     }
                                 }
 
-                                if (esSocio && telefonoLimpio.isNotBlank()) {
+                                if ((esSocio || esPremium) && telefonoLimpio.isNotBlank()) {
                                     IconButton(
                                         onClick = { uriHandler.openUri(whatsappUrl) },
                                         modifier = Modifier
                                             .size(42.dp)
-                                            .background(Color(0xFF10B981).copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                            .background(VerdeTurisMap.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                                            .border(1.dp, VerdeTurisMap.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
                                     ) {
                                         Text("💬", fontSize = 16.sp)
                                     }
@@ -858,23 +891,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                                 Button(
                                     onClick = { uriHandler.openUri(mapsUrl) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = when {
-                                            esPremium -> Color(0xFFF59E0B)
-                                            esSocio -> Color(0xFF10B981)
-                                            else -> Color(0xFF0284C7)
-                                        }
-                                    ),
+                                    colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                                 ) {
                                     Text(
-                                        when {
-                                            esPremium -> "📍 Iniciar ruta"
-                                            esSocio -> "📍 Iniciar ruta"
-                                            else -> "📍 Iniciar ruta"
-                                        },
-                                        color = if (esPremium) Color.Black else Color.White,
+                                        "Iniciar ruta",
+                                        color = Color.White,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 13.sp
                                     )
