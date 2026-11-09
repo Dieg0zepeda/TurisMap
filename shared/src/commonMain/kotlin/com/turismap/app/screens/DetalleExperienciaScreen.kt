@@ -62,6 +62,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     var comentario by remember { mutableStateOf("") }
     var enviando by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf<String?>(null) }
+    var resenaGuardadaExito by remember { mutableStateOf(false) }
     var mostrarModalMenu by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -201,7 +202,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             .verticalScroll(rememberScrollState())
                             .padding(bottom = 90.dp)
                     ) {
-                        // 1. Cabecera Multimedia con Carrusel
+                        // 1. Cabecera Multimedia con Carrusel y Puntos Instagram
                         Box(Modifier.fillMaxWidth().height(260.dp)) {
                             if (fotos.isNotEmpty()) {
                                 val pagerState = rememberPagerState(pageCount = { fotos.size })
@@ -430,7 +431,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 3. Módulo Premium
+                            // 3. MÓDULO EXCLUSIVO PREMIUM: EXPERIENCIAS DESTACADAS
                             if (esPremium) {
                                 Spacer(Modifier.height(14.dp))
                                 Card(
@@ -588,8 +589,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 5. Canales de Contacto Directo
-                            if (esSocio || esPremium) {
+                            // 5. Canales de Contacto Directo (Socio y Premium)
+                            if ((esSocio || esPremium) && (telefonoLimpio.isNotBlank() || datos.sitioWeb.isNotBlank())) {
                                 Spacer(Modifier.height(16.dp))
                                 Row(
                                     Modifier.fillMaxWidth(),
@@ -605,27 +606,29 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Button(
-                                        onClick = { if (telefonoLimpio.isNotBlank()) uriHandler.openUri(whatsappUrl) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text("💬 WhatsApp Directo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    if (telefonoLimpio.isNotBlank()) {
+                                        Button(
+                                            onClick = { uriHandler.openUri(whatsappUrl) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("💬 WhatsApp Directo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
                                     }
 
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (datos.sitioWeb.isNotBlank()) {
+                                    if (datos.sitioWeb.isNotBlank()) {
+                                        OutlinedButton(
+                                            onClick = {
                                                 val url = if (datos.sitioWeb.startsWith("http")) datos.sitioWeb else "https://${datos.sitioWeb}"
                                                 uriHandler.openUri(url)
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text("🌐 Redes / Web", color = colorTextoPrincipal, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("🌐 Redes / Web", color = colorTextoPrincipal, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                        }
                                     }
                                 }
                             }
@@ -677,60 +680,31 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // 8. HORARIOS OPTIMIZADOS (TARJETA VERTICAL)
+                            // 8. Horario
                             Spacer(Modifier.height(18.dp))
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (esOscuro) Color(0xFF131B26) else Color.White
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, colorBordeSuave)
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(Modifier.padding(14.dp)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(Modifier.size(8.dp).background(VerdeTurisMap, CircleShape))
-                                        Text(
-                                            if (esPremium) "Abierto todos los días" else "Horario de Atención",
-                                            color = if (esOscuro) Color(0xFF34D399) else Color(0xFF047857),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.5.sp
-                                        )
-                                    }
-
-                                    Spacer(Modifier.height(8.dp))
-                                    HorizontalDivider(color = colorBordeSuave, thickness = 0.8.dp)
-                                    Spacer(Modifier.height(8.dp))
-
-                                    val lineasHorario = datos.horario.split(",", "\n")
-                                        .map { it.trim() }
-                                        .filter { it.isNotBlank() }
-
-                                    if (lineasHorario.isNotEmpty()) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            lineasHorario.forEach { linea ->
-                                                Text(
-                                                    text = linea,
-                                                    color = colorTextoPrincipal.copy(alpha = 0.9f),
-                                                    fontSize = 12.5.sp,
-                                                    lineHeight = 18.sp
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Text(
-                                            text = "Lun a Dom: 7:00 AM - 8:00 PM",
-                                            color = colorTextoSecundario,
-                                            fontSize = 12.5.sp
-                                        )
-                                    }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(Modifier.size(8.dp).background(VerdeTurisMap, CircleShape))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        if (esPremium) "Abierto todos los días" else "Abierto ahora",
+                                        color = if (esOscuro) Color(0xFF34D399) else Color(0xFF047857),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.5.sp
+                                    )
                                 }
+                                Text(
+                                    datos.horario.ifBlank { "Lun a Dom: 7:00 AM - 8:00 PM" },
+                                    color = colorTextoSecundario,
+                                    fontSize = 12.5.sp
+                                )
                             }
 
-                            // 9. Galería inferior
+                            // 9. Galería inferior de miniaturas
                             if (fotos.size > 1) {
                                 Spacer(Modifier.height(18.dp))
                                 Text("VISTA DE GALERÍA (${fotos.size} FOTOS)", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = colorTextoSecundario, letterSpacing = 1.sp)
@@ -793,7 +767,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 (1..5).forEach { valor ->
                                     TextButton(
-                                        onClick = { calificacion = valor },
+                                        onClick = {
+                                            calificacion = valor
+                                            mensaje = null
+                                            resenaGuardadaExito = false
+                                        },
                                         enabled = AutenticacionRepository.usuarioActual != null && !esPropietario
                                     ) {
                                         Text(
@@ -807,7 +785,10 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                             OutlinedTextField(
                                 value = comentario,
-                                onValueChange = { comentario = it.take(1000) },
+                                onValueChange = {
+                                    comentario = it.take(1000)
+                                    resenaGuardadaExito = false
+                                },
                                 label = { Text("Comentario (opcional)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = AutenticacionRepository.usuarioActual != null && !esPropietario,
@@ -823,17 +804,27 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             )
 
                             mensaje?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                            if (resenaGuardadaExito) {
+                                Text(
+                                    "¡Tu reseña se ha publicado correctamente!",
+                                    color = VerdeTurisMap,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp
+                                )
+                            }
 
                             Button(
                                 onClick = {
                                     if (calificacion !in 1..5) {
-                                        mensaje = "Selecciona una calificación de 1 a 5."
+                                        mensaje = "Selecciona una calificación de 1 a 5 estrellas."
                                     } else {
                                         enviando = true
                                         mensaje = null
+                                        resenaGuardadaExito = false
                                         scope.launch {
                                             try {
-                                                ComercioRepository.enviarResena(datos.id, calificacion, comentario)
+                                                ComercioRepository.enviarResena(datos.id, calificacion, comentario.trim())
+                                                resenaGuardadaExito = true
                                                 intento++
                                             } catch (cancelacion: CancellationException) {
                                                 throw cancelacion
@@ -859,12 +850,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         }
                     }
 
-                    // 11. BARRA INFERIOR FIJA BALANCEADA
+                    // 11. Barra Inferior Fija
                     Surface(
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .navigationBarsPadding(),
+                            .fillMaxWidth(),
                         color = colorBarraInferior,
                         shadowElevation = 16.dp,
                         border = BorderStroke(1.dp, colorBordeSuave)
@@ -872,45 +862,34 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            ) {
+                            Column {
                                 Text(
                                     if (esPremium) "Socio Premium" else "por consumo",
                                     fontSize = 11.sp,
-                                    color = colorTextoSecundario,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    color = colorTextoSecundario
                                 )
                                 Text(
                                     "Desde $precioTexto USD",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = colorTextoPrincipal,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    color = colorTextoPrincipal
                                 )
                             }
 
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (datos.telefono.isNotBlank()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (telefonoLimpio.isNotBlank()) {
                                     IconButton(
                                         onClick = { uriHandler.openUri("tel:${datos.telefono.filter { it.isDigit() || it == '+' }}") },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(42.dp)
                                             .background(if (esOscuro) Color(0xFF1E293B) else Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
                                             .border(1.dp, colorBordeSuave, RoundedCornerShape(10.dp))
                                     ) {
-                                        Text("📞", fontSize = 15.sp)
+                                        Text("📞", fontSize = 16.sp)
                                     }
                                 }
 
@@ -918,11 +897,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     IconButton(
                                         onClick = { uriHandler.openUri(whatsappUrl) },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(42.dp)
                                             .background(VerdeTurisMap.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
                                             .border(1.dp, VerdeTurisMap.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
                                     ) {
-                                        Text("💬", fontSize = 15.sp)
+                                        Text("💬", fontSize = 16.sp)
                                     }
                                 }
 
@@ -930,15 +909,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     onClick = { uriHandler.openUri(mapsUrl) },
                                     colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
                                     shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                    modifier = Modifier.height(40.dp)
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                                 ) {
                                     Text(
-                                        "Ruta",
+                                        "Iniciar ruta",
                                         color = Color.White,
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 13.sp,
-                                        maxLines = 1
+                                        fontSize = 13.sp
                                     )
                                 }
                             }

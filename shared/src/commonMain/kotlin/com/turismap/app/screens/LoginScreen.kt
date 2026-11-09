@@ -55,7 +55,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var mostrarVentanaRegistro by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
-    var passwordError by remember { mutableStateOf<String?>(null) }
+    // En login quitamos la validación en tiempo real para no molestar al usuario
     var mensajeError by remember { mutableStateOf<String?>(null) }
     var cargando by remember { mutableStateOf(false) }
     var cargandoGoogle by remember { mutableStateOf(false) }
@@ -65,7 +65,6 @@ fun LoginScreen(
     fun validarFormulario(): Boolean {
         var isValid = true
         emailError = null
-        passwordError = null
 
         if (email.isBlank()) {
             emailError = "El correo es requerido"
@@ -75,8 +74,8 @@ fun LoginScreen(
             isValid = false
         }
 
-        if (password.length < 6) {
-            passwordError = "La contraseña debe tener al menos 6 caracteres"
+        if (password.isEmpty()) {
+            mensajeError = "La contraseña es requerida"
             isValid = false
         }
 
@@ -192,7 +191,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    mensajeError = null
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("••••••••••••") },
                 leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
@@ -205,7 +207,6 @@ fun LoginScreen(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                isError = passwordError != null,
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedContainerColor = fondoCampos,
                     focusedContainerColor = fondoCampos,
@@ -214,9 +215,6 @@ fun LoginScreen(
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
-            if (passwordError != null) {
-                Text(text = passwordError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
-            }
         }
 
         mensajeError?.let { mensaje ->
@@ -353,7 +351,6 @@ fun LoginScreen(
             if (cargandoGoogle) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = verdeOscuro)
             } else {
-                // Icono 'G' de Google
                 Surface(
                     shape = CircleShape,
                     color = Color.White,
@@ -434,6 +431,10 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
     var interesArtesanias by remember { mutableStateOf(false) }
     var interesMiradores by remember { mutableStateOf(false) }
 
+    // Evaluación en tiempo real
+    val claveCorta = password.isNotEmpty() && password.length < 8
+    val formularioValido = nombre.isNotBlank() && esEmailValido(email) && password.length >= 8 && aceptoTerminos
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -492,6 +493,12 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                isError = claveCorta,
+                supportingText = {
+                    if (claveCorta) {
+                        Text("La contraseña debe tener al menos 8 caracteres", color = MaterialTheme.colorScheme.error)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = verdeOscuro),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -526,7 +533,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Button(
                 onClick = {
-                    if (!cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos) {
+                    if (!cargando && formularioValido) {
                         cargando = true
                         mensajeError = null
                         val intereses = buildList {
@@ -550,9 +557,12 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = verdeOscuro),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = verdeOscuro,
+                    disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+                ),
                 shape = RoundedCornerShape(16.dp),
-                enabled = !cargando && nombre.isNotBlank() && esEmailValido(email) && password.length >= 6 && aceptoTerminos
+                enabled = !cargando && formularioValido
             ) {
                 if (cargando) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)

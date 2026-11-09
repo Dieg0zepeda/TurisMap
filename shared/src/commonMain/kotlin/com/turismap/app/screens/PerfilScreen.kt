@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,7 @@ private const val TURISMAP_WEB_URL = "https://urldeprueba.com"
 
 private data class ItemFavoritoUi(
     val id: String,
+    val idFavoritoOriginal: String,
     val nombre: String,
     val categoria: String,
     val imagenUrl: String,
@@ -123,6 +126,7 @@ fun PerfilScreen(
                         if (lugar != null) {
                             ItemFavoritoUi(
                                 id = lugar.id,
+                                idFavoritoOriginal = idOriginal,
                                 nombre = lugar.nombre,
                                 categoria = lugar.categoria.etiqueta,
                                 imagenUrl = lugar.imagenPortadaUrl,
@@ -135,6 +139,7 @@ fun PerfilScreen(
                             if (comercio != null) {
                                 ItemFavoritoUi(
                                     id = comercio.id,
+                                    idFavoritoOriginal = idOriginal,
                                     nombre = comercio.nombre,
                                     categoria = comercio.categoria,
                                     imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
@@ -505,7 +510,7 @@ fun PerfilScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(favoritosFiltrados, key = { it.id }) { item ->
+                            items(favoritosFiltrados, key = { it.idFavoritoOriginal }) { item ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -612,7 +617,10 @@ fun PerfilScreen(
                                             onClick = {
                                                 coroutineScope.launch {
                                                     try {
-                                                        UsuarioRepository.cambiarFavorito(item.id, false)
+                                                        UsuarioRepository.cambiarFavorito(item.idFavoritoOriginal, false)
+                                                        listaFavoritosDetallados = listaFavoritosDetallados.filterNot {
+                                                            it.idFavoritoOriginal == item.idFavoritoOriginal
+                                                        }
                                                         snackbarHostState.showSnackbar("Eliminado de favoritos")
                                                     } catch (e: Exception) {
                                                         snackbarHostState.showSnackbar(e.message ?: "Error al actualizar")
@@ -639,6 +647,7 @@ fun PerfilScreen(
     }
 
     if (mostrarDialogoPrivacidad) {
+        var enviandoRecuperacion by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { mostrarDialogoPrivacidad = false },
             containerColor = fondoTarjeta,
@@ -661,10 +670,33 @@ fun PerfilScreen(
                         Switch(checked = compartirUbicacion, onCheckedChange = { compartirUbicacion = it }, colors = SwitchDefaults.colors(checkedThumbColor = VerdeTextoAdaptable, checkedTrackColor = VerdeTextoAdaptable.copy(alpha = 0.5f)))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Te enviaremos un correo.") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorTextoPrincipal), shape = RoundedCornerShape(8.dp)) {
+                    Button(
+                        onClick = {
+                            if (!enviandoRecuperacion) {
+                                enviandoRecuperacion = true
+                                coroutineScope.launch {
+                                    try {
+                                        val emailDestino = usuarioBD?.email?.takeIf { it.isNotBlank() }
+                                            ?: AutenticacionRepository.usuarioActual?.email.orEmpty()
+                                        AutenticacionRepository.enviarRestablecimientoContrasena(emailDestino)
+                                        mostrarDialogoPrivacidad = false
+                                        snackbarHostState.showSnackbar("Te enviamos un enlace a $emailDestino.")
+                                    } catch (error: Exception) {
+                                        snackbarHostState.showSnackbar(error.message ?: "No se pudo enviar el correo.")
+                                    } finally {
+                                        enviandoRecuperacion = false
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !enviandoRecuperacion,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = colorTextoPrincipal),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Icon(Icons.Default.LockReset, contentDescription = null, tint = fondoApp, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Cambiar Contraseña", color = fondoApp)
+                        Text(if (enviandoRecuperacion) "Enviando..." else "Cambiar Contraseña", color = fondoApp)
                     }
                 }
             },
@@ -673,33 +705,91 @@ fun PerfilScreen(
     }
 
     if (mostrarDialogoEditar) {
-        var tempNombre by remember { mutableStateOf(nombreMostrar) }
-        var tempTelefono by remember { mutableStateOf(usuarioBD?.telefono.orEmpty()) }
+        var tempNombre by remember(usuarioBD) {
+            mutableStateOf(usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: nombreMostrar)
+        }
+        var tempTelefono by remember(usuarioBD) {
+            mutableStateOf(usuarioBD?.telefono.orEmpty())
+        }
+        var guardandoPerfil by remember { mutableStateOf(false) }
+
+        val nombreInvalido = tempNombre.trim().length < 2
+        val telefonoInvalido = tempTelefono.isNotBlank() && tempTelefono.count { it.isDigit() } < 8
+
         AlertDialog(
-            onDismissRequest = { mostrarDialogoEditar = false },
+            onDismissRequest = { if (!guardandoPerfil) mostrarDialogoEditar = false },
             containerColor = fondoTarjeta,
             title = { Text("Editar Perfil", fontWeight = FontWeight.Bold, color = colorTextoPrincipal) },
             text = {
                 Column {
-                    OutlinedTextField(value = tempNombre, onValueChange = { tempNombre = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
+                    OutlinedTextField(
+                        value = tempNombre,
+                        onValueChange = { if (it.length <= 120) tempNombre = it },
+                        label = { Text("Nombre Completo") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = nombreInvalido,
+                        supportingText = {
+                            if (nombreInvalido) {
+                                Text("Ingresa al menos 2 caracteres", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = tempTelefono, onValueChange = { tempTelefono = it }, label = { Text("Teléfono de Contacto") }, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal))
+                    OutlinedTextField(
+                        value = tempTelefono,
+                        onValueChange = { input ->
+                            if (input.length <= 20 && input.all { it.isDigit() || it == '+' || it == '-' || it == ' ' }) {
+                                tempTelefono = input
+                            }
+                        },
+                        label = { Text("Teléfono de Contacto") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        isError = telefonoInvalido,
+                        supportingText = {
+                            if (telefonoInvalido) {
+                                Text("Ingresa un número válido de al menos 8 dígitos", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        textStyle = LocalTextStyle.current.copy(color = colorTextoPrincipal)
+                    )
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    coroutineScope.launch {
-                        try {
-                            UsuarioRepository.actualizarPerfil(tempNombre.trim(), tempTelefono.trim())
-                            mostrarDialogoEditar = false
-                            snackbarHostState.showSnackbar("Perfil actualizado.")
-                        } catch (error: Exception) {
-                            snackbarHostState.showSnackbar(error.message ?: "Error al actualizar.")
+                Button(
+                    onClick = {
+                        if (!guardandoPerfil) {
+                            guardandoPerfil = true
+                            coroutineScope.launch {
+                                try {
+                                    UsuarioRepository.actualizarPerfil(tempNombre.trim(), tempTelefono.trim())
+                                    mostrarDialogoEditar = false
+                                    snackbarHostState.showSnackbar("Perfil actualizado.")
+                                } catch (error: Exception) {
+                                    snackbarHostState.showSnackbar(error.message ?: "Error al actualizar.")
+                                } finally {
+                                    guardandoPerfil = false
+                                }
+                            }
                         }
-                    }
-                }, enabled = tempNombre.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)) { Text("Guardar", color = Color.White) }
+                    },
+                    enabled = !nombreInvalido && !telefonoInvalido && !guardandoPerfil,
+                    colors = ButtonDefaults.buttonColors(containerColor = verdeEsmeralda)
+                ) {
+                    Text(if (guardandoPerfil) "Guardando..." else "Guardar", color = Color.White)
+                }
             },
-            dismissButton = { TextButton(onClick = { mostrarDialogoEditar = false }) { Text("Cancelar", color = TerracotaTextoAdaptable) } }
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarDialogoEditar = false },
+                    enabled = !guardandoPerfil
+                ) {
+                    Text("Cancelar", color = TerracotaTextoAdaptable)
+                }
+            }
         )
     }
 
