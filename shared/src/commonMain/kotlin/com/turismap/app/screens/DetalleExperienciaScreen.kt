@@ -62,6 +62,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     var comentario by remember { mutableStateOf("") }
     var enviando by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf<String?>(null) }
+    var resenaGuardadaExito by remember { mutableStateOf(false) }
     var mostrarModalMenu by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -160,7 +161,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                 val esSocio = datos.planInt == 2
                 val esBasico = datos.planInt == 1
 
-                // Límite de fotos: 8 para Premium, 4 para Socio, 2 para Básico
                 val fotosReales = datos.imagenUrls.filter { it.startsWith("http://") || it.startsWith("https://") }
                 val fotos = fotosReales.take(datos.maxFotosPermitidas)
 
@@ -229,7 +229,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                         )
                                 )
 
-                                // PUNTOS INDICADORES ESTILO INSTAGRAM (Aparecen si tiene 2, 4 u 8 fotos)
                                 if (fotos.size > 1) {
                                     Row(
                                         modifier = Modifier
@@ -252,7 +251,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     }
                                 }
 
-                                // Insignia inferior descriptiva de fotos
                                 Row(
                                     Modifier
                                         .align(Alignment.BottomStart)
@@ -321,7 +319,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 }
                             }
 
-                            // Botones superiores
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -593,7 +590,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             }
 
                             // 5. Canales de Contacto Directo (Socio y Premium)
-                            if (esSocio || esPremium) {
+                            if ((esSocio || esPremium) && (telefonoLimpio.isNotBlank() || datos.sitioWeb.isNotBlank())) {
                                 Spacer(Modifier.height(16.dp))
                                 Row(
                                     Modifier.fillMaxWidth(),
@@ -609,27 +606,29 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Button(
-                                        onClick = { if (telefonoLimpio.isNotBlank()) uriHandler.openUri(whatsappUrl) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text("💬 WhatsApp Directo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    if (telefonoLimpio.isNotBlank()) {
+                                        Button(
+                                            onClick = { uriHandler.openUri(whatsappUrl) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = VerdeTurisMap),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("💬 WhatsApp Directo", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
                                     }
 
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (datos.sitioWeb.isNotBlank()) {
+                                    if (datos.sitioWeb.isNotBlank()) {
+                                        OutlinedButton(
+                                            onClick = {
                                                 val url = if (datos.sitioWeb.startsWith("http")) datos.sitioWeb else "https://${datos.sitioWeb}"
                                                 uriHandler.openUri(url)
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text("🌐 Redes / Web", color = colorTextoPrincipal, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            border = BorderStroke(1.dp, VerdeTurisMap.copy(alpha = 0.5f)),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("🌐 Redes / Web", color = colorTextoPrincipal, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                        }
                                     }
                                 }
                             }
@@ -768,7 +767,11 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 (1..5).forEach { valor ->
                                     TextButton(
-                                        onClick = { calificacion = valor },
+                                        onClick = {
+                                            calificacion = valor
+                                            mensaje = null
+                                            resenaGuardadaExito = false
+                                        },
                                         enabled = AutenticacionRepository.usuarioActual != null && !esPropietario
                                     ) {
                                         Text(
@@ -782,7 +785,10 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                             OutlinedTextField(
                                 value = comentario,
-                                onValueChange = { comentario = it.take(1000) },
+                                onValueChange = {
+                                    comentario = it.take(1000)
+                                    resenaGuardadaExito = false
+                                },
                                 label = { Text("Comentario (opcional)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = AutenticacionRepository.usuarioActual != null && !esPropietario,
@@ -798,17 +804,27 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             )
 
                             mensaje?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                            if (resenaGuardadaExito) {
+                                Text(
+                                    "¡Tu reseña se ha publicado correctamente!",
+                                    color = VerdeTurisMap,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp
+                                )
+                            }
 
                             Button(
                                 onClick = {
                                     if (calificacion !in 1..5) {
-                                        mensaje = "Selecciona una calificación de 1 a 5."
+                                        mensaje = "Selecciona una calificación de 1 a 5 estrellas."
                                     } else {
                                         enviando = true
                                         mensaje = null
+                                        resenaGuardadaExito = false
                                         scope.launch {
                                             try {
-                                                ComercioRepository.enviarResena(datos.id, calificacion, comentario)
+                                                ComercioRepository.enviarResena(datos.id, calificacion, comentario.trim())
+                                                resenaGuardadaExito = true
                                                 intento++
                                             } catch (cancelacion: CancellationException) {
                                                 throw cancelacion
@@ -865,7 +881,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                if (datos.telefono.isNotBlank()) {
+                                if (telefonoLimpio.isNotBlank()) {
                                     IconButton(
                                         onClick = { uriHandler.openUri("tel:${datos.telefono.filter { it.isDigit() || it == '+' }}") },
                                         modifier = Modifier

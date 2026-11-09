@@ -40,8 +40,8 @@ fun PantallaInicioSesion(
     var cargando by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
 
-    // Validación básica
-    val formularioValido = correo.isNotBlank() && contrasena.length >= 6
+    // Validación básica: Solo comprueba que no estén vacíos para intentar loguearse
+    val formularioValido = correo.isNotBlank() && contrasena.isNotEmpty()
 
     Column(
         modifier = Modifier
@@ -54,7 +54,7 @@ fun PantallaInicioSesion(
     ) {
         // Logo/Brand
         Spacer(modifier = Modifier.height(40.dp))
-        
+
         Text(
             text = "TURISMAP",
             fontSize = 32.sp,
@@ -62,20 +62,20 @@ fun PantallaInicioSesion(
             color = VerdeTextoAdaptable,
             letterSpacing = 2.sp
         )
-        
+
         Text(
             text = "Ruta de las Flores",
             fontSize = 16.sp,
             color = GrisTextoSecundario,
             modifier = Modifier.padding(top = 4.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(48.dp))
-        
+
         // Campo de correo
         OutlinedTextField(
             value = correo,
-            onValueChange = { 
+            onValueChange = {
                 correo = it
                 mensajeError = null
             },
@@ -96,13 +96,13 @@ fun PantallaInicioSesion(
             ),
             singleLine = true
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // Campo de contraseña
         OutlinedTextField(
             value = contrasena,
-            onValueChange = { 
+            onValueChange = {
                 contrasena = it
                 mensajeError = null
             },
@@ -133,9 +133,9 @@ fun PantallaInicioSesion(
             ),
             singleLine = true
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         // Mensaje de error
         mensajeError?.let { error ->
             Text(
@@ -147,7 +147,7 @@ fun PantallaInicioSesion(
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
-        
+
         // Link de olvidaste contraseña
         Text(
             text = "¿Olvidaste tu contraseña?",
@@ -158,15 +158,14 @@ fun PantallaInicioSesion(
                 .padding(end = 4.dp),
             textAlign = TextAlign.End
         )
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         // Botón de inicio de sesión
         Button(
             onClick = {
                 cargando = true
-                // Aquí se implementará la lógica de autenticación en PT2026-28
-                // Por ahora simulamos un login exitoso
+                // Simulamos un login exitoso
                 cargando = false
                 onLoginExitoso()
             },
@@ -194,9 +193,9 @@ fun PantallaInicioSesion(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Link de registro
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -218,9 +217,9 @@ fun PantallaInicioSesion(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         // Divisor
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -242,9 +241,9 @@ fun PantallaInicioSesion(
                 thickness = 1.dp
             )
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Botón de Google Sign In (placeholder)
         OutlinedButton(
             onClick = { /* TODO: Implementar Google Sign-In */ },
@@ -255,7 +254,6 @@ fun PantallaInicioSesion(
             border = androidx.compose.foundation.BorderStroke(1.dp, GrisBorde)
         ) {
             Icon(
-                // TODO: Agregar icono de Google
                 imageVector = Icons.Default.Email,
                 contentDescription = "Google",
                 tint = GrisTextoSecundario,

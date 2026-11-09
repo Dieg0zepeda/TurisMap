@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.CategoriaComercio
@@ -74,7 +76,7 @@ fun ComercioSolicitudScreen(
     var lugarSeleccionado by remember { mutableStateOf<Lugar?>(null) }
     var coordenadaSeleccionada by remember { mutableStateOf<Coordenada?>(null) }
     var seleccionandoUbicacion by remember { mutableStateOf(false) }
-    var nombreCompleto by remember { mutableStateOf(nombreCompletoInicial) }
+    var nombreCompleto by remember { mutableStateOf(nombreCompletoInicial.take(120)) }
     val email = emailInicial.trim()
     var nombreNegocio by remember { mutableStateOf("") }
     var categoria by remember { mutableStateOf("") }
@@ -104,6 +106,10 @@ fun ComercioSolicitudScreen(
     var horariosPorDia: Map<String, HorarioDia> by remember { mutableStateOf(emptyMap()) }
     var solicitudEnviada by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    val digitosTelefono = remember(telefono) { telefono.count { it.isDigit() } }
+    val telefonoInvalido = telefono.isNotBlank() && digitosTelefono < 8
+    val sitioWebInvalido = esSocio && sitioWeb.isNotBlank() && !sitioWeb.trim().startsWith("https://", ignoreCase = true)
 
     LaunchedEffect(planId, intentoCarga) {
         cargandoLugares = true
@@ -264,7 +270,7 @@ fun ComercioSolicitudScreen(
             CampoSolicitud(
                 etiqueta = "Nombre completo",
                 valor = nombreCompleto,
-                alCambiar = { nombreCompleto = it }
+                alCambiar = { nombreCompleto = it.take(120) }
             )
             CampoSolicitud(
                 etiqueta = "Correo electrónico",
@@ -277,7 +283,7 @@ fun ComercioSolicitudScreen(
             CampoSolicitud(
                 etiqueta = "Nombre del comercio",
                 valor = nombreNegocio,
-                alCambiar = { nombreNegocio = it }
+                alCambiar = { nombreNegocio = it.take(120) }
             )
 
             Column {
@@ -393,20 +399,25 @@ fun ComercioSolicitudScreen(
             }
 
             CampoSolicitud(
-                etiqueta = "Descripción breve",
+                etiqueta = "Descripción breve (${descripcion.length}/1800)",
                 valor = descripcion,
-                alCambiar = { descripcion = it },
+                alCambiar = { descripcion = it.take(1800) },
                 multilinea = true
             )
             CampoSolicitud(
                 etiqueta = "Dirección física",
                 valor = direccion,
-                alCambiar = { direccion = it }
+                alCambiar = { direccion = it.take(300) }
             )
             CampoSolicitud(
-                etiqueta = "Teléfono de contacto",
+                etiqueta = "Teléfono de contacto (ej. 7000-0000)",
                 valor = telefono,
-                alCambiar = { telefono = it }
+                alCambiar = { input ->
+                    telefono = input.filter { it.isDigit() || it in "+- ()" }.take(20)
+                },
+                keyboardType = KeyboardType.Phone,
+                esError = telefonoInvalido,
+                textoAyuda = if (telefonoInvalido) "Ingresa un número válido de al menos 8 dígitos" else null
             )
 
             if (esSocio) {
@@ -414,7 +425,10 @@ fun ComercioSolicitudScreen(
                 CampoSolicitud(
                     etiqueta = "Sitio web o Instagram (ej. https://...)",
                     valor = sitioWeb,
-                    alCambiar = { sitioWeb = it }
+                    alCambiar = { sitioWeb = it.take(200) },
+                    keyboardType = KeyboardType.Uri,
+                    esError = sitioWebInvalido,
+                    textoAyuda = if (sitioWebInvalido) "El enlace debe comenzar con https://" else null
                 )
 
                 Column {
@@ -450,7 +464,7 @@ fun ComercioSolicitudScreen(
                                             OutlinedTextField(
                                                 value = horarioDia.apertura,
                                                 onValueChange = { nuevoValor ->
-                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(apertura = nuevoValor))
+                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(apertura = nuevoValor.take(12)))
                                                 },
                                                 label = { Text("Abre") },
                                                 modifier = Modifier.width(90.dp),
@@ -460,7 +474,7 @@ fun ComercioSolicitudScreen(
                                             OutlinedTextField(
                                                 value = horarioDia.cierre,
                                                 onValueChange = { nuevoValor ->
-                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(cierre = nuevoValor))
+                                                    horariosPorDia = horariosPorDia + (dia to horarioDia.copy(cierre = nuevoValor.take(12)))
                                                 },
                                                 label = { Text("Cierra") },
                                                 modifier = Modifier.width(90.dp),
@@ -478,7 +492,9 @@ fun ComercioSolicitudScreen(
                             } else {
                                 diasSeleccionados.joinToString(", ") { dia ->
                                     val horarioDia = horariosPorDia[dia] ?: HorarioDia()
-                                    "$dia: ${horarioDia.apertura} a ${horarioDia.cierre}"
+                                    val abre = horarioDia.apertura.trim().ifBlank { "8:00 AM" }
+                                    val cierra = horarioDia.cierre.trim().ifBlank { "5:00 PM" }
+                                    "$dia: $abre a $cierra"
                                 }
                             }
                         }
@@ -486,7 +502,7 @@ fun ComercioSolicitudScreen(
                         CampoSolicitud(
                             etiqueta = "Horario (ej. Lun a Dom 8:00 AM - 6:00 PM)",
                             valor = horario,
-                            alCambiar = { horario = it }
+                            alCambiar = { horario = it.take(200) }
                         )
                     }
                 }
@@ -497,7 +513,7 @@ fun ComercioSolicitudScreen(
                 CampoSolicitud(
                     etiqueta = "Promoción exclusiva para turistas (ej. 10% en café)",
                     valor = promocionEspecial,
-                    alCambiar = { promocionEspecial = it }
+                    alCambiar = { promocionEspecial = it.take(150) }
                 )
             }
 
@@ -529,10 +545,12 @@ fun ComercioSolicitudScreen(
                             coordenadaSeleccionada != null &&
                             descripcion.isNotBlank() &&
                             direccion.isNotBlank() &&
-                            telefono.isNotBlank() &&
+                            digitosTelefono >= 8 &&
+                            !sitioWebInvalido &&
                             !solicitudEnviada,
                     onClick = {
-                        if (sitioWeb.isNotBlank() && !sitioWeb.startsWith("https://", ignoreCase = true)) {
+                        val webLimpia = sitioWeb.trim()
+                        if (esSocio && webLimpia.isNotBlank() && !webLimpia.startsWith("https://", ignoreCase = true)) {
                             errorEnvio = "El sitio web debe comenzar con https://."
                         } else {
                             enviando = true
@@ -542,22 +560,22 @@ fun ComercioSolicitudScreen(
                                     val lugar = lugarSeleccionado ?: throw IllegalStateException("Selecciona una ubicación.")
 
                                     val descripcionFinal = if (esPremium && promocionEspecial.isNotBlank()) {
-                                        "$descripcion\n\n[PROMO TURISMAP]: $promocionEspecial"
+                                        "${descripcion.trim()}\n\n[PROMO TURISMAP]: ${promocionEspecial.trim()}"
                                     } else {
-                                        descripcion
-                                    }
+                                        descripcion.trim()
+                                    }.take(2000)
 
                                     ComercioRepository.enviarSolicitudComercio(
-                                        nombreCompleto = nombreCompleto,
+                                        nombreCompleto = nombreCompleto.trim().take(120),
                                         email = email,
-                                        municipio = lugar.nombre,
-                                        nombreNegocio = nombreNegocio,
+                                        municipio = lugar.nombre.trim().take(100),
+                                        nombreNegocio = nombreNegocio.trim().take(120),
                                         categoria = categoriaId,
                                         descripcion = descripcionFinal,
-                                        direccion = direccion,
-                                        telefono = telefono,
-                                        sitioWeb = if (esSocio) sitioWeb else "",
-                                        horario = if (esSocio) horario else "",
+                                        direccion = direccion.trim().take(300),
+                                        telefono = telefono.trim().take(40),
+                                        sitioWeb = if (esSocio) webLimpia else "",
+                                        horario = if (esSocio) horario.trim() else "",
                                         planId = planId,
                                         coordenadas = coordenadaSeleccionada
                                             ?: throw IllegalStateException("Selecciona la ubicación exacta del negocio.")
@@ -610,7 +628,10 @@ private fun CampoSolicitud(
     valor: String,
     alCambiar: (String) -> Unit,
     multilinea: Boolean = false,
-    soloLectura: Boolean = false
+    soloLectura: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    esError: Boolean = false,
+    textoAyuda: String? = null
 ) {
     OutlinedTextField(
         value = valor,
@@ -619,6 +640,11 @@ private fun CampoSolicitud(
         modifier = Modifier.fillMaxWidth(),
         readOnly = soloLectura,
         singleLine = !multilinea,
-        minLines = if (multilinea) 3 else 1
+        minLines = if (multilinea) 3 else 1,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        isError = esError,
+        supportingText = if (textoAyuda != null) {
+            { Text(textoAyuda, color = MaterialTheme.colorScheme.error) }
+        } else null
     )
 }
