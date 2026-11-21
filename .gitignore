@@ -67,3 +67,4 @@ build/
 venv/
 .venv/
 __pycache__/
+GEMINI.md
