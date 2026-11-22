@@ -24,6 +24,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.theme.TerracotaTextoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.perfil_btn_cerrar_sesion
+import turismap.shared.generated.resources.perfil_cd_cambiar_portada
+import turismap.shared.generated.resources.perfil_cd_foto_perfil
+import turismap.shared.generated.resources.perfil_cd_foto_portada
+import turismap.shared.generated.resources.perfil_editar_titulo
+import turismap.shared.generated.resources.perfil_estadistica_favoritos
+import turismap.shared.generated.resources.perfil_estadistica_visitas
+import turismap.shared.generated.resources.perfil_negocios_badge
+import turismap.shared.generated.resources.perfil_negocios_descripcion
+import turismap.shared.generated.resources.perfil_negocios_titulo
+import turismap.shared.generated.resources.perfil_negocios_ver_planes
+import turismap.shared.generated.resources.perfil_negocios_ver_web
+import turismap.shared.generated.resources.perfil_opcion_idioma
+import turismap.shared.generated.resources.perfil_opcion_privacidad_subtitulo
+import turismap.shared.generated.resources.perfil_opcion_privacidad_titulo
+import turismap.shared.generated.resources.perfil_seccion_personalizacion
+import turismap.shared.generated.resources.perfil_seccion_privacidad
 
 @Composable
 internal fun CabeceraPerfil(
@@ -46,7 +65,7 @@ internal fun CabeceraPerfil(
             fotoPortada?.takeIf { it.isNotBlank() }?.let { url ->
                 RemoteImage(
                     url = url,
-                    contentDescription = "Foto de portada",
+                    contentDescription = stringResource(Res.string.perfil_cd_foto_portada),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -61,7 +80,7 @@ internal fun CabeceraPerfil(
             ) {
                 Icon(
                     Icons.Default.PhotoCamera,
-                    contentDescription = "Cambiar Portada",
+                    contentDescription = stringResource(Res.string.perfil_cd_cambiar_portada),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -79,17 +98,18 @@ internal fun CabeceraPerfil(
                     .clickable(onClick = onCambiarFotoPerfilClick),
                 contentAlignment = Alignment.Center
             ) {
+                val cdFotoPerfil = stringResource(Res.string.perfil_cd_foto_perfil)
                 if (!fotoPerfil.isNullOrBlank()) {
                     RemoteImage(
                         url = fotoPerfil,
-                        contentDescription = "Foto de perfil",
+                        contentDescription = cdFotoPerfil,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     Icon(
                         Icons.Default.Person,
-                        contentDescription = "Foto de perfil",
+                        contentDescription = cdFotoPerfil,
                         modifier = Modifier.size(72.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -107,7 +127,7 @@ internal fun CabeceraPerfil(
             ) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = "Editar Perfil",
+                    contentDescription = stringResource(Res.string.perfil_editar_titulo),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -154,14 +174,14 @@ internal fun SeccionEstadisticasPerfil(
     ) {
         ItemEstadistica(
             valor = cantidadFavoritos,
-            etiqueta = "Favoritos",
+            etiqueta = stringResource(Res.string.perfil_estadistica_favoritos),
             colorEtiqueta = TerracotaTextoAdaptable,
             colorTexto = paleta.colorTextoPrincipal,
             onClick = onFavoritosClick
         )
         ItemEstadistica(
             valor = visitas.toString(),
-            etiqueta = "Visitas",
+            etiqueta = stringResource(Res.string.perfil_estadistica_visitas),
             colorEtiqueta = paleta.colorTextoPrincipal,
             colorTexto = paleta.colorTextoPrincipal
         )
@@ -182,7 +202,7 @@ internal fun TarjetaTurisMapNegocios(
         Column(modifier = Modifier.padding(20.dp)) {
             Surface(shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.15f)) {
                 Text(
-                    text = "TurisMap Negocios",
+                    text = stringResource(Res.string.perfil_negocios_badge),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
@@ -191,14 +211,14 @@ internal fun TarjetaTurisMapNegocios(
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Promociona tu negocio en la Ruta",
+                text = stringResource(Res.string.perfil_negocios_titulo),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.",
+                text = stringResource(Res.string.perfil_negocios_descripcion),
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.85f),
                 lineHeight = 18.sp
@@ -213,7 +233,7 @@ internal fun TarjetaTurisMapNegocios(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Text(
-                        text = "Ver planes para mi negocio",
+                        text = stringResource(Res.string.perfil_negocios_ver_planes),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -233,7 +253,7 @@ internal fun TarjetaTurisMapNegocios(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Ver en la web")
+                    Text(stringResource(Res.string.perfil_negocios_ver_web))
                 }
             }
         }
@@ -254,7 +274,7 @@ internal fun SeccionConfiguracionPerfil(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "PERSONALIZACIÓN",
+            stringResource(Res.string.perfil_seccion_personalizacion),
             fontSize = 12.sp,
             color = paleta.colorTextoSecundario,
             fontWeight = FontWeight.Bold,
@@ -263,7 +283,7 @@ internal fun SeccionConfiguracionPerfil(
         CardOpciones(paleta.fondoTarjeta) {
             ItemMenuOpcion(
                 icono = Icons.Default.Public,
-                titulo = "Idioma",
+                titulo = stringResource(Res.string.perfil_opcion_idioma),
                 subtitulo = idiomaSeleccionado,
                 colorTexto = paleta.colorTextoPrincipal,
                 colorIcono = paleta.colorTextoPrincipal,
@@ -272,7 +292,7 @@ internal fun SeccionConfiguracionPerfil(
         }
 
         Text(
-            "PRIVACIDAD & SEGURIDAD",
+            stringResource(Res.string.perfil_seccion_privacidad),
             fontSize = 12.sp,
             color = paleta.colorTextoSecundario,
             fontWeight = FontWeight.Bold,
@@ -281,8 +301,8 @@ internal fun SeccionConfiguracionPerfil(
         CardOpciones(paleta.fondoTarjeta) {
             ItemMenuOpcion(
                 icono = Icons.Default.Security,
-                titulo = "Ajustes de Privacidad",
-                subtitulo = "Contraseña y visibilidad",
+                titulo = stringResource(Res.string.perfil_opcion_privacidad_titulo),
+                subtitulo = stringResource(Res.string.perfil_opcion_privacidad_subtitulo),
                 colorTexto = paleta.colorTextoPrincipal,
                 colorIcono = paleta.colorTextoPrincipal,
                 onClick = onPrivacidadClick
@@ -304,7 +324,7 @@ internal fun SeccionConfiguracionPerfil(
             } else {
                 Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Cerrar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.perfil_btn_cerrar_sesion), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

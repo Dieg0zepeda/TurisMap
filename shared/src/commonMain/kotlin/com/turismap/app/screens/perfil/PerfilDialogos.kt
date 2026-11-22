@@ -38,6 +38,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.TerracotaTextoAdaptable
 import com.turismap.app.theme.VerdeTextoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cancelar
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.btn_guardar
+import turismap.shared.generated.resources.perfil_editar_nombre_label
+import turismap.shared.generated.resources.perfil_editar_telefono_label
+import turismap.shared.generated.resources.perfil_editar_titulo
+import turismap.shared.generated.resources.perfil_opcion_idioma
+import turismap.shared.generated.resources.perfil_privacidad_cambiar_contrasena
+import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_desc
+import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_titulo
+import turismap.shared.generated.resources.perfil_privacidad_titulo
+import turismap.shared.generated.resources.perfil_privacidad_ubicacion_desc
+import turismap.shared.generated.resources.perfil_privacidad_ubicacion_titulo
 
 @Composable
 internal fun DialogoPrivacidadPerfil(
@@ -52,7 +67,7 @@ internal fun DialogoPrivacidadPerfil(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = paleta.fondoTarjeta,
-        title = { Text("Privacidad", fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
+        title = { Text(stringResource(Res.string.perfil_privacidad_titulo), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
         text = {
             Column {
                 Row(
@@ -60,8 +75,8 @@ internal fun DialogoPrivacidadPerfil(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Perfil Público", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = paleta.colorTextoPrincipal)
-                        Text("Permite que otros vean tus guardados.", fontSize = 12.sp, color = paleta.colorTextoSecundario)
+                        Text(stringResource(Res.string.perfil_privacidad_perfil_publico_titulo), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = paleta.colorTextoPrincipal)
+                        Text(stringResource(Res.string.perfil_privacidad_perfil_publico_desc), fontSize = 12.sp, color = paleta.colorTextoSecundario)
                     }
                     Switch(
                         checked = perfilPublico,
@@ -78,8 +93,8 @@ internal fun DialogoPrivacidadPerfil(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Ubicación en Reseñas", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = paleta.colorTextoPrincipal)
-                        Text("Comparte de dónde es tu reseña.", fontSize = 12.sp, color = paleta.colorTextoSecundario)
+                        Text(stringResource(Res.string.perfil_privacidad_ubicacion_titulo), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = paleta.colorTextoPrincipal)
+                        Text(stringResource(Res.string.perfil_privacidad_ubicacion_desc), fontSize = 12.sp, color = paleta.colorTextoSecundario)
                     }
                     Switch(
                         checked = compartirUbicacion,
@@ -99,13 +114,13 @@ internal fun DialogoPrivacidadPerfil(
                 ) {
                     Icon(Icons.Default.LockReset, contentDescription = null, tint = paleta.fondoApp, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Cambiar Contraseña", color = paleta.fondoApp)
+                    Text(stringResource(Res.string.perfil_privacidad_cambiar_contrasena), color = paleta.fondoApp)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar", color = VerdeTextoAdaptable, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.btn_cerrar), color = VerdeTextoAdaptable, fontWeight = FontWeight.Bold)
             }
         }
     )
@@ -125,13 +140,13 @@ internal fun DialogoEditarPerfil(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = paleta.fondoTarjeta,
-        title = { Text("Editar Perfil", fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
+        title = { Text(stringResource(Res.string.perfil_editar_titulo), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
         text = {
             Column {
                 OutlinedTextField(
                     value = tempNombre,
                     onValueChange = { tempNombre = it },
-                    label = { Text("Nombre Completo") },
+                    label = { Text(stringResource(Res.string.perfil_editar_nombre_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(color = paleta.colorTextoPrincipal)
@@ -140,7 +155,7 @@ internal fun DialogoEditarPerfil(
                 OutlinedTextField(
                     value = tempTelefono,
                     onValueChange = { tempTelefono = it },
-                    label = { Text("Teléfono de Contacto") },
+                    label = { Text(stringResource(Res.string.perfil_editar_telefono_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(color = paleta.colorTextoPrincipal)
@@ -153,12 +168,12 @@ internal fun DialogoEditarPerfil(
                 enabled = tempNombre.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeEsmeralda)
             ) {
-                Text("Guardar", color = Color.White)
+                Text(stringResource(Res.string.btn_guardar), color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = TerracotaTextoAdaptable)
+                Text(stringResource(Res.string.btn_cancelar), color = TerracotaTextoAdaptable)
             }
         }
     )
@@ -176,7 +191,7 @@ internal fun DialogoIdiomaPerfil(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = paleta.fondoTarjeta,
-        title = { Text("Idioma", fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
+        title = { Text(stringResource(Res.string.perfil_opcion_idioma), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
         text = {
             Column {
                 opcionesIdioma.forEach { idioma ->
@@ -200,7 +215,7 @@ internal fun DialogoIdiomaPerfil(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar", color = TerracotaTextoAdaptable)
+                Text(stringResource(Res.string.btn_cerrar), color = TerracotaTextoAdaptable)
             }
         }
     )

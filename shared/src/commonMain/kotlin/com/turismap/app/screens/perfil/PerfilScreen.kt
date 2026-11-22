@@ -30,6 +30,9 @@ import com.turismap.app.screens.perfil.TURISMAP_WEB_URL
 import com.turismap.app.screens.perfil.TarjetaTurisMapNegocios
 import com.turismap.app.screens.perfil.rememberPerfilPaleta
 import com.turismap.app.screens.perfil.rememberPerfilState
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.perfil_error_abrir_enlace
+import turismap.shared.generated.resources.perfil_privacidad_correo_enviado
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,8 +77,8 @@ fun PerfilScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             EncabezadoDatosUsuario(
-                nombreMostrar = state.nombreMostrar,
-                correoMostrar = state.correoMostrar,
+                nombreMostrar = state.obtenerNombreMostrar(),
+                correoMostrar = state.obtenerCorreoMostrar(),
                 errorPerfil = state.errorPerfil,
                 paleta = paleta
             )
@@ -100,7 +103,7 @@ fun PerfilScreen(
                     try {
                         uriHandler.openUri(TURISMAP_WEB_URL)
                     } catch (error: Exception) {
-                        state.mostrarMensaje(error.message ?: "No se pudo abrir.")
+                        state.mostrarMensajeOError(error.message, Res.string.perfil_error_abrir_enlace)
                     }
                 }
             )
@@ -151,14 +154,14 @@ fun PerfilScreen(
             paleta = paleta,
             onPerfilPublicoChange = { state.perfilPublico = it },
             onCompartirUbicacionChange = { state.compartirUbicacion = it },
-            onCambiarContrasenaClick = { state.mostrarMensaje("Te enviaremos un correo.") },
+            onCambiarContrasenaClick = { state.mostrarMensaje(Res.string.perfil_privacidad_correo_enviado) },
             onDismiss = { state.mostrarDialogoPrivacidad = false }
         )
     }
 
     if (state.mostrarDialogoEditar) {
         DialogoEditarPerfil(
-            nombreInicial = state.nombreMostrar,
+            nombreInicial = state.obtenerNombreMostrar(),
             telefonoInicial = state.usuarioBD?.telefono.orEmpty(),
             paleta = paleta,
             onGuardarClick = { nombre, telefono -> state.guardarPerfil(nombre, telefono) },

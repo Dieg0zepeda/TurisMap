@@ -20,8 +20,31 @@ import com.turismap.app.data.repository.UsuarioRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.perfil_actualizado
+import turismap.shared.generated.resources.perfil_cargando
+import turismap.shared.generated.resources.perfil_correo_no_disponible
+import turismap.shared.generated.resources.perfil_error_actualizar
+import turismap.shared.generated.resources.perfil_error_cargar
+import turismap.shared.generated.resources.perfil_error_cargar_favoritos
+import turismap.shared.generated.resources.perfil_error_cargar_favoritos_generico
+import turismap.shared.generated.resources.perfil_error_con_detalle
+import turismap.shared.generated.resources.perfil_error_generico
+import turismap.shared.generated.resources.perfil_error_sin_sesion
+import turismap.shared.generated.resources.perfil_favorito_eliminado
+import turismap.shared.generated.resources.perfil_foto_actualizada
+import turismap.shared.generated.resources.perfil_usuario_predeterminado
 
 internal const val TURISMAP_WEB_URL = "https://urldeprueba.com"
+
+internal enum class CategoriaFavorito {
+    TODOS,
+    DESTINOS,
+    COMERCIOS
+}
 
 internal data class ItemFavoritoUi(
     val id: String,
@@ -69,7 +92,7 @@ internal class PerfilState(
     var mostrarVentanaFavoritos by mutableStateOf(false)
     var cargandoFavoritos by mutableStateOf(false)
     var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
-    var categoriaFavoritoSeleccionada by mutableStateOf("Todos") // "Todos", "Destinos", "Comercios"
+    var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
     var idiomaSeleccionado by mutableStateOf("Español")
     var perfilPublico by mutableStateOf(true)
@@ -91,19 +114,30 @@ internal class PerfilState(
 
     val favoritosFiltrados: List<ItemFavoritoUi> by derivedStateOf {
         when (categoriaFavoritoSeleccionada) {
-            "Destinos" -> listaFavoritosDetallados.filter { !it.esComercio }
-            "Comercios" -> listaFavoritosDetallados.filter { it.esComercio }
-            else -> listaFavoritosDetallados
+            CategoriaFavorito.DESTINOS -> listaFavoritosDetallados.filter { !it.esComercio }
+            CategoriaFavorito.COMERCIOS -> listaFavoritosDetallados.filter { it.esComercio }
+            CategoriaFavorito.TODOS -> listaFavoritosDetallados
         }
     }
 
-    val nombreMostrar: String
-        get() = usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: if (estaCargando) "Cargando..." else "Usuario"
+    @Composable
+    fun obtenerNombreMostrar(): String =
+        usuarioBD?.nombre?.takeIf { it.isNotBlank() }
+            ?: if (estaCargando) {
+                stringResource(Res.string.perfil_cargando)
+            } else {
+                stringResource(Res.string.perfil_usuario_predeterminado)
+            }
 
-    val correoMostrar: String
-        get() = usuarioBD?.email?.takeIf { it.isNotBlank() }
-            ?: AutenticacionRepository.usuarioActual?.email
-            ?: if (estaCargando) "Cargando..." else "Correo no disponible"
+    @Composable
+    fun obtenerCorreoMostrar(): String =
+        usuarioBD?.email?.takeIf { it.isNotBlank() }
+            ?: AutenticacionRepository.usuarioActual?.email?.takeIf { it.isNotBlank() }
+            ?: if (estaCargando) {
+                stringResource(Res.string.perfil_cargando)
+            } else {
+                stringResource(Res.string.perfil_correo_no_disponible)
+            }
 
     val cantidadFavoritos: String
         get() = (usuarioBD?.favoritos?.size ?: 0).toString()
@@ -112,9 +146,17 @@ internal class PerfilState(
         coroutineScope.launch {
             try {
                 UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", uriLocal)
-                snackbarHostState.showSnackbar("¡Foto actualizada con éxito! ✅")
+                snackbarHostState.showSnackbar(getString(Res.string.perfil_foto_actualizada))
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
-                snackbarHostState.showSnackbar("Error: ${error.message}")
+                val detalle = error.message?.takeIf { it.isNotBlank() }
+                val mensaje = if (detalle != null) {
+                    getString(Res.string.perfil_error_con_detalle, detalle)
+                } else {
+                    getString(Res.string.perfil_error_generico)
+                }
+                snackbarHostState.showSnackbar(mensaje)
             }
         }
     }
@@ -123,9 +165,11 @@ internal class PerfilState(
         coroutineScope.launch {
             try {
                 UsuarioRepository.cambiarFavorito(itemId, false)
-                snackbarHostState.showSnackbar("Eliminado de favoritos")
+                snackbarHostState.showSnackbar(getString(Res.string.perfil_favorito_eliminado))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                snackbarHostState.showSnackbar(e.message ?: "Error al actualizar")
+                snackbarHostState.showSnackbar(e.message ?: getString(Res.string.perfil_error_actualizar))
             }
         }
     }
@@ -135,9 +179,11 @@ internal class PerfilState(
             try {
                 UsuarioRepository.actualizarPerfil(nombre.trim(), telefono.trim())
                 mostrarDialogoEditar = false
-                snackbarHostState.showSnackbar("Perfil actualizado.")
+                snackbarHostState.showSnackbar(getString(Res.string.perfil_actualizado))
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
-                snackbarHostState.showSnackbar(error.message ?: "Error al actualizar.")
+                snackbarHostState.showSnackbar(error.message ?: getString(Res.string.perfil_error_actualizar))
             }
         }
     }
@@ -149,8 +195,10 @@ internal class PerfilState(
                 try {
                     AutenticacionRepository.cerrarSesion()
                     onCerrarSesionClick()
+                } catch (error: CancellationException) {
+                    throw error
                 } catch (error: Exception) {
-                    snackbarHostState.showSnackbar(error.message ?: "Error.")
+                    snackbarHostState.showSnackbar(error.message ?: getString(Res.string.perfil_error_generico))
                 } finally {
                     cerrandoSesion = false
                 }
@@ -161,6 +209,18 @@ internal class PerfilState(
     fun mostrarMensaje(mensaje: String) {
         coroutineScope.launch {
             snackbarHostState.showSnackbar(mensaje)
+        }
+    }
+
+    fun mostrarMensaje(recurso: StringResource) {
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar(getString(recurso))
+        }
+    }
+
+    fun mostrarMensajeOError(mensaje: String?, fallback: StringResource) {
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar(mensaje ?: getString(fallback))
         }
     }
 }
@@ -184,7 +244,7 @@ internal fun rememberPerfilState(): PerfilState {
         state.errorPerfil = null
         try {
             if (idUsuarioActual == null) {
-                state.errorPerfil = "No hay una sesión autenticada."
+                state.errorPerfil = getString(Res.string.perfil_error_sin_sesion)
             } else {
                 UsuarioRepository.asegurarPerfil(
                     email = AutenticacionRepository.usuarioActual?.email.orEmpty(),
@@ -195,7 +255,7 @@ internal fun rememberPerfilState(): PerfilState {
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            state.errorPerfil = error.message ?: "No se pudo cargar el perfil."
+            state.errorPerfil = error.message ?: getString(Res.string.perfil_error_cargar)
         } finally {
             state.estaCargando = false
         }
@@ -250,8 +310,16 @@ internal fun rememberPerfilState(): PerfilState {
                     }
                     state.listaFavoritosDetallados = resueltos
                 }
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
-                state.snackbarHostState.showSnackbar("Error al cargar favoritos: ${error.message}")
+                val detalle = error.message?.takeIf { it.isNotBlank() }
+                val mensaje = if (detalle != null) {
+                    getString(Res.string.perfil_error_cargar_favoritos, detalle)
+                } else {
+                    getString(Res.string.perfil_error_cargar_favoritos_generico)
+                }
+                state.snackbarHostState.showSnackbar(mensaje)
             } finally {
                 state.cargandoFavoritos = false
             }

@@ -26,6 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.nav_tab_explorar
+import turismap.shared.generated.resources.nav_tab_guia
+import turismap.shared.generated.resources.nav_tab_mapa
+import turismap.shared.generated.resources.nav_tab_perfil
 
 @Composable
 fun FigmaTopHeader() {
@@ -228,12 +235,12 @@ fun FigmaBottomBar(
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    data class NavTab(val label: String, val icon: ImageVector)
+    data class NavTab(val labelRes: StringResource, val icon: ImageVector)
     val tabs = listOf(
-        NavTab("Explorar", Icons.Default.Home),
-        NavTab("Mapa", Icons.Default.Place),
-        NavTab("Guia", Icons.Default.DateRange),
-        NavTab("Perfil", Icons.Default.Person)
+        NavTab(Res.string.nav_tab_explorar, Icons.Default.Home),
+        NavTab(Res.string.nav_tab_mapa, Icons.Default.Place),
+        NavTab(Res.string.nav_tab_guia, Icons.Default.DateRange),
+        NavTab(Res.string.nav_tab_perfil, Icons.Default.Person)
     )
 
     Surface(
@@ -252,6 +259,7 @@ fun FigmaBottomBar(
         ) {
             tabs.forEachIndexed { index, tab ->
                 val isSelected = selectedIndex == index
+                val label = stringResource(tab.labelRes)
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -262,13 +270,13 @@ fun FigmaBottomBar(
                 ) {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label,
+                        contentDescription = label,
                         tint = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = tab.label,
+                        text = label,
                         fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,

@@ -49,6 +49,22 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.theme.TerracotaTextoAdaptable
 import com.turismap.app.theme.VerdeTextoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.perfil_favoritos_cd_quitar
+import turismap.shared.generated.resources.perfil_favoritos_filtro_comercios
+import turismap.shared.generated.resources.perfil_favoritos_filtro_destinos
+import turismap.shared.generated.resources.perfil_favoritos_filtro_todos
+import turismap.shared.generated.resources.perfil_favoritos_tipo_comercio
+import turismap.shared.generated.resources.perfil_favoritos_tipo_destino
+import turismap.shared.generated.resources.perfil_favoritos_titulo
+import turismap.shared.generated.resources.perfil_favoritos_total_guardados
+import turismap.shared.generated.resources.perfil_favoritos_vacio_comercios
+import turismap.shared.generated.resources.perfil_favoritos_vacio_desc_comercios
+import turismap.shared.generated.resources.perfil_favoritos_vacio_desc_destinos
+import turismap.shared.generated.resources.perfil_favoritos_vacio_destinos
+import turismap.shared.generated.resources.perfil_favoritos_vacio_todos
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,12 +72,12 @@ internal fun ModalFavoritosPerfil(
     totalFavoritos: Int,
     cantDestinos: Int,
     cantComercios: Int,
-    categoriaSeleccionada: String,
+    categoriaSeleccionada: CategoriaFavorito,
     cargandoFavoritos: Boolean,
     favoritosFiltrados: List<ItemFavoritoUi>,
     paleta: PerfilPaleta,
     onDismiss: () -> Unit,
-    onSeleccionarCategoria: (String) -> Unit,
+    onSeleccionarCategoria: (CategoriaFavorito) -> Unit,
     onItemClick: (ItemFavoritoUi) -> Unit,
     onQuitarFavoritoClick: (String) -> Unit
 ) {
@@ -90,20 +106,20 @@ internal fun ModalFavoritosPerfil(
                     Text("❤️", fontSize = 22.sp)
                     Column {
                         Text(
-                            "Mis Favoritos",
+                            stringResource(Res.string.perfil_favoritos_titulo),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = paleta.colorTextoPrincipal
                         )
                         Text(
-                            "$totalFavoritos guardados en total",
+                            stringResource(Res.string.perfil_favoritos_total_guardados, totalFavoritos),
                             fontSize = 12.sp,
                             color = paleta.colorTextoSecundario
                         )
                     }
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = paleta.colorTextoSecundario)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.btn_cerrar), tint = paleta.colorTextoSecundario)
                 }
             }
 
@@ -115,17 +131,17 @@ internal fun ModalFavoritosPerfil(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(
-                    "Todos" to totalFavoritos,
-                    "Destinos" to cantDestinos,
-                    "Comercios" to cantComercios
-                ).forEach { (tipo, count) ->
+                    Triple(CategoriaFavorito.TODOS, Res.string.perfil_favoritos_filtro_todos, totalFavoritos),
+                    Triple(CategoriaFavorito.DESTINOS, Res.string.perfil_favoritos_filtro_destinos, cantDestinos),
+                    Triple(CategoriaFavorito.COMERCIOS, Res.string.perfil_favoritos_filtro_comercios, cantComercios)
+                ).forEach { (tipo, etiquetaRes, count) ->
                     val activa = categoriaSeleccionada == tipo
                     FilterChip(
                         selected = activa,
                         onClick = { onSeleccionarCategoria(tipo) },
                         label = {
                             Text(
-                                text = "$tipo ($count)",
+                                text = "${stringResource(etiquetaRes)} ($count)",
                                 fontSize = 12.sp,
                                 fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
                             )
@@ -160,17 +176,19 @@ internal fun ModalFavoritosPerfil(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            if (categoriaSeleccionada == "Destinos") "📍"
-                            else if (categoriaSeleccionada == "Comercios") "🏪"
-                            else "🧭",
+                            when (categoriaSeleccionada) {
+                                CategoriaFavorito.DESTINOS -> "📍"
+                                CategoriaFavorito.COMERCIOS -> "🏪"
+                                CategoriaFavorito.TODOS -> "🧭"
+                            },
                             fontSize = 48.sp
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = when (categoriaSeleccionada) {
-                                "Destinos" -> "No tienes destinos guardados"
-                                "Comercios" -> "No tienes comercios guardados"
-                                else -> "Aún no tienes favoritos"
+                                CategoriaFavorito.DESTINOS -> stringResource(Res.string.perfil_favoritos_vacio_destinos)
+                                CategoriaFavorito.COMERCIOS -> stringResource(Res.string.perfil_favoritos_vacio_comercios)
+                                CategoriaFavorito.TODOS -> stringResource(Res.string.perfil_favoritos_vacio_todos)
                             },
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
@@ -178,7 +196,11 @@ internal fun ModalFavoritosPerfil(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = "Pulsa el corazón en ${if (categoriaSeleccionada == "Destinos") "los pueblos o destinos" else "los restaurantes y tiendas"} para agregarlos a esta lista.",
+                            text = if (categoriaSeleccionada == CategoriaFavorito.DESTINOS) {
+                                stringResource(Res.string.perfil_favoritos_vacio_desc_destinos)
+                            } else {
+                                stringResource(Res.string.perfil_favoritos_vacio_desc_comercios)
+                            },
                             fontSize = 13.sp,
                             color = paleta.colorTextoSecundario,
                             lineHeight = 18.sp
@@ -272,7 +294,11 @@ private fun TarjetaItemFavorito(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (item.esComercio) "Comercio verificado" else "Destino turístico",
+                    text = if (item.esComercio) {
+                        stringResource(Res.string.perfil_favoritos_tipo_comercio)
+                    } else {
+                        stringResource(Res.string.perfil_favoritos_tipo_destino)
+                    },
                     fontSize = 11.5.sp,
                     color = paleta.colorTextoSecundario
                 )
@@ -281,7 +307,7 @@ private fun TarjetaItemFavorito(
             IconButton(onClick = onQuitarClick) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = "Quitar de favoritos",
+                    contentDescription = stringResource(Res.string.perfil_favoritos_cd_quitar),
                     tint = paleta.terracota,
                     modifier = Modifier.size(20.dp)
                 )

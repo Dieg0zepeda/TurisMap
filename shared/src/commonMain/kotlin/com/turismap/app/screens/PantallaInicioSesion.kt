@@ -28,6 +28,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.app_name
+import turismap.shared.generated.resources.auth_btn_google
+import turismap.shared.generated.resources.auth_btn_iniciar_sesion
+import turismap.shared.generated.resources.auth_btn_registrate
+import turismap.shared.generated.resources.auth_cd_google
+import turismap.shared.generated.resources.auth_cd_mostrar_contrasena
+import turismap.shared.generated.resources.auth_cd_ocultar_contrasena
+import turismap.shared.generated.resources.auth_contrasena_label
+import turismap.shared.generated.resources.auth_correo_label
+import turismap.shared.generated.resources.auth_no_tienes_cuenta
+import turismap.shared.generated.resources.auth_o_continua_con
+import turismap.shared.generated.resources.auth_olvide_contrasena
+import turismap.shared.generated.resources.auth_ruta_flores
 
 @Composable
 fun PantallaInicioSesion(
@@ -56,7 +71,7 @@ fun PantallaInicioSesion(
         Spacer(modifier = Modifier.height(40.dp))
         
         Text(
-            text = "TURISMAP",
+            text = stringResource(Res.string.app_name).uppercase(),
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = VerdeTextoAdaptable,
@@ -64,7 +79,7 @@ fun PantallaInicioSesion(
         )
         
         Text(
-            text = "Ruta de las Flores",
+            text = stringResource(Res.string.auth_ruta_flores),
             fontSize = 16.sp,
             color = GrisTextoSecundario,
             modifier = Modifier.padding(top = 4.dp)
@@ -73,17 +88,18 @@ fun PantallaInicioSesion(
         Spacer(modifier = Modifier.height(48.dp))
         
         // Campo de correo
+        val etiquetaCorreo = stringResource(Res.string.auth_correo_label)
         OutlinedTextField(
             value = correo,
             onValueChange = { 
                 correo = it
                 mensajeError = null
             },
-            label = { Text("Correo electrónico") },
+            label = { Text(etiquetaCorreo) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Email,
-                    contentDescription = "Correo",
+                    contentDescription = etiquetaCorreo,
                     tint = VerdeTextoAdaptable
                 )
             },
@@ -100,17 +116,18 @@ fun PantallaInicioSesion(
         Spacer(modifier = Modifier.height(16.dp))
         
         // Campo de contraseña
+        val etiquetaContrasena = stringResource(Res.string.auth_contrasena_label)
         OutlinedTextField(
             value = contrasena,
             onValueChange = { 
                 contrasena = it
                 mensajeError = null
             },
-            label = { Text("Contraseña") },
+            label = { Text(etiquetaContrasena) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Contraseña",
+                    contentDescription = etiquetaContrasena,
                     tint = VerdeTextoAdaptable
                 )
             },
@@ -118,7 +135,9 @@ fun PantallaInicioSesion(
                 IconButton(onClick = { contrasenaVisible = !contrasenaVisible }) {
                     Icon(
                         imageVector = if (contrasenaVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (contrasenaVisible) "Ocultar" else "Mostrar",
+                        contentDescription = stringResource(
+                            if (contrasenaVisible) Res.string.auth_cd_ocultar_contrasena else Res.string.auth_cd_mostrar_contrasena
+                        ),
                         tint = GrisTextoSecundario
                     )
                 }
@@ -150,7 +169,7 @@ fun PantallaInicioSesion(
         
         // Link de olvidaste contraseña
         Text(
-            text = "¿Olvidaste tu contraseña?",
+            text = stringResource(Res.string.auth_olvide_contrasena),
             fontSize = 13.sp,
             color = VerdeTextoAdaptable,
             modifier = Modifier
@@ -187,7 +206,7 @@ fun PantallaInicioSesion(
                 )
             } else {
                 Text(
-                    text = "Iniciar Sesión",
+                    text = stringResource(Res.string.auth_btn_iniciar_sesion),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -202,16 +221,17 @@ fun PantallaInicioSesion(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "¿No tienes cuenta? ",
+                text = stringResource(Res.string.auth_no_tienes_cuenta),
                 fontSize = 14.sp,
                 color = GrisTextoSecundario
             )
+            Spacer(modifier = Modifier.width(4.dp))
             TextButton(
                 onClick = onNavegarARegistro,
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
-                    text = "Regístrate",
+                    text = stringResource(Res.string.auth_btn_registrate),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = VerdeTextoAdaptable
@@ -232,9 +252,10 @@ fun PantallaInicioSesion(
                 thickness = 1.dp
             )
             Text(
-                text = "  o continúa con  ",
+                text = stringResource(Res.string.auth_o_continua_con),
                 fontSize = 12.sp,
-                color = GrisTextoSecundario
+                color = GrisTextoSecundario,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
             Divider(
                 modifier = Modifier.weight(1f),
@@ -257,13 +278,13 @@ fun PantallaInicioSesion(
             Icon(
                 // TODO: Agregar icono de Google
                 imageVector = Icons.Default.Email,
-                contentDescription = "Google",
+                contentDescription = stringResource(Res.string.auth_cd_google),
                 tint = GrisTextoSecundario,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Continuar con Google",
+                text = stringResource(Res.string.auth_btn_google),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF1A202C)
