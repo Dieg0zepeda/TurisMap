@@ -36,30 +36,42 @@ fun MapaScreen(
 ) {
     val uriHandler = LocalUriHandler.current
     val paleta = rememberMapaPaleta(isSystemInDarkTheme())
-    val state = rememberMapaState(latInicial = latInicial, lngInicial = lngInicial)
+    val state = rememberMapaState(
+        latInicial = latInicial,
+        lngInicial = lngInicial,
+        zoomInicial = zoomInicial
+    )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val alturaMaximaTarjeta = maxHeight * 0.65f
 
-        // 1. Google Maps / Mapa Turístico con centrado reactivo
+        // 1. Google Maps / Mapa Turístico con centrado reactivo (ruta inicial y búsqueda)
         MapaTuristico(
             lugares = state.lugaresParaElMapa,
-            latInicial = latInicial,
-            lngInicial = lngInicial,
-            zoomInicial = zoomInicial,
-            onLugarClick = { lugarTocado -> state.lugarSeleccionado = lugarTocado },
+            latInicial = state.camaraLatObjetivo,
+            lngInicial = state.camaraLngObjetivo,
+            zoomInicial = state.camaraZoomObjetivo,
+            onLugarClick = state::seleccionarMarcadorEnMapa,
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Cabecera limpia sobre el mapa (sin icono de notificaciones)
+        // 2. Cabecera limpia con buscador superior, sugerencias y botón de capas
         CabeceraMapa(
             textoBusqueda = state.textoBusqueda,
+            resultadosBusqueda = state.resultadosBusqueda,
+            mostrarSugerencias = state.mostrarSugerencias,
             filtroTipoMarcadores = state.filtroTipoMarcadores,
             cantidadLugaresEnMapa = state.lugaresParaElMapa.size,
             paleta = paleta,
             onBusquedaChange = state::actualizarBusqueda,
+            onFocoBusqueda = state::abrirSugerenciasSiHayTexto,
+            onSeleccionarResultado = state::seleccionarResultadoBusqueda,
+            onBuscarAccionTeclado = state::buscarPrimerResultado,
             onLimpiarBusqueda = state::limpiarBusqueda,
-            onAbrirMenuCapas = { state.mostrarMenuWaze = true }
+            onAbrirMenuCapas = {
+                state.mostrarSugerencias = false
+                state.mostrarMenuWaze = true
+            }
         )
 
         // 3. Modal estilo Waze con la mascota
@@ -99,7 +111,7 @@ fun MapaScreen(
                 modifier = Modifier.align(Alignment.Center),
                 color = paleta.turismapPrimario
             )
-        } else if (state.lugaresParaElMapa.isEmpty()) {
+        } else if (state.lugaresParaElMapa.isEmpty() && state.textoBusqueda.isBlank()) {
             Column(
                 modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -119,7 +131,7 @@ fun MapaScreen(
 
         SnackbarHost(
             hostState = state.snackbarHostState,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 150.dp)
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 132.dp)
         )
     }
 }

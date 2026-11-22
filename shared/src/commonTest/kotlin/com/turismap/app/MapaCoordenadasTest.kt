@@ -5,6 +5,10 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.esCoordenadaValida
 import com.turismap.app.data.repository.parsearCoordenadaDesdeTexto
+import com.turismap.app.screens.mapa.buscarMunicipioDeComercio
+import com.turismap.app.screens.mapa.coincideBusquedaMapa
+import com.turismap.app.screens.mapa.normalizarTextoMapa
+import com.turismap.app.screens.mapa.relevanciaBusquedaMapa
 import com.turismap.app.screens.mapa.resolverCoordenadasComercio
 import com.turismap.app.screens.mapa.separarCoordenadasSuperpuestas
 import kotlin.test.Test
@@ -153,5 +157,42 @@ class MapaCoordenadasTest {
         val resultado = separarCoordenadasSuperpuestas(listOf(c1, c2, c3))
 
         assertEquals(listOf(c1, c2, c3), resultado)
+    }
+
+    @Test
+    fun busquedaMapaNormalizaTildesMayusculasYEspaciosDeTeclado() {
+        assertEquals("cafe el mirador", normalizarTextoMapa("  Café   El Mirador  "))
+        assertTrue(coincideBusquedaMapa("cafe", "Café El Mirador"))
+        assertTrue(coincideBusquedaMapa("  juayua  ", "Juayúa"))
+        assertTrue(coincideBusquedaMapa("CABANA", "Cabaña del Bosque"))
+        assertTrue(coincideBusquedaMapa("artesanias ", "Tienda de Artesanías", "Concepción de Ataco"))
+        assertFalse(coincideBusquedaMapa("playa", "Café El Mirador", "Concepción de Ataco"))
+    }
+
+    @Test
+    fun busquedaMapaSoportaMultiplesPalabrasYPriorizaCoincidenciasEnNombre() {
+        assertTrue(coincideBusquedaMapa("cafe ataco", "Café El Mirador", "cafeteria", "Concepción de Ataco"))
+        assertTrue(coincideBusquedaMapa("restaurante juayua", "La Casa Verde", "Restaurante", "Juayúa"))
+
+        val relNombreInicio = relevanciaBusquedaMapa("cafe", "Café El Mirador", "Restaurante", "Ataco")
+        val relNombreContenido = relevanciaBusquedaMapa("mirador", "Café El Mirador", "Restaurante", "Ataco")
+        val relSecundario = relevanciaBusquedaMapa("ataco", "Café El Mirador", "Restaurante", "Concepción de Ataco")
+
+        assertTrue(relNombreInicio < relNombreContenido)
+        assertTrue(relNombreContenido < relSecundario)
+        assertEquals(Int.MAX_VALUE, relevanciaBusquedaMapa("volcan", "Café El Mirador", "Ataco"))
+    }
+
+    @Test
+    fun comercioConCampoMunicipioSinLugarIdResuelveMunicipioYCoordenadas() {
+        val comercioSoloMunicipio = Comercio(
+            id = "negocio-nuevo",
+            lugarId = "",
+            municipio = "Concepción de Ataco",
+            nombre = "Café Nuevo"
+        )
+
+        assertEquals(atacoDestino, buscarMunicipioDeComercio(comercioSoloMunicipio, municipiosMap))
+        assertEquals(atacoCentro, resolverCoordenadasComercio(comercioSoloMunicipio, municipiosMap))
     }
 }

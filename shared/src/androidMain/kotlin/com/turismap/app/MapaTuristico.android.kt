@@ -17,6 +17,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -145,6 +146,7 @@ actual fun MapaTuristico(
     var hasPermission by remember { mutableStateOf(false) }
     var shouldRequestPermission by remember { mutableStateOf(false) }
     var mapaCargado by remember { mutableStateOf(false) }
+    var centradoInicialRealizado by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         hasPermission = ContextCompat.checkSelfPermission(
@@ -184,10 +186,12 @@ actual fun MapaTuristico(
             .build()
     }
 
-    // Animación de cámara prioritaria: si hay coordenadas viaja al municipio
-    LaunchedEffect(mapaCargado, latInicial, lngInicial) {
+    // Animación de cámara prioritaria: viaja a coordenadas recibidas (ruta o búsqueda)
+    // y realiza el centrado inicial hacia el usuario/ruta una sola vez.
+    LaunchedEffect(mapaCargado, latInicial, lngInicial, zoomInicial) {
         if (mapaCargado) {
             if (latInicial != null && lngInicial != null) {
+                centradoInicialRealizado = true
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
@@ -196,9 +200,10 @@ actual fun MapaTuristico(
                             .tilt(45f)
                             .build()
                     ),
-                    durationMs = 1000
+                    durationMs = 900
                 )
-            } else {
+            } else if (!centradoInicialRealizado) {
+                centradoInicialRealizado = true
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
@@ -251,10 +256,11 @@ actual fun MapaTuristico(
         )
     }
 
-    val mapUiSettings = remember(hasPermission) {
+    val mapUiSettings = remember {
         MapUiSettings(
+            compassEnabled = true,
             zoomControlsEnabled = false,
-            myLocationButtonEnabled = hasPermission,
+            myLocationButtonEnabled = false,
             rotationGesturesEnabled = true,
             tiltGesturesEnabled = true,
             mapToolbarEnabled = false
@@ -268,6 +274,7 @@ actual fun MapaTuristico(
         cameraPositionState = cameraPositionState,
         properties = mapProperties,
         uiSettings = mapUiSettings,
+        contentPadding = PaddingValues(top = 72.dp),
         onMapLoaded = { mapaCargado = true }
     ) {
         Polyline(

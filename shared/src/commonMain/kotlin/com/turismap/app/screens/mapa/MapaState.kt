@@ -12,7 +12,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.turismap.app.data.models.CategoriaLugar
-import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
@@ -21,10 +20,6 @@ import com.turismap.app.data.repository.esCoordenadaValida
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.round
-import kotlin.math.sin
 
 // Paleta corporativa TurisMap
 internal data class MapaPaleta(
@@ -49,174 +44,19 @@ internal fun rememberMapaPaleta(esOscuro: Boolean): MapaPaleta =
         )
     }
 
-private const val PRECISION_COLISION_COORDENADAS = 20_000.0 // ~5.5 m
-private const val RADIO_BASE_ANILLO_GRADOS = 0.00055 // ~61 m
-private const val INCREMENTO_RADIO_ANILLO_GRADOS = 0.00050 // ~55 m por anillo adicional
-private const val CAPACIDAD_BASE_ANILLO = 8
-
-private fun normalizarTextoMapa(texto: String): String =
-    texto.trim().lowercase()
-        .replace('á', 'a')
-        .replace('é', 'e')
-        .replace('í', 'i')
-        .replace('ó', 'o')
-        .replace('ú', 'u')
-        .replace('ü', 'u')
-        .replace('ñ', 'n')
-
-private fun esMarcadorComercio(lugar: Lugar): Boolean =
-    lugar.id.startsWith("comercio:")
-
-internal fun buscarMunicipioDeComercio(
-    comercio: Comercio,
-    municipiosMap: Map<String, Lugar>
-): Lugar? {
-    val claveExacta = comercio.lugarId.trim()
-    if (claveExacta.isEmpty()) return null
-
-    municipiosMap[claveExacta]?.let { return it }
-
-    val claveNormalizada = normalizarTextoMapa(claveExacta)
-    return municipiosMap.values.firstOrNull { lugar ->
-        val idNorm = normalizarTextoMapa(lugar.id)
-        val nombreNorm = normalizarTextoMapa(lugar.nombre)
-        (idNorm.isNotEmpty() && (idNorm == claveNormalizada || claveNormalizada.contains(idNorm))) ||
-            (nombreNorm.isNotEmpty() && (nombreNorm == claveNormalizada || nombreNorm.contains(claveNormalizada)))
-    }
-}
-
-internal fun resolverCoordenadasComercio(
-    comercio: Comercio,
-    municipiosMap: Map<String, Lugar>
-): Coordenada {
-    comercio.coordenadaPropiaValida()?.let { return it }
-
-    val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
-    val coordenadaMunicipio = municipio?.ubicacionCoordenadas
-    if (coordenadaMunicipio != null && esCoordenadaValida(coordenadaMunicipio)) {
-        return coordenadaMunicipio
-    }
-
-    val ref = normalizarTextoMapa(
-        listOf(municipio?.nombre.orEmpty(), comercio.lugarId, comercio.direccion).joinToString(" ")
-    )
-    return when {
-        ref.contains("refugio") -> Coordenada(13.9744, -89.7719)
-        ref.contains("apaneca") -> Coordenada(13.8569, -89.8028)
-        ref.contains("ataco") -> Coordenada(13.8703, -89.8486)
-        ref.contains("juayua") -> Coordenada(13.8417, -89.7456)
-        ref.contains("salcoatitan") -> Coordenada(13.8306, -89.7547)
-        ref.contains("nahuizalco") -> Coordenada(13.7778, -89.7361)
-        ref.contains("ahuachapan") -> Coordenada(13.9214, -89.8450)
-        ref.contains("tacuba") -> Coordenada(13.9000, -89.9333)
-        else -> Coordenada(0.0, 0.0)
-    }
-}
-
-private fun desplazarEnAnillo(
-    base: Coordenada,
-    indiceEnGrupo: Int,
-    totalEnGrupo: Int
-): Coordenada {
-    var restante = indiceEnGrupo
-    var anillo = 0
-    var capacidadAnillo = CAPACIDAD_BASE_ANILLO
-    var procesadosAntes = 0
-
-    while (restante >= capacidadAnillo) {
-        restante -= capacidadAnillo
-        procesadosAntes += capacidadAnillo
-        anillo++
-        capacidadAnillo = CAPACIDAD_BASE_ANILLO + anillo * 4
-    }
-
-    val cantidadEnEsteAnillo = minOf(capacidadAnillo, totalEnGrupo - procesadosAntes).coerceAtLeast(1)
-    val radio = RADIO_BASE_ANILLO_GRADOS + anillo * INCREMENTO_RADIO_ANILLO_GRADOS
-    val desfaseAngular = (PI / 4.0) + (anillo * (PI / cantidadEnEsteAnillo))
-    val angulo = desfaseAngular + (2.0 * PI * restante / cantidadEnEsteAnillo)
-    val factorCosLat = cos(base.latitud * PI / 180.0).coerceAtLeast(0.2)
-
-    val nuevaLat = (base.latitud + radio * sin(angulo)).coerceIn(-90.0, 90.0)
-    val nuevaLng = (base.longitud + (radio * cos(angulo)) / factorCosLat).coerceIn(-180.0, 180.0)
-    return Coordenada(latitud = nuevaLat, longitud = nuevaLng)
-}
-
-internal fun separarCoordenadasSuperpuestas(lugares: List<Lugar>): List<Lugar> {
-    if (lugares.size <= 1) return lugares
-
-    val gruposPorPosicion = lugares.withIndex().groupBy { (_, lugar) ->
-        Pair(
-            round(lugar.ubicacionCoordenadas.latitud * PRECISION_COLISION_COORDENADAS).toLong(),
-            round(lugar.ubicacionCoordenadas.longitud * PRECISION_COLISION_COORDENADAS).toLong()
-        )
-    }
-
-    val resultado = lugares.toMutableList()
-
-    gruposPorPosicion.values.forEach { grupo ->
-        if (grupo.size <= 1) return@forEach
-
-        val destinosOrdenados = grupo.filterNot { esMarcadorComercio(it.value) }.sortedBy { it.value.id }
-        val comerciosOrdenados = grupo.filter { esMarcadorComercio(it.value) }.sortedBy { it.value.id }
-
-        if (destinosOrdenados.isNotEmpty()) {
-            // El destino/municipio principal permanece fijo en su coordenada original
-            val centroAncla = destinosOrdenados.first().value.ubicacionCoordenadas
-            val elementosADistribuir = comerciosOrdenados + destinosOrdenados.drop(1)
-            elementosADistribuir.forEachIndexed { posicion, item ->
-                val coordenadaSeparada = desplazarEnAnillo(
-                    base = centroAncla,
-                    indiceEnGrupo = posicion,
-                    totalEnGrupo = elementosADistribuir.size
-                )
-                resultado[item.index] = item.value.copy(ubicacionCoordenadas = coordenadaSeparada)
-            }
-        } else if (comerciosOrdenados.size > 1) {
-            val centroBase = comerciosOrdenados.first().value.ubicacionCoordenadas
-            comerciosOrdenados.forEachIndexed { posicion, item ->
-                val coordenadaSeparada = desplazarEnAnillo(
-                    base = centroBase,
-                    indiceEnGrupo = posicion,
-                    totalEnGrupo = comerciosOrdenados.size
-                )
-                resultado[item.index] = item.value.copy(ubicacionCoordenadas = coordenadaSeparada)
-            }
-        }
-    }
-
-    return resultado
-}
-
-internal fun codificarParametroMaps(valor: String): String =
-    valor.encodeToByteArray().joinToString("") { byte ->
-        val caracter = byte.toInt() and 0xFF
-        if (caracter in 'a'.code..'z'.code ||
-            caracter in 'A'.code..'Z'.code ||
-            caracter in '0'.code..'9'.code ||
-            caracter == '-'.code || caracter == '_'.code ||
-            caracter == '.'.code || caracter == '~'.code
-        ) {
-            caracter.toChar().toString()
-        } else {
-            "%" + caracter.toString(16).uppercase().padStart(2, '0')
-        }
-    }
-
-internal fun urlGoogleMaps(comercio: Comercio?, lugar: Lugar, municipio: String?): String {
-    val destino = if (comercio == null) {
-        listOf(lugar.nombre, lugar.ubicacionCorta, "El Salvador")
-    } else {
-        listOf(comercio.nombre, comercio.direccion, municipio, "El Salvador")
-    }.filterNotNull().filter(String::isNotBlank).joinToString(", ")
-
-    return "https://www.google.com/maps/dir/?api=1&destination=${codificarParametroMaps(destino)}"
-}
+private const val MAX_SUGERENCIAS_BUSQUEDA = 8
+private const val ZOOM_SELECCION_BUSQUEDA = 17.5f
+private const val ZOOM_SELECCION_BUSQUEDA_ALT = 17.5001f
 
 internal class MapaState(
+    latInicial: Double?,
+    lngInicial: Double?,
+    zoomInicial: Float?,
     private val scope: CoroutineScope,
     val snackbarHostState: SnackbarHostState
 ) {
     var textoBusqueda: String by mutableStateOf("")
+    var mostrarSugerencias: Boolean by mutableStateOf(false)
     var filtroTipoMarcadores: String by mutableStateOf("Todos") // "Todos", "Destinos", "Comercios"
     var mostrarMenuWaze: Boolean by mutableStateOf(false)
 
@@ -225,48 +65,129 @@ internal class MapaState(
     var municipiosMap: Map<String, Lugar> by mutableStateOf(emptyMap())
     var lugarSeleccionado: Lugar? by mutableStateOf(null)
 
-    var cargando: Boolean by mutableStateOf(true)
-    var errorCarga: String? by mutableStateOf(null)
+    var camaraLatObjetivo: Double? by mutableStateOf(latInicial)
+    var camaraLngObjetivo: Double? by mutableStateOf(lngInicial)
+    var camaraZoomObjetivo: Float? by mutableStateOf(zoomInicial)
+
+    var lugaresCargados: Boolean by mutableStateOf(false)
+    var comerciosCargados: Boolean by mutableStateOf(false)
+    var errorLugares: String? by mutableStateOf(null)
+    var errorComercios: String? by mutableStateOf(null)
     var intentoCarga: Int by mutableIntStateOf(0)
+
+    val cargando: Boolean by derivedStateOf {
+        !lugaresCargados || !comerciosCargados
+    }
+
+    val errorCarga: String? by derivedStateOf {
+        val errores = listOfNotNull(errorLugares, errorComercios)
+        when {
+            errores.isNotEmpty() -> errores.joinToString("\n")
+            !cargando && lugaresTuristicos.isEmpty() && todosLosComercios.isEmpty() ->
+                "No hay destinos turísticos ni comercios publicados para mostrar."
+            else -> null
+        }
+    }
+
+    private fun comercioALugar(comercio: Comercio): Lugar {
+        val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
+        val nombreMunicipio = municipio?.nombre?.ifBlank { null } ?: comercio.municipio
+        return Lugar(
+            id = "comercio:${comercio.id}",
+            nombre = comercio.nombre,
+            subtitulo = comercio.categoria.replaceFirstChar { it.uppercase() },
+            categoria = CategoriaLugar.TODOS,
+            ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
+            ubicacionCorta = comercio.direccion,
+            ubicacionLarga = nombreMunicipio,
+            calificacion = comercio.calificacionPromedio ?: 0.0,
+            cantidadResenas = comercio.cantidadResenas ?: 0,
+            historia = comercio.descripcion,
+            imagenPortadaUrl = comercio.imagenUrls.firstOrNull().orEmpty()
+        )
+    }
 
     val comerciosFiltrados: List<Comercio> by derivedStateOf {
         todosLosComercios.filter { comercio ->
-            textoBusqueda.isBlank() ||
-                comercio.nombre.contains(textoBusqueda, ignoreCase = true) ||
-                comercio.direccion.contains(textoBusqueda, ignoreCase = true) ||
-                comercio.categoria.contains(textoBusqueda, ignoreCase = true) ||
-                comercio.descripcion.contains(textoBusqueda, ignoreCase = true)
+            val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
+            coincideBusquedaMapa(
+                consulta = textoBusqueda,
+                comercio.nombre,
+                comercio.direccion,
+                comercio.categoria,
+                comercio.descripcion,
+                comercio.municipio,
+                comercio.lugarId,
+                nombreMunicipio
+            )
         }
     }
 
     val lugaresFiltrados: List<Lugar> by derivedStateOf {
         lugaresTuristicos.filter { lugar ->
-            textoBusqueda.isBlank() ||
-                lugar.nombre.contains(textoBusqueda, ignoreCase = true) ||
-                lugar.ubicacionCorta.contains(textoBusqueda, ignoreCase = true) ||
-                lugar.historia.contains(textoBusqueda, ignoreCase = true)
+            coincideBusquedaMapa(
+                consulta = textoBusqueda,
+                lugar.nombre,
+                lugar.subtitulo,
+                lugar.ubicacionCorta,
+                lugar.ubicacionLarga,
+                lugar.historia
+            )
+        }
+    }
+
+    val resultadosBusqueda: List<Lugar> by derivedStateOf {
+        if (textoBusqueda.isBlank()) {
+            emptyList()
+        } else {
+            val consulta = textoBusqueda
+            val destinosCoincidentes = lugaresTuristicos
+                .filter { esCoordenadaValida(it.ubicacionCoordenadas) }
+                .mapNotNull { lugar ->
+                    val relevancia = relevanciaBusquedaMapa(
+                        consulta = consulta,
+                        nombre = lugar.nombre,
+                        lugar.subtitulo,
+                        lugar.ubicacionCorta,
+                        lugar.ubicacionLarga,
+                        lugar.historia
+                    )
+                    if (relevancia == Int.MAX_VALUE) null else relevancia to lugar
+                }
+
+            val comerciosCoincidentes = todosLosComercios
+                .mapNotNull { comercio ->
+                    val marcador = comercioALugar(comercio)
+                    if (!esCoordenadaValida(marcador.ubicacionCoordenadas)) return@mapNotNull null
+                    val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
+                    val relevancia = relevanciaBusquedaMapa(
+                        consulta = consulta,
+                        nombre = comercio.nombre,
+                        comercio.categoria,
+                        comercio.direccion,
+                        comercio.municipio,
+                        nombreMunicipio,
+                        comercio.lugarId,
+                        comercio.descripcion
+                    )
+                    if (relevancia == Int.MAX_VALUE) null else relevancia to marcador
+                }
+
+            (comerciosCoincidentes + destinosCoincidentes)
+                .sortedWith(
+                    compareBy<Pair<Int, Lugar>> { it.first }
+                        .thenBy { !esMarcadorComercio(it.second) }
+                        .thenBy { normalizarTextoMapa(it.second.nombre) }
+                )
+                .map { it.second }
+                .take(MAX_SUGERENCIAS_BUSQUEDA)
         }
     }
 
     val lugaresParaElMapa: List<Lugar> by derivedStateOf {
         val lugaresDestino = if (filtroTipoMarcadores != "Comercios") lugaresFiltrados else emptyList()
         val lugaresComerciales = if (filtroTipoMarcadores != "Destinos") {
-            comerciosFiltrados.map { comercio ->
-                val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
-                Lugar(
-                    id = "comercio:${comercio.id}",
-                    nombre = comercio.nombre,
-                    subtitulo = comercio.categoria.replaceFirstChar { it.uppercase() },
-                    categoria = CategoriaLugar.TODOS,
-                    ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
-                    ubicacionCorta = comercio.direccion,
-                    ubicacionLarga = municipio?.nombre.orEmpty(),
-                    calificacion = comercio.calificacionPromedio ?: 0.0,
-                    cantidadResenas = comercio.cantidadResenas ?: 0,
-                    historia = comercio.descripcion,
-                    imagenPortadaUrl = comercio.imagenUrls.firstOrNull().orEmpty()
-                )
-            }
+            comerciosFiltrados.map(::comercioALugar)
         } else {
             emptyList()
         }
@@ -285,17 +206,69 @@ internal class MapaState(
 
     fun actualizarBusqueda(nuevoTexto: String) {
         textoBusqueda = nuevoTexto
+        mostrarSugerencias = nuevoTexto.isNotBlank()
         lugarSeleccionado = null
+        if (nuevoTexto.isBlank()) {
+            camaraLatObjetivo = null
+            camaraLngObjetivo = null
+            camaraZoomObjetivo = null
+        }
+    }
+
+    fun abrirSugerenciasSiHayTexto() {
+        if (textoBusqueda.isNotBlank()) {
+            mostrarSugerencias = true
+        }
+    }
+
+    fun seleccionarResultadoBusqueda(lugar: Lugar) {
+        if (esMarcadorComercio(lugar) && filtroTipoMarcadores == "Destinos") {
+            filtroTipoMarcadores = "Todos"
+        } else if (!esMarcadorComercio(lugar) && filtroTipoMarcadores == "Comercios") {
+            filtroTipoMarcadores = "Todos"
+        }
+
+        textoBusqueda = lugar.nombre
+        mostrarSugerencias = false
+
+        val marcadorEnMapa = lugaresParaElMapa.firstOrNull { it.id == lugar.id } ?: lugar
+        lugarSeleccionado = marcadorEnMapa
+        camaraLatObjetivo = marcadorEnMapa.ubicacionCoordenadas.latitud
+        camaraLngObjetivo = marcadorEnMapa.ubicacionCoordenadas.longitud
+        camaraZoomObjetivo = if (camaraZoomObjetivo == ZOOM_SELECCION_BUSQUEDA) {
+            ZOOM_SELECCION_BUSQUEDA_ALT
+        } else {
+            ZOOM_SELECCION_BUSQUEDA
+        }
+    }
+
+    fun buscarPrimerResultado() {
+        val primero = resultadosBusqueda.firstOrNull()
+        if (primero != null) {
+            seleccionarResultadoBusqueda(primero)
+        } else {
+            mostrarSugerencias = textoBusqueda.isNotBlank()
+        }
+    }
+
+    fun seleccionarMarcadorEnMapa(lugar: Lugar) {
+        mostrarSugerencias = false
+        lugarSeleccionado = lugar
     }
 
     fun limpiarBusqueda() {
         textoBusqueda = ""
+        mostrarSugerencias = false
         lugarSeleccionado = null
+        camaraLatObjetivo = null
+        camaraLngObjetivo = null
+        camaraZoomObjetivo = null
     }
 
     fun seleccionarFiltro(filtro: String) {
         filtroTipoMarcadores = filtro
         lugarSeleccionado = null
+        mostrarSugerencias = false
         mostrarMenuWaze = false
     }
 
@@ -313,39 +286,71 @@ internal class MapaState(
 @Composable
 internal fun rememberMapaState(
     latInicial: Double?,
-    lngInicial: Double?
+    lngInicial: Double?,
+    zoomInicial: Float?
 ): MapaState {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val state = remember { MapaState(coroutineScope, snackbarHostState) }
-
-    LaunchedEffect(state.intentoCarga) {
-        state.cargando = true
-        state.errorCarga = null
-        val erroresCarga = mutableListOf<String>()
-        try {
-            state.lugaresTuristicos = LugaresRepository.obtenerTodos()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            erroresCarga += error.message ?: "No se pudieron cargar los destinos turísticos."
-        }
-        try {
-            state.todosLosComercios = ComercioRepository.obtenerPublicados()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            erroresCarga += error.message ?: "No se pudieron cargar los comercios publicados."
-        }
-        state.municipiosMap = state.lugaresTuristicos.associateBy { it.id.trim() }
-        state.errorCarga = erroresCarga.takeIf { it.isNotEmpty() }?.joinToString("\n")
-        if (state.lugaresTuristicos.isEmpty() && state.todosLosComercios.isEmpty() && state.errorCarga == null) {
-            state.errorCarga = "No hay destinos turísticos ni comercios publicados para mostrar."
-        }
-        state.cargando = false
+    val state = remember {
+        MapaState(
+            latInicial = latInicial,
+            lngInicial = lngInicial,
+            zoomInicial = zoomInicial,
+            scope = coroutineScope,
+            snackbarHostState = snackbarHostState
+        )
     }
 
-    // 1. Detección y selección automática del municipio si se ingresa con coordenadas específicas
+    LaunchedEffect(latInicial, lngInicial, zoomInicial) {
+        state.camaraLatObjetivo = latInicial
+        state.camaraLngObjetivo = lngInicial
+        state.camaraZoomObjetivo = zoomInicial
+    }
+
+    LaunchedEffect(state.intentoCarga) {
+        state.lugaresCargados = false
+        state.errorLugares = null
+        try {
+            val lugares = LugaresRepository.obtenerTodos()
+            state.lugaresTuristicos = lugares
+            state.municipiosMap = lugares.associateBy { it.id.trim() }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            state.errorLugares = error.message ?: "No se pudieron cargar los destinos turísticos."
+        } finally {
+            state.lugaresCargados = true
+        }
+    }
+
+    LaunchedEffect(state.intentoCarga) {
+        state.comerciosCargados = false
+        state.errorComercios = null
+        try {
+            ComercioRepository.observarPublicados().collect { comercios ->
+                state.todosLosComercios = comercios
+                state.errorComercios = null
+                state.comerciosCargados = true
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            try {
+                state.todosLosComercios = ComercioRepository.obtenerPublicados()
+                state.errorComercios = null
+            } catch (fallbackError: CancellationException) {
+                throw fallbackError
+            } catch (fallbackError: Exception) {
+                state.errorComercios = fallbackError.message
+                    ?: error.message
+                    ?: "No se pudieron cargar los comercios publicados."
+            } finally {
+                state.comerciosCargados = true
+            }
+        }
+    }
+
+    // Detección y selección automática del municipio si se ingresa con coordenadas específicas
     LaunchedEffect(latInicial, lngInicial, state.lugaresTuristicos) {
         if (latInicial != null && lngInicial != null && state.lugaresTuristicos.isNotEmpty()) {
             val lugarCoincidente = state.lugaresTuristicos.minByOrNull { lugar ->

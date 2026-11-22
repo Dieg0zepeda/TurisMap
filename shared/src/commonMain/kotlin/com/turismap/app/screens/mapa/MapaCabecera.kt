@@ -2,117 +2,93 @@ package com.turismap.app.screens.mapa
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.FondoBlancoAdaptable
-import com.turismap.app.theme.VerdeTextoAdaptable
 
 @Composable
 internal fun CabeceraMapa(
     textoBusqueda: String,
+    resultadosBusqueda: List<Lugar>,
+    mostrarSugerencias: Boolean,
     filtroTipoMarcadores: String,
     cantidadLugaresEnMapa: Int,
     paleta: MapaPaleta,
     onBusquedaChange: (String) -> Unit,
+    onFocoBusqueda: () -> Unit,
+    onSeleccionarResultado: (Lugar) -> Unit,
+    onBuscarAccionTeclado: () -> Unit,
     onLimpiarBusqueda: () -> Unit,
     onAbrirMenuCapas: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val mostrarListaSugerencias = mostrarSugerencias && textoBusqueda.isNotBlank()
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 10.dp)
+            .padding(top = 12.dp)
     ) {
-        Row(
+        // Barra de búsqueda superior a todo lo ancho en una sola línea
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = FondoBlancoAdaptable,
+            shadowElevation = 5.dp,
+            border = BorderStroke(1.dp, paleta.airbnbBorde),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "TURISMAP",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = VerdeTextoAdaptable,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "Mapa",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = paleta.airbnbOscuro
-                )
-            }
-
-            Surface(
-                shape = CircleShape,
-                color = paleta.turismapPrimario,
-                shadowElevation = 3.dp,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Perfil",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Buscador + Botón de Menú lateral estilo Waze
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 16.dp)
+                .height(52.dp)
         ) {
             Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 50.dp)
-                    .shadow(4.dp, RoundedCornerShape(26.dp))
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(FondoBlancoAdaptable)
-                    .border(1.dp, paleta.airbnbBorde, RoundedCornerShape(26.dp))
+                    .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -120,85 +96,253 @@ internal fun CabeceraMapa(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Buscar",
                     tint = paleta.airbnbOscuro,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                TextField(
-                    value = textoBusqueda,
-                    onValueChange = onBusquedaChange,
-                    placeholder = {
-                        Text(
-                            "Buscar destinos y comercios...",
-                            color = paleta.airbnbGris,
-                            fontSize = 13.sp
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = textoBusqueda,
+                        onValueChange = onBusquedaChange,
+                        singleLine = true,
+                        maxLines = 1,
+                        textStyle = TextStyle(
+                            color = paleta.airbnbOscuro,
+                            fontSize = 14.5.sp
+                        ),
+                        cursorBrush = SolidColor(paleta.turismapPrimario),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                onBuscarAccionTeclado()
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { estadoFoco ->
+                                if (estadoFoco.isFocused) {
+                                    onFocoBusqueda()
+                                }
+                            },
+                        decorationBox = { innerTextField ->
+                            if (textoBusqueda.isEmpty()) {
+                                Text(
+                                    text = "Buscar destinos y comercios...",
+                                    color = paleta.airbnbGris,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
                 if (textoBusqueda.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     IconButton(
-                        onClick = onLimpiarBusqueda,
-                        modifier = Modifier.size(24.dp)
+                        onClick = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                            onLimpiarBusqueda()
+                        },
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Limpiar",
+                            contentDescription = "Limpiar búsqueda",
                             tint = paleta.airbnbGris,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
+        }
 
-            Surface(
-                onClick = onAbrirMenuCapas,
-                shape = RoundedCornerShape(16.dp),
-                color = FondoBlancoAdaptable,
-                shadowElevation = 5.dp,
-                border = BorderStroke(1.dp, paleta.airbnbBorde),
-                modifier = Modifier.size(50.dp)
+        if (mostrarListaSugerencias) {
+            Spacer(modifier = Modifier.height(8.dp))
+            ListaSugerenciasMapa(
+                textoBusqueda = textoBusqueda,
+                resultados = resultadosBusqueda,
+                paleta = paleta,
+                onSeleccionar = { lugar ->
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    onSeleccionarResultado(lugar)
+                }
+            )
+        } else {
+            // Fila de controles bajo la barra: espacio izquierdo completamente libre
+            // (sin fondo ni interceptores de toque) para la brújula nativa de Google Maps.
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 72.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Opciones y Capas del Mapa",
-                        tint = paleta.airbnbOscuro,
-                        modifier = Modifier.size(24.dp)
-                    )
+                if (filtroTipoMarcadores != "Todos") {
+                    Surface(
+                        onClick = onAbrirMenuCapas,
+                        shape = RoundedCornerShape(20.dp),
+                        color = paleta.turismapPrimario,
+                        shadowElevation = 3.dp
+                    ) {
+                        Text(
+                            text = "$filtroTipoMarcadores ($cantidadLugaresEnMapa) ▾",
+                            color = Color.White,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                Surface(
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        onAbrirMenuCapas()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = FondoBlancoAdaptable,
+                    shadowElevation = 5.dp,
+                    border = BorderStroke(1.dp, paleta.airbnbBorde),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Opciones y Capas del Mapa",
+                            tint = paleta.airbnbOscuro,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
-        // Píldora de capa activa
-        if (filtroTipoMarcadores != "Todos") {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
+@Composable
+private fun ListaSugerenciasMapa(
+    textoBusqueda: String,
+    resultados: List<Lugar>,
+    paleta: MapaPaleta,
+    onSeleccionar: (Lugar) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = FondoBlancoAdaptable,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, paleta.airbnbBorde),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        if (resultados.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
-                Surface(
-                    onClick = onAbrirMenuCapas,
-                    shape = RoundedCornerShape(20.dp),
-                    color = paleta.turismapPrimario,
-                    shadowElevation = 2.dp
-                ) {
+                Text(
+                    text = "Sin resultados para «${textoBusqueda.trim()}»",
+                    color = paleta.airbnbOscuro,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Prueba con el nombre del comercio, categoría o municipio.",
+                    color = paleta.airbnbGris,
+                    fontSize = 12.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 264.dp)
+            ) {
+                itemsIndexed(
+                    items = resultados,
+                    key = { _, lugar -> lugar.id }
+                ) { indice, lugar ->
+                    val esComercio = esMarcadorComercio(lugar)
+                    val detalleSecundario = if (esComercio) {
+                        listOf(
+                            lugar.subtitulo.ifBlank { "Comercio" },
+                            lugar.ubicacionLarga.ifBlank { lugar.ubicacionCorta }
+                        ).filter(String::isNotBlank).joinToString(" · ")
+                    } else {
+                        listOf("Destino turístico", lugar.ubicacionCorta)
+                            .filter(String::isNotBlank)
+                            .joinToString(" · ")
+                    }
+
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSeleccionar(lugar) }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Capa activa: $filtroTipoMarcadores ($cantidadLugaresEnMapa) ▾",
-                            color = Color.White,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(
+                                    color = if (esComercio) {
+                                        paleta.turismapAcento.copy(alpha = 0.16f)
+                                    } else {
+                                        paleta.turismapPrimario.copy(alpha = 0.14f)
+                                    },
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (esComercio) Icons.Default.Store else Icons.Default.Place,
+                                contentDescription = if (esComercio) "Comercio" else "Destino",
+                                tint = if (esComercio) paleta.turismapAcento else paleta.turismapPrimario,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = lugar.nombre,
+                                color = paleta.airbnbOscuro,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (detalleSecundario.isNotBlank()) {
+                                Text(
+                                    text = detalleSecundario,
+                                    color = paleta.airbnbGris,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    if (indice < resultados.lastIndex) {
+                        HorizontalDivider(
+                            color = paleta.airbnbBorde,
+                            thickness = 0.7.dp,
+                            modifier = Modifier.padding(horizontal = 14.dp)
                         )
                     }
                 }

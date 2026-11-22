@@ -11,6 +11,8 @@ import dev.gitlive.firebase.firestore.Timestamp
 import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -84,6 +86,7 @@ data class Comercio(
     @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,
     val actualizadoEn: Timestamp? = null,
+    @Transient val municipio: String = "",
     @Transient val coordenadas: Coordenada? = null,
     @Transient val ubicacionCoordenadas: Coordenada? = null,
     @Transient val latitud: Double? = null,
@@ -242,18 +245,43 @@ object ComercioRepository {
     private fun DocumentSnapshot.aComercio(): Comercio =
         data(Comercio.serializer()).copy(
             id = id,
+            municipio = leerCampoSeguro<String>("municipio").orEmpty().trim(),
             coordenadas = extraerCoordenadaSegura("coordenadas"),
             ubicacionCoordenadas = extraerCoordenadaSegura("ubicacionCoordenadas"),
             latitud = leerDoubleSeguro("latitud"),
             longitud = leerDoubleSeguro("longitud")
         )
 
+    fun observarPublicados(): Flow<List<Comercio>> =
+        firestore.collection("comercios")
+            .where { "estado" equalTo "publicado" }
+            .snapshots
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { documento ->
+                    try {
+                        documento.aComercio()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
+
     suspend fun obtenerPublicados(): List<Comercio> =
         firestore.collection("comercios")
             .where { "estado" equalTo "publicado" }
             .get()
             .documents
-            .map { documento -> documento.aComercio() }
+            .mapNotNull { documento ->
+                try {
+                    documento.aComercio()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    null
+                }
+            }
 
     suspend fun obtenerDestacados(): List<Comercio> =
         firestore.collection("comercios")
