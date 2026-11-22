@@ -17,9 +17,14 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.data.repository.esCoordenadaValida
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.round
+import kotlin.math.sin
 
 // Paleta corporativa TurisMap
 internal data class MapaPaleta(
@@ -44,28 +49,142 @@ internal fun rememberMapaPaleta(esOscuro: Boolean): MapaPaleta =
         )
     }
 
+private const val PRECISION_COLISION_COORDENADAS = 20_000.0 // ~5.5 m
+private const val RADIO_BASE_ANILLO_GRADOS = 0.00055 // ~61 m
+private const val INCREMENTO_RADIO_ANILLO_GRADOS = 0.00050 // ~55 m por anillo adicional
+private const val CAPACIDAD_BASE_ANILLO = 8
+
+private fun normalizarTextoMapa(texto: String): String =
+    texto.trim().lowercase()
+        .replace('á', 'a')
+        .replace('é', 'e')
+        .replace('í', 'i')
+        .replace('ó', 'o')
+        .replace('ú', 'u')
+        .replace('ü', 'u')
+        .replace('ñ', 'n')
+
+private fun esMarcadorComercio(lugar: Lugar): Boolean =
+    lugar.id.startsWith("comercio:")
+
+internal fun buscarMunicipioDeComercio(
+    comercio: Comercio,
+    municipiosMap: Map<String, Lugar>
+): Lugar? {
+    val claveExacta = comercio.lugarId.trim()
+    if (claveExacta.isEmpty()) return null
+
+    municipiosMap[claveExacta]?.let { return it }
+
+    val claveNormalizada = normalizarTextoMapa(claveExacta)
+    return municipiosMap.values.firstOrNull { lugar ->
+        val idNorm = normalizarTextoMapa(lugar.id)
+        val nombreNorm = normalizarTextoMapa(lugar.nombre)
+        (idNorm.isNotEmpty() && (idNorm == claveNormalizada || claveNormalizada.contains(idNorm))) ||
+            (nombreNorm.isNotEmpty() && (nombreNorm == claveNormalizada || nombreNorm.contains(claveNormalizada)))
+    }
+}
+
 internal fun resolverCoordenadasComercio(
     comercio: Comercio,
     municipiosMap: Map<String, Lugar>
 ): Coordenada {
-    val municipio = municipiosMap[comercio.lugarId.trim()]
-    var lat = municipio?.ubicacionCoordenadas?.latitud ?: 0.0
-    var lng = municipio?.ubicacionCoordenadas?.longitud ?: 0.0
+    comercio.coordenadaPropiaValida()?.let { return it }
 
-    if (lat == 0.0 || lng == 0.0) {
-        val ref = (municipio?.nombre ?: "") + " " + comercio.direccion
-        when {
-            ref.contains("Refugio", ignoreCase = true) -> { lat = 13.9744; lng = -89.7719 }
-            ref.contains("Apaneca", ignoreCase = true) -> { lat = 13.8569; lng = -89.8028 }
-            ref.contains("Ataco", ignoreCase = true) -> { lat = 13.8703; lng = -89.8486 }
-            ref.contains("Juayúa", ignoreCase = true) || ref.contains("Juayua", ignoreCase = true) -> { lat = 13.8417; lng = -89.7456 }
-            ref.contains("Salcoatitán", ignoreCase = true) || ref.contains("Salcoatitan", ignoreCase = true) -> { lat = 13.8306; lng = -89.7547 }
-            ref.contains("Nahuizalco", ignoreCase = true) -> { lat = 13.7778; lng = -89.7361 }
-            else -> { lat = 0.0; lng = 0.0 }
+    val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
+    val coordenadaMunicipio = municipio?.ubicacionCoordenadas
+    if (coordenadaMunicipio != null && esCoordenadaValida(coordenadaMunicipio)) {
+        return coordenadaMunicipio
+    }
+
+    val ref = normalizarTextoMapa(
+        listOf(municipio?.nombre.orEmpty(), comercio.lugarId, comercio.direccion).joinToString(" ")
+    )
+    return when {
+        ref.contains("refugio") -> Coordenada(13.9744, -89.7719)
+        ref.contains("apaneca") -> Coordenada(13.8569, -89.8028)
+        ref.contains("ataco") -> Coordenada(13.8703, -89.8486)
+        ref.contains("juayua") -> Coordenada(13.8417, -89.7456)
+        ref.contains("salcoatitan") -> Coordenada(13.8306, -89.7547)
+        ref.contains("nahuizalco") -> Coordenada(13.7778, -89.7361)
+        ref.contains("ahuachapan") -> Coordenada(13.9214, -89.8450)
+        ref.contains("tacuba") -> Coordenada(13.9000, -89.9333)
+        else -> Coordenada(0.0, 0.0)
+    }
+}
+
+private fun desplazarEnAnillo(
+    base: Coordenada,
+    indiceEnGrupo: Int,
+    totalEnGrupo: Int
+): Coordenada {
+    var restante = indiceEnGrupo
+    var anillo = 0
+    var capacidadAnillo = CAPACIDAD_BASE_ANILLO
+    var procesadosAntes = 0
+
+    while (restante >= capacidadAnillo) {
+        restante -= capacidadAnillo
+        procesadosAntes += capacidadAnillo
+        anillo++
+        capacidadAnillo = CAPACIDAD_BASE_ANILLO + anillo * 4
+    }
+
+    val cantidadEnEsteAnillo = minOf(capacidadAnillo, totalEnGrupo - procesadosAntes).coerceAtLeast(1)
+    val radio = RADIO_BASE_ANILLO_GRADOS + anillo * INCREMENTO_RADIO_ANILLO_GRADOS
+    val desfaseAngular = (PI / 4.0) + (anillo * (PI / cantidadEnEsteAnillo))
+    val angulo = desfaseAngular + (2.0 * PI * restante / cantidadEnEsteAnillo)
+    val factorCosLat = cos(base.latitud * PI / 180.0).coerceAtLeast(0.2)
+
+    val nuevaLat = (base.latitud + radio * sin(angulo)).coerceIn(-90.0, 90.0)
+    val nuevaLng = (base.longitud + (radio * cos(angulo)) / factorCosLat).coerceIn(-180.0, 180.0)
+    return Coordenada(latitud = nuevaLat, longitud = nuevaLng)
+}
+
+internal fun separarCoordenadasSuperpuestas(lugares: List<Lugar>): List<Lugar> {
+    if (lugares.size <= 1) return lugares
+
+    val gruposPorPosicion = lugares.withIndex().groupBy { (_, lugar) ->
+        Pair(
+            round(lugar.ubicacionCoordenadas.latitud * PRECISION_COLISION_COORDENADAS).toLong(),
+            round(lugar.ubicacionCoordenadas.longitud * PRECISION_COLISION_COORDENADAS).toLong()
+        )
+    }
+
+    val resultado = lugares.toMutableList()
+
+    gruposPorPosicion.values.forEach { grupo ->
+        if (grupo.size <= 1) return@forEach
+
+        val destinosOrdenados = grupo.filterNot { esMarcadorComercio(it.value) }.sortedBy { it.value.id }
+        val comerciosOrdenados = grupo.filter { esMarcadorComercio(it.value) }.sortedBy { it.value.id }
+
+        if (destinosOrdenados.isNotEmpty()) {
+            // El destino/municipio principal permanece fijo en su coordenada original
+            val centroAncla = destinosOrdenados.first().value.ubicacionCoordenadas
+            val elementosADistribuir = comerciosOrdenados + destinosOrdenados.drop(1)
+            elementosADistribuir.forEachIndexed { posicion, item ->
+                val coordenadaSeparada = desplazarEnAnillo(
+                    base = centroAncla,
+                    indiceEnGrupo = posicion,
+                    totalEnGrupo = elementosADistribuir.size
+                )
+                resultado[item.index] = item.value.copy(ubicacionCoordenadas = coordenadaSeparada)
+            }
+        } else if (comerciosOrdenados.size > 1) {
+            val centroBase = comerciosOrdenados.first().value.ubicacionCoordenadas
+            comerciosOrdenados.forEachIndexed { posicion, item ->
+                val coordenadaSeparada = desplazarEnAnillo(
+                    base = centroBase,
+                    indiceEnGrupo = posicion,
+                    totalEnGrupo = comerciosOrdenados.size
+                )
+                resultado[item.index] = item.value.copy(ubicacionCoordenadas = coordenadaSeparada)
+            }
         }
     }
 
-    return Coordenada(latitud = lat, longitud = lng)
+    return resultado
 }
 
 internal fun codificarParametroMaps(valor: String): String =
@@ -133,7 +252,7 @@ internal class MapaState(
         val lugaresDestino = if (filtroTipoMarcadores != "Comercios") lugaresFiltrados else emptyList()
         val lugaresComerciales = if (filtroTipoMarcadores != "Destinos") {
             comerciosFiltrados.map { comercio ->
-                val municipio = municipiosMap[comercio.lugarId.trim()]
+                val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
                 Lugar(
                     id = "comercio:${comercio.id}",
                     nombre = comercio.nombre,
@@ -151,9 +270,10 @@ internal class MapaState(
         } else {
             emptyList()
         }
-        (lugaresDestino + lugaresComerciales).filter {
-            it.ubicacionCoordenadas.latitud != 0.0 && it.ubicacionCoordenadas.longitud != 0.0
+        val conUbicacionValida = (lugaresDestino + lugaresComerciales).filter {
+            esCoordenadaValida(it.ubicacionCoordenadas)
         }
+        separarCoordenadasSuperpuestas(conUbicacionValida)
     }
 
     val comercioSeleccionado: Comercio? by derivedStateOf {

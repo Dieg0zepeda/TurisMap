@@ -4,15 +4,60 @@ import com.turismap.app.data.models.CategoriaComercio
 import com.turismap.app.data.models.Coordenada
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldValue
+import dev.gitlive.firebase.firestore.GeoPoint
 import dev.gitlive.firebase.firestore.Timestamp
 import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.firestore.where
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
+
+internal fun esCoordenadaValida(coordenada: Coordenada): Boolean =
+    coordenada.latitud.isFinite() &&
+        coordenada.longitud.isFinite() &&
+        coordenada.latitud in -90.0..90.0 &&
+        coordenada.longitud in -180.0..180.0 &&
+        coordenada.latitud != 0.0 &&
+        coordenada.longitud != 0.0
+
+internal fun parsearCoordenadaDesdeTexto(texto: String): Coordenada? {
+    val limpio = texto.trim()
+    if (limpio.isEmpty()) return null
+    val partes = when {
+        limpio.contains(",") -> limpio.split(",")
+        limpio.contains(";") -> limpio.split(";")
+        else -> return null
+    }
+    if (partes.size != 2) return null
+    val lat = partes[0].trim().toDoubleOrNull() ?: return null
+    val lng = partes[1].trim().toDoubleOrNull() ?: return null
+    return Coordenada(latitud = lat, longitud = lng).takeIf(::esCoordenadaValida)
+}
+
+@Serializable
+private data class CoordenadaMapaNumerico(
+    val latitud: Double? = null,
+    val longitud: Double? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)
+
+@Serializable
+private data class CoordenadaMapaTexto(
+    val latitud: String? = null,
+    val longitud: String? = null,
+    val lat: String? = null,
+    val lng: String? = null,
+    val latitude: String? = null,
+    val longitude: String? = null
+)
 
 @Serializable
 data class Comercio(
@@ -38,7 +83,11 @@ data class Comercio(
     @SerialName("calificacionPromedio") val calificacionPromedio: Double? = 0.0,
     @SerialName("cantidadResenas") val cantidadResenas: Int? = 0,
     val creadoEn: Timestamp? = null,
-    val actualizadoEn: Timestamp? = null
+    val actualizadoEn: Timestamp? = null,
+    @Transient val coordenadas: Coordenada? = null,
+    @Transient val ubicacionCoordenadas: Coordenada? = null,
+    @Transient val latitud: Double? = null,
+    @Transient val longitud: Double? = null
 ) {
     // Identificador unificado tolerante a cualquier nombre de campo en Firestore
     val planClave: String
@@ -68,6 +117,13 @@ data class Comercio(
             2 -> 4
             else -> 2
         }
+
+    fun coordenadaPropiaValida(): Coordenada? =
+        listOfNotNull(
+            coordenadas,
+            ubicacionCoordenadas,
+            if (latitud != null && longitud != null) Coordenada(latitud, longitud) else null
+        ).firstOrNull(::esCoordenadaValida)
 }
 
 @Serializable
@@ -142,28 +198,74 @@ object ComercioRepository {
             .filter { it.etiqueta.isNotBlank() }
             .sortedBy(CategoriaComercio::orden)
 
+    private inline fun <reified T : Any> DocumentSnapshot.leerCampoSeguro(campo: String): T? =
+        try {
+            get<T>(campo)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
+
+    private fun DocumentSnapshot.leerDoubleSeguro(campo: String): Double? =
+        leerCampoSeguro<Double>(campo)?.takeIf(Double::isFinite)
+            ?: leerCampoSeguro<Long>(campo)?.toDouble()
+            ?: leerCampoSeguro<Int>(campo)?.toDouble()
+            ?: leerCampoSeguro<String>(campo)?.trim()?.replace(",", ".")?.toDoubleOrNull()?.takeIf(Double::isFinite)
+
+    private fun DocumentSnapshot.extraerCoordenadaSegura(campo: String): Coordenada? {
+        leerCampoSeguro<CoordenadaMapaNumerico>(campo)?.let { mapa ->
+            val lat = mapa.latitud ?: mapa.lat ?: mapa.latitude
+            val lng = mapa.longitud ?: mapa.lng ?: mapa.longitude
+            if (lat != null && lng != null) {
+                Coordenada(latitud = lat, longitud = lng).takeIf(::esCoordenadaValida)?.let { return it }
+            }
+        }
+        leerCampoSeguro<GeoPoint>(campo)?.let { punto ->
+            Coordenada(latitud = punto.latitude, longitud = punto.longitude)
+                .takeIf(::esCoordenadaValida)
+                ?.let { return it }
+        }
+        leerCampoSeguro<CoordenadaMapaTexto>(campo)?.let { mapa ->
+            val lat = (mapa.latitud ?: mapa.lat ?: mapa.latitude)?.trim()?.replace(",", ".")?.toDoubleOrNull()
+            val lng = (mapa.longitud ?: mapa.lng ?: mapa.longitude)?.trim()?.replace(",", ".")?.toDoubleOrNull()
+            if (lat != null && lng != null) {
+                Coordenada(latitud = lat, longitud = lng).takeIf(::esCoordenadaValida)?.let { return it }
+            }
+        }
+        leerCampoSeguro<String>(campo)?.let { texto ->
+            parsearCoordenadaDesdeTexto(texto)?.let { return it }
+        }
+        return null
+    }
+
+    private fun DocumentSnapshot.aComercio(): Comercio =
+        data(Comercio.serializer()).copy(
+            id = id,
+            coordenadas = extraerCoordenadaSegura("coordenadas"),
+            ubicacionCoordenadas = extraerCoordenadaSegura("ubicacionCoordenadas"),
+            latitud = leerDoubleSeguro("latitud"),
+            longitud = leerDoubleSeguro("longitud")
+        )
+
     suspend fun obtenerPublicados(): List<Comercio> =
         firestore.collection("comercios")
             .where { "estado" equalTo "publicado" }
             .get()
             .documents
-            .map { documento ->
-                documento.data(Comercio.serializer()).copy(id = documento.id)
-            }
+            .map { documento -> documento.aComercio() }
 
     suspend fun obtenerDestacados(): List<Comercio> =
         firestore.collection("comercios")
             .where { "estado" equalTo "publicado" }
             .get()
             .documents
-            .map { documento ->
-                documento.data(Comercio.serializer()).copy(id = documento.id)
-            }
+            .map { documento -> documento.aComercio() }
             .filter { it.destacado }
 
     suspend fun obtenerPorId(id: String): Comercio? {
         val documento = firestore.collection("comercios").document(id).get()
-        return if (documento.exists) documento.data(Comercio.serializer()).copy(id = documento.id) else null
+        return if (documento.exists) documento.aComercio() else null
     }
 
     suspend fun enviarSolicitud(

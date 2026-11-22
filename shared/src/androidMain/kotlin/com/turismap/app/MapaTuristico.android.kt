@@ -74,9 +74,10 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.turismap.app.data.models.Lugar
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-class LugarClusterItem(val lugar: Lugar) : ClusterItem {
+data class LugarClusterItem(val lugar: Lugar) : ClusterItem {
     override fun getPosition(): LatLng = LatLng(lugar.ubicacionCoordenadas.latitud, lugar.ubicacionCoordenadas.longitud)
     override fun getTitle(): String = lugar.nombre
     override fun getSnippet(): String = lugar.subtitulo
@@ -287,6 +288,43 @@ actual fun MapaTuristico(
 
         Clustering(
             items = clusterItems,
+            onClusterClick = { cluster ->
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                coroutineScope.launch {
+                    val posicionesDistintas = cluster.items.map { it.position }.distinct()
+                    val animarPorZoom: suspend () -> Unit = {
+                        val nuevoZoom = (cameraPositionState.position.zoom + 2.2f).coerceAtMost(19f)
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.Builder()
+                                    .target(cluster.position)
+                                    .zoom(nuevoZoom)
+                                    .tilt(cameraPositionState.position.tilt)
+                                    .bearing(cameraPositionState.position.bearing)
+                                    .build()
+                            ),
+                            durationMs = 500
+                        )
+                    }
+                    if (posicionesDistintas.size > 1 && cameraPositionState.position.zoom < 17f) {
+                        val limitesBuilder = LatLngBounds.Builder()
+                        posicionesDistintas.forEach { limitesBuilder.include(it) }
+                        try {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngBounds(limitesBuilder.build(), 140),
+                                durationMs = 500
+                            )
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (_: IllegalStateException) {
+                            animarPorZoom()
+                        }
+                    } else {
+                        animarPorZoom()
+                    }
+                }
+                true
+            },
             onClusterItemClick = { item ->
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
 
@@ -305,6 +343,22 @@ actual fun MapaTuristico(
                     )
                 }
                 true
+            },
+            clusterContent = { cluster ->
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .shadow(6.dp, CircleShape)
+                        .border(3.dp, Color.White, CircleShape)
+                        .background(Color(0xFF1B4934), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = cluster.size.toString(),
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             },
             clusterItemContent = { item ->
                 val esComercio = item.lugar.id.startsWith("comercio:")
