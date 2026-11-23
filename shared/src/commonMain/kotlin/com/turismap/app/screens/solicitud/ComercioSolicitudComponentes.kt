@@ -1,54 +1,63 @@
 package com.turismap.app.screens.solicitud
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.theme.FondoBlancoAdaptable
+import com.turismap.app.theme.GrisBorde
+import com.turismap.app.theme.GrisTextoSecundario
+import com.turismap.app.theme.TerracotaTextoAdaptable
+import com.turismap.app.theme.TextoPrincipalOscuro
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_reintentar
-import turismap.shared.generated.resources.comercio_btn_aplicar_horario
-import turismap.shared.generated.resources.comercio_btn_horario_manual
-import turismap.shared.generated.resources.comercio_btn_horario_por_dias
-import turismap.shared.generated.resources.comercio_horario_abre
-import turismap.shared.generated.resources.comercio_horario_cierra
-import turismap.shared.generated.resources.comercio_horario_conector_a
-import turismap.shared.generated.resources.comercio_label_horario_atencion
-import turismap.shared.generated.resources.comercio_label_horario_manual
+import turismap.shared.generated.resources.comercio_btn_cambiar_plan
+import turismap.shared.generated.resources.comercio_btn_enviar_solicitud
+import turismap.shared.generated.resources.comercio_btn_volver_planes
 import turismap.shared.generated.resources.comercio_plan_desc_basico
 import turismap.shared.generated.resources.comercio_plan_desc_crecimiento
 import turismap.shared.generated.resources.comercio_plan_desc_vip
 import turismap.shared.generated.resources.comercio_plan_seleccionado_fallback
+
+private val VerdeAcentoOscuro = Color(0xFF6FCF97)
+private val VerdeAcentoClaro = Color(0xFF1B4934)
+private val AmbarAcentoOscuro = Color(0xFFE9C46A)
+private val AmbarAcentoClaro = Color(0xFF9A6700)
+
+private fun formatearPrecioCompacto(precioRaw: String): String {
+    val partes = precioRaw.split("/").map(String::trim)
+    val montoYMoneda = partes.firstOrNull().orEmpty()
+    val periodicidad = partes.getOrNull(1)?.lowercase().orEmpty()
+    val tokens = montoYMoneda.split(" ").filter(String::isNotBlank)
+    val montoCompacto = if (tokens.size == 2 && tokens[1].equals("USD", ignoreCase = true)) {
+        "$${tokens[0]}"
+    } else {
+        montoYMoneda
+    }
+    return if (periodicidad.isNotBlank()) "$montoCompacto / $periodicidad" else montoCompacto
+}
 
 @Composable
 internal fun TarjetaResumenPlan(
@@ -56,226 +65,161 @@ internal fun TarjetaResumenPlan(
     planPrecio: String?,
     esPremium: Boolean,
     esSocio: Boolean,
-    cargandoPlan: Boolean,
-    planError: String?,
-    onReintentar: () -> Unit
+    habilitarCambiar: Boolean,
+    onCambiarPlan: () -> Unit
 ) {
-    Card(
+    val esModoOscuro = isSystemInDarkTheme()
+    val precioCompacto = remember(planPrecio) { planPrecio?.let(::formatearPrecioCompacto) }
+    val colorAcento = when {
+        esPremium -> if (esModoOscuro) AmbarAcentoOscuro else AmbarAcentoClaro
+        esSocio -> if (esModoOscuro) VerdeAcentoOscuro else VerdeAcentoClaro
+        else -> TextoPrincipalOscuro
+    }
+    val colorBorde = if (esPremium || esSocio) {
+        colorAcento.copy(alpha = if (esModoOscuro) 0.45f else 0.35f)
+    } else {
+        GrisBorde
+    }
+    val colorPillFondo = if (esPremium || esSocio) {
+        colorAcento.copy(alpha = if (esModoOscuro) 0.16f else 0.11f)
+    } else {
+        GrisBorde.copy(alpha = if (esModoOscuro) 0.55f else 0.60f)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                esPremium -> Color(0xFFFEF3C7)
-                esSocio -> Color(0xFFEEF2FF)
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
-        modifier = Modifier.fillMaxWidth()
+        color = FondoBlancoAdaptable,
+        border = BorderStroke(1.dp, colorBorde)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     text = planNombre.ifBlank { stringResource(Res.string.comercio_plan_seleccionado_fallback) },
                     fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    color = when {
-                        esPremium -> Color(0xFF92400E)
-                        esSocio -> Color(0xFF3730A3)
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    fontSize = 16.sp,
+                    color = TextoPrincipalOscuro,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                planPrecio?.let {
-                    Text(
-                        text = it,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.sp,
-                        color = when {
-                            esPremium -> Color(0xFFB45309)
-                            esSocio -> Color(0xFF4F46E5)
-                            else -> MaterialTheme.colorScheme.primary
+                Text(
+                    text = stringResource(
+                        when {
+                            esPremium -> Res.string.comercio_plan_desc_vip
+                            esSocio -> Res.string.comercio_plan_desc_crecimiento
+                            else -> Res.string.comercio_plan_desc_basico
                         }
-                    )
-                }
+                    ),
+                    fontSize = 12.5.sp,
+                    color = GrisTextoSecundario,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(
-                    when {
-                        esPremium -> Res.string.comercio_plan_desc_vip
-                        esSocio -> Res.string.comercio_plan_desc_crecimiento
-                        else -> Res.string.comercio_plan_desc_basico
-                    }
-                ),
-                fontSize = 12.5.sp,
-                color = Color(0xFF475569)
-            )
-        }
-    }
 
-    if (cargandoPlan) {
-        CircularProgressIndicator(modifier = Modifier.padding(vertical = 4.dp))
-    } else {
-        planError?.let { errorPlan ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(errorPlan, color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = onReintentar) {
-                    Text(stringResource(Res.string.btn_reintentar))
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                precioCompacto?.let { precio ->
+                    Surface(shape = RoundedCornerShape(20.dp), color = colorPillFondo) {
+                        Text(
+                            text = precio,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp,
+                            color = colorAcento,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
+                Text(
+                    text = stringResource(Res.string.comercio_btn_cambiar_plan),
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (habilitarCambiar) TerracotaTextoAdaptable else GrisTextoSecundario,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = habilitarCambiar, role = Role.Button, onClick = onCambiarPlan)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-internal fun <T> SelectorDropdownSolicitud(
+internal fun TarjetaSeccionSolicitud(
+    titulo: String,
+    icono: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colorAcento = if (isSystemInDarkTheme()) VerdeAcentoOscuro else VerdeAcentoClaro
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = FondoBlancoAdaptable,
+        border = BorderStroke(1.dp, GrisBorde)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(imageVector = icono, contentDescription = null, tint = colorAcento, modifier = Modifier.size(18.dp))
+                Text(text = titulo, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
+            }
+            HorizontalDivider(color = GrisBorde.copy(alpha = 0.65f), thickness = 1.dp)
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun CampoSelectorSolicitud(
     valorMostrar: String,
     etiqueta: String,
     descripcionBoton: String,
-    expandido: Boolean,
-    cargando: Boolean,
+    iconoInicio: ImageVector,
+    habilitado: Boolean,
     error: String?,
-    opciones: List<T>,
-    etiquetaOpcion: (T) -> String,
-    onAbrir: () -> Unit,
-    onCerrar: () -> Unit,
-    onSeleccionar: (T) -> Unit
+    onAbrir: () -> Unit
 ) {
-    Column {
-        Box {
+    val textoColor = if (habilitado) TextoPrincipalOscuro else GrisTextoSecundario
+    val bordeColor = if (error != null) MaterialTheme.colorScheme.error else GrisBorde
+    val iconoColor = if (error != null) MaterialTheme.colorScheme.error else GrisTextoSecundario
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(enabled = habilitado, role = Role.Button, onClickLabel = descripcionBoton, onClick = onAbrir)
+        ) {
             OutlinedTextField(
                 value = valorMostrar,
                 onValueChange = {},
                 readOnly = true,
+                enabled = false,
+                singleLine = true,
                 label = { Text(etiqueta) },
-                trailingIcon = {
-                    IconButton(
-                        onClick = onAbrir,
-                        enabled = !cargando && error == null && opciones.isNotEmpty()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = descripcionBoton
-                        )
-                    }
-                },
+                leadingIcon = { Icon(iconoInicio, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = descripcionBoton, modifier = Modifier.size(22.dp)) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = textoColor,
+                    disabledBorderColor = bordeColor,
+                    disabledLabelColor = if (error != null) MaterialTheme.colorScheme.error else GrisTextoSecundario,
+                    disabledLeadingIconColor = iconoColor,
+                    disabledTrailingIconColor = if (habilitado) TextoPrincipalOscuro else GrisTextoSecundario,
+                    disabledContainerColor = Color.Transparent
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
-            DropdownMenu(
-                expanded = expandido,
-                onDismissRequest = onCerrar,
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                opciones.forEach { opcion ->
-                    DropdownMenuItem(
-                        text = { Text(etiquetaOpcion(opcion)) },
-                        onClick = { onSeleccionar(opcion) }
-                    )
-                }
-            }
         }
-        if (cargando) {
-            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-        } else {
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
-            }
-        }
-    }
-}
-
-@Composable
-internal fun SeccionHorarioSolicitud(
-    horario: String,
-    mostrarHorarioDetallado: Boolean,
-    diasSeleccionados: Set<DiaSemanaSolicitud>,
-    horariosPorDia: Map<DiaSemanaSolicitud, HorarioDia>,
-    onToggleModo: () -> Unit,
-    onHorarioManualChange: (String) -> Unit,
-    onToggleDia: (DiaSemanaSolicitud, Boolean) -> Unit,
-    onActualizarHorarioDia: (DiaSemanaSolicitud, HorarioDia) -> Unit,
-    onAplicarHorario: () -> Unit
-) {
-    Column {
-        Text(
-            stringResource(Res.string.comercio_label_horario_atencion),
-            style = MaterialTheme.typography.labelLarge
-        )
-        TextButton(onClick = onToggleModo) {
-            Text(
-                stringResource(
-                    if (mostrarHorarioDetallado) {
-                        Res.string.comercio_btn_horario_manual
-                    } else {
-                        Res.string.comercio_btn_horario_por_dias
-                    }
-                )
-            )
-        }
-        if (mostrarHorarioDetallado) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DiaSemanaSolicitud.entries.forEach { dia ->
-                    val seleccionado = diasSeleccionados.contains(dia)
-                    val horarioDia = horariosPorDia[dia] ?: HorarioDia()
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = seleccionado,
-                                onCheckedChange = { checked -> onToggleDia(dia, checked) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(dia.etiquetaRes))
-                        }
-                        if (seleccionado) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = horarioDia.apertura,
-                                    onValueChange = { nuevoValor ->
-                                        onActualizarHorarioDia(dia, horarioDia.copy(apertura = nuevoValor.take(12)))
-                                    },
-                                    label = { Text(stringResource(Res.string.comercio_horario_abre)) },
-                                    modifier = Modifier.width(90.dp),
-                                    singleLine = true
-                                )
-                                Text(stringResource(Res.string.comercio_horario_conector_a))
-                                OutlinedTextField(
-                                    value = horarioDia.cierre,
-                                    onValueChange = { nuevoValor ->
-                                        onActualizarHorarioDia(dia, horarioDia.copy(cierre = nuevoValor.take(12)))
-                                    },
-                                    label = { Text(stringResource(Res.string.comercio_horario_cierra)) },
-                                    modifier = Modifier.width(90.dp),
-                                    singleLine = true
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onAplicarHorario,
-                enabled = diasSeleccionados.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(Res.string.comercio_btn_aplicar_horario))
-            }
-        } else {
-            CampoSolicitud(
-                etiqueta = stringResource(Res.string.comercio_label_horario_manual),
-                valor = horario,
-                alCambiar = onHorarioManualChange
-            )
+        error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
         }
     }
 }
@@ -285,26 +229,152 @@ internal fun CampoSolicitud(
     etiqueta: String,
     valor: String,
     alCambiar: (String) -> Unit,
+    iconoInicio: ImageVector? = null,
     multilinea: Boolean = false,
     soloLectura: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
     esError: Boolean = false,
     textoAyuda: String? = null
 ) {
+    val esModoOscuro = isSystemInDarkTheme()
+    val colorFoco = if (esModoOscuro) VerdeAcentoOscuro else VerdeAcentoClaro
+    val fondoSoloLectura = if (soloLectura) GrisBorde.copy(alpha = if (esModoOscuro) 0.25f else 0.35f) else Color.Transparent
+
     OutlinedTextField(
         value = valor,
         onValueChange = alCambiar,
         label = { Text(etiqueta) },
+        leadingIcon = iconoInicio?.let { icono ->
+            { Icon(imageVector = icono, contentDescription = null, modifier = Modifier.size(20.dp)) }
+        },
+        trailingIcon = if (soloLectura) {
+            { Icon(Icons.Default.Lock, contentDescription = null, tint = GrisTextoSecundario, modifier = Modifier.size(16.dp)) }
+        } else null,
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
         readOnly = soloLectura,
         singleLine = !multilinea,
         minLines = if (multilinea) 3 else 1,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         isError = esError,
-        supportingText = if (textoAyuda != null) {
-            { Text(textoAyuda, color = MaterialTheme.colorScheme.error) }
-        } else {
-            null
-        }
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = colorFoco,
+            unfocusedBorderColor = GrisBorde,
+            focusedLabelColor = colorFoco,
+            unfocusedLabelColor = GrisTextoSecundario,
+            focusedLeadingIconColor = colorFoco,
+            unfocusedLeadingIconColor = GrisTextoSecundario,
+            focusedContainerColor = fondoSoloLectura,
+            unfocusedContainerColor = fondoSoloLectura,
+            focusedTextColor = TextoPrincipalOscuro,
+            unfocusedTextColor = if (soloLectura) GrisTextoSecundario else TextoPrincipalOscuro
+        ),
+        supportingText = textoAyuda?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
     )
+}
+
+@Composable
+internal fun BarraInferiorSolicitud(
+    enviando: Boolean,
+    solicitudEnviada: Boolean,
+    puedeEnviar: Boolean,
+    onEnviar: () -> Unit,
+    onVolverPlanes: () -> Unit
+) {
+    val colorBotonActivo = if (isSystemInDarkTheme()) Color(0xFF2E7D57) else VerdeAcentoClaro
+    Surface(color = FondoBlancoAdaptable, shadowElevation = 8.dp) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(color = GrisBorde, thickness = 1.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Button(
+                    onClick = if (solicitudEnviada) onVolverPlanes else onEnviar,
+                    enabled = if (solicitudEnviada) !enviando else puedeEnviar,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorBotonActivo,
+                        contentColor = Color.White,
+                        disabledContainerColor = GrisBorde,
+                        disabledContentColor = GrisTextoSecundario
+                    )
+                ) {
+                    if (enviando) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.5.dp, color = Color.White)
+                    } else {
+                        Text(
+                            text = stringResource(
+                                if (solicitudEnviada) Res.string.comercio_btn_volver_planes else Res.string.comercio_btn_enviar_solicitud
+                            ),
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun BannerErrorCargaSolicitud(mensaje: String, onReintentar: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.error.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            Text(mensaje, color = MaterialTheme.colorScheme.error, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            TextButton(onClick = onReintentar) {
+                Text(stringResource(Res.string.btn_reintentar), fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun BannerEstadoSolicitud(mensaje: String, esExito: Boolean) {
+    val esModoOscuro = isSystemInDarkTheme()
+    val color = if (esExito) {
+        if (esModoOscuro) VerdeAcentoOscuro else VerdeAcentoClaro
+    } else {
+        MaterialTheme.colorScheme.error
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = if (esModoOscuro) 0.15f else 0.10f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = if (esExito) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = mensaje,
+                color = color,
+                fontSize = 13.5.sp,
+                fontWeight = if (esExito) FontWeight.SemiBold else FontWeight.Normal,
+                lineHeight = 19.sp
+            )
+        }
+    }
 }

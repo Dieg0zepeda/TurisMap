@@ -281,7 +281,9 @@
     <string name="planes_precio_consultar">Consultar</string>
     <string name="planes_badge_recomendado">Recomendado</string>
     <string name="planes_badge_destacado">Destacado</string>
+    <string name="planes_badge_mas_popular">Más popular</string>
     <string name="planes_descripcion_fallback">El equipo confirmará los detalles contigo.</string>
+    <string name="planes_nota_aclaratoria">Propuesta inicial de referencia. El alcance y las condiciones se confirmarán antes de activar el plan.</string>
     <string name="planes_btn_solicitar">Solicitar plan</string>
 
     <!-- Flujo Comercial: Solicitud de Registro -->
@@ -341,6 +343,13 @@
     <string name="comercio_btn_solicitud_enviada">Solicitud enviada</string>
     <string name="comercio_btn_enviar_solicitud">Enviar solicitud</string>
     <string name="comercio_btn_volver_planes">Volver a planes</string>
+    <string name="comercio_btn_cambiar_plan">Cambiar</string>
+    <string name="comercio_cargando_formulario">Cargando plan y catálogos...</string>
+    <string name="comercio_seccion_info_negocio">Información del negocio</string>
+    <string name="comercio_seccion_ubicacion_horario">Ubicación y horario</string>
+    <string name="comercio_sheet_municipio_titulo">Selecciona tu municipio</string>
+    <string name="comercio_sheet_categoria_titulo">Selecciona una categoría</string>
+    <string name="comercio_ubicacion_guardada_badge">Ubicación marcada en el mapa</string>
 
     <!-- Flujo Comercial: Selección de Ubicación -->
     <string name="comercio_ubicacion_titulo">Ubicar mi negocio</string>

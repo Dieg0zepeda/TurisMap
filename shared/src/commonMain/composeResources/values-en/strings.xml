@@ -281,7 +281,9 @@
     <string name="planes_precio_consultar">Contact us</string>
     <string name="planes_badge_recomendado">Recommended</string>
     <string name="planes_badge_destacado">Featured</string>
+    <string name="planes_badge_mas_popular">Most popular</string>
     <string name="planes_descripcion_fallback">Our team will confirm the details with you.</string>
+    <string name="planes_nota_aclaratoria">Initial reference proposal. Scope and terms will be confirmed before activating the plan.</string>
     <string name="planes_btn_solicitar">Request plan</string>
 
     <!-- Business Flow: Registration Request -->
@@ -341,6 +343,13 @@
     <string name="comercio_btn_solicitud_enviada">Request sent</string>
     <string name="comercio_btn_enviar_solicitud">Submit request</string>
     <string name="comercio_btn_volver_planes">Back to plans</string>
+    <string name="comercio_btn_cambiar_plan">Change</string>
+    <string name="comercio_cargando_formulario">Loading plan and catalogs...</string>
+    <string name="comercio_seccion_info_negocio">Business information</string>
+    <string name="comercio_seccion_ubicacion_horario">Location &amp; hours</string>
+    <string name="comercio_sheet_municipio_titulo">Select your town</string>
+    <string name="comercio_sheet_categoria_titulo">Select a category</string>
+    <string name="comercio_ubicacion_guardada_badge">Location pinned on the map</string>
 
     <!-- Business Flow: Location Picker -->
     <string name="comercio_ubicacion_titulo">Locate my business</string>
