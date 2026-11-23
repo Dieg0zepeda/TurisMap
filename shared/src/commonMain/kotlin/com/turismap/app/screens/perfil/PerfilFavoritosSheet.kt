@@ -213,12 +213,12 @@ internal fun ModalFavoritosPerfil(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(favoritosFiltrados, key = { it.id }) { item ->
+                        items(favoritosFiltrados, key = { it.idFavoritoOriginal }) { item ->
                             TarjetaItemFavorito(
                                 item = item,
                                 paleta = paleta,
                                 onClick = { onItemClick(item) },
-                                onQuitarClick = { onQuitarFavoritoClick(item.id) }
+                                onQuitarClick = { onQuitarFavoritoClick(item.idFavoritoOriginal) }
                             )
                         }
                     }

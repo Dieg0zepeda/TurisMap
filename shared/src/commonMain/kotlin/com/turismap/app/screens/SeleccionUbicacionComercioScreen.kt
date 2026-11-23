@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -23,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.turismap.app.components.MapSelector
 import com.turismap.app.data.models.Coordenada
@@ -34,6 +36,7 @@ import turismap.shared.generated.resources.comercio_ubicacion_error_rango
 import turismap.shared.generated.resources.comercio_ubicacion_instrucciones
 import turismap.shared.generated.resources.comercio_ubicacion_latitud
 import turismap.shared.generated.resources.comercio_ubicacion_longitud
+import turismap.shared.generated.resources.comercio_ubicacion_sin_punto
 import turismap.shared.generated.resources.comercio_ubicacion_titulo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,8 +54,8 @@ fun SeleccionarUbicacionComercioScreen(
         mutableStateOf(coordenadaGuardada?.longitud?.toString().orEmpty())
     }
     val coordenadaSeleccionada = remember(latitudTexto, longitudTexto) {
-        val latitud = latitudTexto.toDoubleOrNull()
-        val longitud = longitudTexto.toDoubleOrNull()
+        val latitud = latitudTexto.trim().replace(',', '.').toDoubleOrNull()
+        val longitud = longitudTexto.trim().replace(',', '.').toDoubleOrNull()
         if (
             latitud != null && latitud.isFinite() && latitud in -90.0..90.0 &&
             longitud != null && longitud.isFinite() && longitud in -180.0..180.0
@@ -62,6 +65,7 @@ fun SeleccionarUbicacionComercioScreen(
             null
         }
     }
+    val camposConTexto = latitudTexto.isNotBlank() || longitudTexto.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -103,23 +107,32 @@ fun SeleccionarUbicacionComercioScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = latitudTexto,
-                    onValueChange = { latitudTexto = it },
+                    onValueChange = { latitudTexto = it.replace(',', '.') },
                     label = { Text(stringResource(Res.string.comercio_ubicacion_latitud)) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = camposConTexto && coordenadaSeleccionada == null
                 )
                 OutlinedTextField(
                     value = longitudTexto,
-                    onValueChange = { longitudTexto = it },
+                    onValueChange = { longitudTexto = it.replace(',', '.') },
                     label = { Text(stringResource(Res.string.comercio_ubicacion_longitud)) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = camposConTexto && coordenadaSeleccionada == null
                 )
             }
-            if (coordenadaSeleccionada == null) {
+            if (camposConTexto && coordenadaSeleccionada == null) {
                 Text(
                     stringResource(Res.string.comercio_ubicacion_error_rango),
                     color = MaterialTheme.colorScheme.error
+                )
+            } else if (!camposConTexto) {
+                Text(
+                    stringResource(Res.string.comercio_ubicacion_sin_punto),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Button(

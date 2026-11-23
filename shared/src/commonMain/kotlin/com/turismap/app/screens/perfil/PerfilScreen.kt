@@ -31,7 +31,6 @@ import com.turismap.app.screens.perfil.rememberPerfilPaleta
 import com.turismap.app.screens.perfil.rememberPerfilState
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.perfil_error_abrir_enlace
-import turismap.shared.generated.resources.perfil_privacidad_correo_enviado
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +139,7 @@ fun PerfilScreen(
                 if (item.esComercio) onComercioClick(item.id)
                 else onLugarClick(item.id)
             },
-            onQuitarFavoritoClick = { itemId -> state.quitarFavorito(itemId) }
+            onQuitarFavoritoClick = { idFavoritoOriginal -> state.quitarFavorito(idFavoritoOriginal) }
         )
     }
 
@@ -148,21 +147,23 @@ fun PerfilScreen(
         DialogoPrivacidadPerfil(
             perfilPublico = state.perfilPublico,
             compartirUbicacion = state.compartirUbicacion,
+            enviandoRecuperacion = state.enviandoRecuperacion,
             paleta = paleta,
             onPerfilPublicoChange = { state.perfilPublico = it },
             onCompartirUbicacionChange = { state.compartirUbicacion = it },
-            onCambiarContrasenaClick = { state.mostrarMensaje(Res.string.perfil_privacidad_correo_enviado) },
-            onDismiss = { state.mostrarDialogoPrivacidad = false }
+            onCambiarContrasenaClick = { state.enviarRestablecimientoContrasena() },
+            onDismiss = { if (!state.enviandoRecuperacion) state.mostrarDialogoPrivacidad = false }
         )
     }
 
     if (state.mostrarDialogoEditar) {
         DialogoEditarPerfil(
-            nombreInicial = state.obtenerNombreMostrar(),
+            nombreInicial = state.usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: state.obtenerNombreMostrar(),
             telefonoInicial = state.usuarioBD?.telefono.orEmpty(),
+            guardandoPerfil = state.guardandoPerfil,
             paleta = paleta,
             onGuardarClick = { nombre, telefono -> state.guardarPerfil(nombre, telefono) },
-            onDismiss = { state.mostrarDialogoEditar = false }
+            onDismiss = { if (!state.guardandoPerfil) state.mostrarDialogoEditar = false }
         )
     }
 }

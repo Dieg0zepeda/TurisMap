@@ -36,6 +36,8 @@ import turismap.shared.generated.resources.perfil_error_generico
 import turismap.shared.generated.resources.perfil_error_sin_sesion
 import turismap.shared.generated.resources.perfil_favorito_eliminado
 import turismap.shared.generated.resources.perfil_foto_actualizada
+import turismap.shared.generated.resources.perfil_privacidad_enlace_enviado
+import turismap.shared.generated.resources.perfil_privacidad_error_enviar_correo
 import turismap.shared.generated.resources.perfil_usuario_predeterminado
 
 internal const val TURISMAP_WEB_URL = "https://urldeprueba.com"
@@ -48,6 +50,7 @@ internal enum class CategoriaFavorito {
 
 internal data class ItemFavoritoUi(
     val id: String,
+    val idFavoritoOriginal: String,
     val nombre: String,
     val categoria: String = "",
     val categoriaRes: StringResource? = null,
@@ -101,6 +104,8 @@ internal class PerfilState(
     var mostrarDialogoEditar by mutableStateOf(false)
     var mostrarDialogoPrivacidad by mutableStateOf(false)
     var cerrandoSesion by mutableStateOf(false)
+    var enviandoRecuperacion by mutableStateOf(false)
+    var guardandoPerfil by mutableStateOf(false)
     var tipoFotoSeleccionada by mutableStateOf("perfil")
 
     val cantDestinos: Int by derivedStateOf {
@@ -160,10 +165,13 @@ internal class PerfilState(
         }
     }
 
-    fun quitarFavorito(itemId: String) {
+    fun quitarFavorito(idFavoritoOriginal: String) {
         coroutineScope.launch {
             try {
-                UsuarioRepository.cambiarFavorito(itemId, false)
+                UsuarioRepository.cambiarFavorito(idFavoritoOriginal, false)
+                listaFavoritosDetallados = listaFavoritosDetallados.filterNot {
+                    it.idFavoritoOriginal == idFavoritoOriginal
+                }
                 snackbarHostState.showSnackbar(getString(Res.string.perfil_favorito_eliminado))
             } catch (e: CancellationException) {
                 throw e
@@ -173,16 +181,46 @@ internal class PerfilState(
         }
     }
 
-    fun guardarPerfil(nombre: String, telefono: String) {
-        coroutineScope.launch {
-            try {
-                UsuarioRepository.actualizarPerfil(nombre.trim(), telefono.trim())
-                mostrarDialogoEditar = false
-                snackbarHostState.showSnackbar(getString(Res.string.perfil_actualizado))
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                snackbarHostState.showSnackbar(error.message ?: getString(Res.string.perfil_error_actualizar))
+    fun enviarRestablecimientoContrasena() {
+        if (!enviandoRecuperacion) {
+            enviandoRecuperacion = true
+            coroutineScope.launch {
+                try {
+                    val emailDestino = usuarioBD?.email?.takeIf { it.isNotBlank() }
+                        ?: AutenticacionRepository.usuarioActual?.email.orEmpty()
+                    AutenticacionRepository.enviarRestablecimientoContrasena(emailDestino)
+                    mostrarDialogoPrivacidad = false
+                    snackbarHostState.showSnackbar(
+                        getString(Res.string.perfil_privacidad_enlace_enviado, emailDestino)
+                    )
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    snackbarHostState.showSnackbar(
+                        error.message ?: getString(Res.string.perfil_privacidad_error_enviar_correo)
+                    )
+                } finally {
+                    enviandoRecuperacion = false
+                }
+            }
+        }
+    }
+
+    fun guardarPerfil(nombre: String, telefono: String = "") {
+        if (!guardandoPerfil) {
+            guardandoPerfil = true
+            coroutineScope.launch {
+                try {
+                    UsuarioRepository.actualizarPerfil(nombre.trim(), telefono.trim())
+                    mostrarDialogoEditar = false
+                    snackbarHostState.showSnackbar(getString(Res.string.perfil_actualizado))
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    snackbarHostState.showSnackbar(error.message ?: getString(Res.string.perfil_error_actualizar))
+                } finally {
+                    guardandoPerfil = false
+                }
             }
         }
     }
@@ -271,11 +309,15 @@ internal fun rememberPerfilState(): PerfilState {
                 } else {
                     val todosLugares = try {
                         LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
+                    } catch (error: CancellationException) {
+                        throw error
                     } catch (_: Exception) {
                         emptyMap()
                     }
                     val todosComercios = try {
                         ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
+                    } catch (error: CancellationException) {
+                        throw error
                     } catch (_: Exception) {
                         emptyMap()
                     }
@@ -286,6 +328,7 @@ internal fun rememberPerfilState(): PerfilState {
                         if (lugar != null) {
                             ItemFavoritoUi(
                                 id = lugar.id,
+                                idFavoritoOriginal = idOriginal,
                                 nombre = lugar.nombre,
                                 categoriaRes = lugar.categoria.etiquetaRes,
                                 imagenUrl = lugar.imagenPortadaUrl,
@@ -298,6 +341,7 @@ internal fun rememberPerfilState(): PerfilState {
                             if (comercio != null) {
                                 ItemFavoritoUi(
                                     id = comercio.id,
+                                    idFavoritoOriginal = idOriginal,
                                     nombre = comercio.nombre,
                                     categoria = comercio.categoria,
                                     imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),

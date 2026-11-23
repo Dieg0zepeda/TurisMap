@@ -85,6 +85,8 @@
     <string name="perfil_editar_titulo">Editar Perfil</string>
     <string name="perfil_editar_nombre_label">Nombre Completo</string>
     <string name="perfil_editar_telefono_label">Teléfono de Contacto</string>
+    <string name="perfil_editar_error_nombre_corto">Ingresa al menos 2 caracteres</string>
+    <string name="perfil_editar_guardando">Guardando...</string>
     <string name="perfil_estadistica_favoritos">Favoritos</string>
     <string name="perfil_estadistica_visitas">Visitas</string>
     <string name="perfil_negocios_badge">TurisMap Negocios</string>
@@ -102,7 +104,10 @@
     <string name="perfil_privacidad_ubicacion_titulo">Ubicación en Reseñas</string>
     <string name="perfil_privacidad_ubicacion_desc">Comparte de dónde es tu reseña.</string>
     <string name="perfil_privacidad_cambiar_contrasena">Cambiar Contraseña</string>
+    <string name="perfil_privacidad_enviando">Enviando...</string>
     <string name="perfil_privacidad_correo_enviado">Te enviaremos un correo.</string>
+    <string name="perfil_privacidad_enlace_enviado">Te enviamos un enlace a %1$s.</string>
+    <string name="perfil_privacidad_error_enviar_correo">No se pudo enviar el correo.</string>
     <string name="perfil_favoritos_titulo">Mis Favoritos</string>
     <string name="perfil_favoritos_total_guardados">%1$d guardados en total</string>
     <string name="perfil_favoritos_filtro_todos">Todos</string>
@@ -340,6 +345,7 @@
     <string name="comercio_ubicacion_latitud">Latitud</string>
     <string name="comercio_ubicacion_longitud">Longitud</string>
     <string name="comercio_ubicacion_error_rango">Selecciona un punto válido: latitud entre -90 y 90, longitud entre -180 y 180.</string>
+    <string name="comercio_ubicacion_sin_punto">Aún no has marcado un punto en el mapa.</string>
     <string name="comercio_ubicacion_btn_guardar">Guardar ubicación y volver</string>
 
     <!-- Repositorios (validaciones y errores visibles) -->
@@ -367,4 +373,27 @@
     <string name="repo_error_auth_usuario_creado_no_devuelto">Firebase no devolvió el usuario creado.</string>
     <string name="repo_error_auth_usuario_google">No se pudo obtener el usuario de Google.</string>
     <string name="repo_nombre_viajero_predeterminado">Viajero TurisMap</string>
+    <string name="repo_auth_error_credenciales_invalidas">Correo o contraseña incorrectos. Verifica tus datos.</string>
+    <string name="repo_auth_error_correo_en_uso">Este correo electrónico ya está registrado en TurisMap.</string>
+    <string name="repo_auth_error_correo_invalido">El formato del correo electrónico no es válido.</string>
+    <string name="repo_auth_error_contrasena_debil">La contraseña es muy débil. Usa al menos 8 caracteres.</string>
+    <string name="repo_auth_error_demasiados_intentos">Demasiados intentos fallidos. Espera un momento e intenta de nuevo.</string>
+    <string name="repo_auth_error_sin_conexion">Sin conexión a internet. Verifica tu red e intenta nuevamente.</string>
+    <string name="repo_auth_error_permisos">No tienes permisos para realizar esta acción o los datos no cumplen el formato.</string>
+    <string name="repo_auth_error_cuenta_deshabilitada">Esta cuenta ha sido deshabilitada por un administrador.</string>
+    <string name="repo_auth_error_credenciales_vacias">Ingresa tu correo y contraseña para continuar.</string>
+    <string name="repo_auth_error_iniciar_sesion">No se pudo iniciar sesión. Verifica tus credenciales.</string>
+    <string name="repo_auth_error_cargar_perfil">No se pudo cargar el perfil del usuario.</string>
+    <string name="repo_auth_error_nombre_longitud">El nombre debe tener entre 2 y 120 caracteres.</string>
+    <string name="repo_auth_error_contrasena_longitud">La contraseña debe tener al menos 8 caracteres.</string>
+    <string name="repo_auth_error_crear_cuenta">No se pudo crear la cuenta.</string>
+    <string name="repo_auth_error_guardar_perfil">No se pudo guardar el perfil del viajero.</string>
+    <string name="repo_auth_error_google">Error al autenticar con Google.</string>
+    <string name="repo_auth_error_sincronizar_google">No se pudo sincronizar el perfil con Google.</string>
+    <string name="repo_auth_error_correo_recuperacion">Ingresa tu correo electrónico para recuperar la contraseña.</string>
+    <string name="repo_auth_error_enviar_recuperacion">No se pudo enviar el correo de recuperación.</string>
+    <string name="repo_usuario_error_actualizar_perfil">No se pudo actualizar el perfil.</string>
+    <string name="repo_usuario_error_guardar_imagen">No se pudo guardar la imagen.</string>
+    <string name="repo_usuario_error_actualizar_favoritos">No se pudo actualizar tus favoritos.</string>
+    <string name="repo_usuario_error_registrar_visita">No se pudo registrar la visita.</string>
 </resources>

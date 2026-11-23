@@ -6,16 +6,23 @@ import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.perfil_error_sin_sesion
+import turismap.shared.generated.resources.repo_auth_error_cargar_perfil
+import turismap.shared.generated.resources.repo_auth_error_nombre_longitud
 import turismap.shared.generated.resources.repo_error_ruta_imagen_invalida
 import turismap.shared.generated.resources.repo_error_sesion_actualizar_fotos
 import turismap.shared.generated.resources.repo_error_sesion_favoritos
 import turismap.shared.generated.resources.repo_error_sesion_historial_visitas
+import turismap.shared.generated.resources.repo_usuario_error_actualizar_favoritos
+import turismap.shared.generated.resources.repo_usuario_error_actualizar_perfil
+import turismap.shared.generated.resources.repo_usuario_error_guardar_imagen
+import turismap.shared.generated.resources.repo_usuario_error_registrar_visita
 
 @Serializable
 data class UsuarioBD(
@@ -44,21 +51,26 @@ object UsuarioRepository {
      */
     fun observarUsuarioActual(): Flow<UsuarioBD?> {
         val uid = obtenerIdUsuarioActual() ?: return flowOf(null)
-        return firestore.collection("usuarios").document(uid).snapshots.map { snapshot ->
-            if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
-        }
+        return firestore.collection("usuarios").document(uid).snapshots
+            .map { snapshot ->
+                if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+            }
+            .catch { emit(null) }
     }
 
     fun observarUsuarioPorId(idUsuario: String): Flow<UsuarioBD?> =
-        firestore.collection("usuarios").document(idUsuario).snapshots.map { snapshot ->
-            if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
-        }
+        firestore.collection("usuarios").document(idUsuario).snapshots
+            .map { snapshot ->
+                if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+            }
+            .catch { emit(null) }
 
     fun observarContadorVisitas(idUsuario: String): Flow<Int> =
         firestore.collection("usuarios").document(idUsuario)
             .collection("historial_rutas")
             .snapshots
             .map { it.documents.size }
+            .catch { emit(0) }
 
     // ==========================================
     // 2. CONSULTAS PUNTUALES
@@ -86,7 +98,7 @@ object UsuarioRepository {
                 UsuarioBD(
                     email = email.trim(),
                     rol = "viajero",
-                    nombre = nombre.trim(),
+                    nombre = nombre.trim().take(120),
                     intereses = intereses,
                     fotoPerfil = fotoUrl.orEmpty()
                 )
@@ -107,24 +119,39 @@ object UsuarioRepository {
     }
 
     suspend fun obtenerUsuarioPorId(idUsuario: String): UsuarioBD? {
-        val documento = firestore.collection("usuarios").document(idUsuario).get()
-        return if (documento.exists) documento.data(UsuarioBD.serializer()) else null
+        return try {
+            val documento = firestore.collection("usuarios").document(idUsuario).get()
+            if (documento.exists) documento.data(UsuarioBD.serializer()) else null
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_auth_error_cargar_perfil)
+        }
     }
 
     // ==========================================
     // 3. MUTACIONES DE PERFIL Y FOTOS
     // ==========================================
 
+    @Suppress("UNUSED_PARAMETER")
     suspend fun actualizarPerfil(nombre: String, telefono: String = "") {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException(getString(Res.string.perfil_error_sin_sesion))
 
-        val docRef = firestore.collection("usuarios").document(usuario.uid)
-        docRef.update("nombre" to nombre.trim())
-        if (telefono.isNotBlank()) {
-            docRef.update("telefono" to telefono.trim())
+        val nombreLimpio = nombre.trim()
+        require(nombreLimpio.length in 2..120) {
+            getString(Res.string.repo_auth_error_nombre_longitud)
         }
-        usuario.updateProfile(displayName = nombre.trim())
+
+        try {
+            val docRef = firestore.collection("usuarios").document(usuario.uid)
+            docRef.update("nombre" to nombreLimpio)
+            usuario.updateProfile(displayName = nombreLimpio)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_usuario_error_actualizar_perfil)
+        }
     }
 
     suspend fun actualizarFoto(perfil: Boolean, url: String) {
@@ -143,7 +170,13 @@ object UsuarioRepository {
         }
 
         val campo = if (perfil) "fotoPerfil" else "fotoPortada"
-        firestore.collection("usuarios").document(uid).update(campo to urlLimpia)
+        try {
+            firestore.collection("usuarios").document(uid).update(campo to urlLimpia)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_usuario_error_guardar_imagen)
+        }
     }
 
     // ==========================================
@@ -153,46 +186,63 @@ object UsuarioRepository {
     suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_favoritos))
-        val referencia = firestore.collection("usuarios").document(uid)
-        val documento = referencia.get()
+        try {
+            val referencia = firestore.collection("usuarios").document(uid)
+            val documento = referencia.get()
 
-        if (!documento.exists) {
-            val user = Firebase.auth.currentUser
-            asegurarPerfil(
-                email = user?.email.orEmpty(),
-                nombre = user?.displayName.orEmpty(),
-                fotoUrl = user?.photoURL
-            )
-        }
+            if (!documento.exists) {
+                val user = Firebase.auth.currentUser
+                asegurarPerfil(
+                    email = user?.email.orEmpty(),
+                    nombre = user?.displayName.orEmpty(),
+                    fotoUrl = user?.photoURL
+                )
+            }
 
-        val operacion = if (guardar) {
-            FieldValue.arrayUnion(lugarId)
-        } else {
-            FieldValue.arrayRemove(lugarId)
+            val operacion = if (guardar) {
+                FieldValue.arrayUnion(lugarId)
+            } else {
+                FieldValue.arrayRemove(lugarId)
+            }
+            referencia.update("favoritos" to operacion)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_usuario_error_actualizar_favoritos)
         }
-        referencia.update("favoritos" to operacion)
     }
 
     suspend fun registrarVisita(lugarId: String, tipoInteraccion: String = "visita") {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_historial_visitas))
-        firestore.collection("usuarios").document(uid)
-            .collection("historial_rutas")
-            .add(
-                mapOf(
-                    "lugarId" to lugarId,
-                    "fechaVisita" to FieldValue.serverTimestamp,
-                    "tipoInteraccion" to tipoInteraccion
+        try {
+            firestore.collection("usuarios").document(uid)
+                .collection("historial_rutas")
+                .add(
+                    mapOf(
+                        "lugarId" to lugarId,
+                        "fechaVisita" to FieldValue.serverTimestamp,
+                        "tipoInteraccion" to tipoInteraccion
+                    )
                 )
-            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_usuario_error_registrar_visita)
+        }
     }
 
-    suspend fun contarVisitas(idUsuario: String): Int =
+    suspend fun contarVisitas(idUsuario: String): Int = try {
         firestore.collection("usuarios").document(idUsuario)
             .collection("historial_rutas")
             .get()
             .documents
             .size
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        0
+    }
 
     suspend fun obtenerHistorialVisitas(idUsuario: String): List<String> = try {
         firestore.collection("usuarios").document(idUsuario)

@@ -85,6 +85,8 @@
     <string name="perfil_editar_titulo">Edit Profile</string>
     <string name="perfil_editar_nombre_label">Full Name</string>
     <string name="perfil_editar_telefono_label">Contact Phone</string>
+    <string name="perfil_editar_error_nombre_corto">Enter at least 2 characters</string>
+    <string name="perfil_editar_guardando">Saving...</string>
     <string name="perfil_estadistica_favoritos">Favorites</string>
     <string name="perfil_estadistica_visitas">Visits</string>
     <string name="perfil_negocios_badge">TurisMap Business</string>
@@ -102,7 +104,10 @@
     <string name="perfil_privacidad_ubicacion_titulo">Location on Reviews</string>
     <string name="perfil_privacidad_ubicacion_desc">Share where your review was written from.</string>
     <string name="perfil_privacidad_cambiar_contrasena">Change Password</string>
+    <string name="perfil_privacidad_enviando">Sending...</string>
     <string name="perfil_privacidad_correo_enviado">We\'ll send you an email.</string>
+    <string name="perfil_privacidad_enlace_enviado">We sent a reset link to %1$s.</string>
+    <string name="perfil_privacidad_error_enviar_correo">Could not send the email.</string>
     <string name="perfil_favoritos_titulo">My Favorites</string>
     <string name="perfil_favoritos_total_guardados">%1$d saved in total</string>
     <string name="perfil_favoritos_filtro_todos">All</string>
@@ -340,6 +345,7 @@
     <string name="comercio_ubicacion_latitud">Latitude</string>
     <string name="comercio_ubicacion_longitud">Longitude</string>
     <string name="comercio_ubicacion_error_rango">Select a valid point: latitude between -90 and 90, longitude between -180 and 180.</string>
+    <string name="comercio_ubicacion_sin_punto">You haven\'t pinned a point on the map yet.</string>
     <string name="comercio_ubicacion_btn_guardar">Save location and return</string>
 
     <!-- Repositories (visible validations and errors) -->
@@ -367,4 +373,27 @@
     <string name="repo_error_auth_usuario_creado_no_devuelto">Firebase did not return the created user.</string>
     <string name="repo_error_auth_usuario_google">Could not retrieve the Google user.</string>
     <string name="repo_nombre_viajero_predeterminado">TurisMap Traveler</string>
+    <string name="repo_auth_error_credenciales_invalidas">Incorrect email or password. Please check your details.</string>
+    <string name="repo_auth_error_correo_en_uso">This email address is already registered on TurisMap.</string>
+    <string name="repo_auth_error_correo_invalido">The email address format is not valid.</string>
+    <string name="repo_auth_error_contrasena_debil">Password is too weak. Use at least 8 characters.</string>
+    <string name="repo_auth_error_demasiados_intentos">Too many failed attempts. Wait a moment and try again.</string>
+    <string name="repo_auth_error_sin_conexion">No internet connection. Check your network and try again.</string>
+    <string name="repo_auth_error_permisos">You do not have permission to perform this action or the data format is invalid.</string>
+    <string name="repo_auth_error_cuenta_deshabilitada">This account has been disabled by an administrator.</string>
+    <string name="repo_auth_error_credenciales_vacias">Enter your email and password to continue.</string>
+    <string name="repo_auth_error_iniciar_sesion">Could not sign in. Please check your credentials.</string>
+    <string name="repo_auth_error_cargar_perfil">Could not load the user profile.</string>
+    <string name="repo_auth_error_nombre_longitud">Name must be between 2 and 120 characters.</string>
+    <string name="repo_auth_error_contrasena_longitud">Password must be at least 8 characters.</string>
+    <string name="repo_auth_error_crear_cuenta">Could not create the account.</string>
+    <string name="repo_auth_error_guardar_perfil">Could not save the traveler profile.</string>
+    <string name="repo_auth_error_google">Failed to sign in with Google.</string>
+    <string name="repo_auth_error_sincronizar_google">Could not sync profile with Google.</string>
+    <string name="repo_auth_error_correo_recuperacion">Enter your email address to reset your password.</string>
+    <string name="repo_auth_error_enviar_recuperacion">Could not send the recovery email.</string>
+    <string name="repo_usuario_error_actualizar_perfil">Could not update the profile.</string>
+    <string name="repo_usuario_error_guardar_imagen">Could not save the image.</string>
+    <string name="repo_usuario_error_actualizar_favoritos">Could not update your favorites.</string>
+    <string name="repo_usuario_error_registrar_visita">Could not record the visit.</string>
 </resources>

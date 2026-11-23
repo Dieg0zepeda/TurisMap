@@ -17,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -40,10 +41,13 @@ import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_cancelar
 import turismap.shared.generated.resources.btn_cerrar
 import turismap.shared.generated.resources.btn_guardar
+import turismap.shared.generated.resources.perfil_editar_error_nombre_corto
+import turismap.shared.generated.resources.perfil_editar_guardando
 import turismap.shared.generated.resources.perfil_editar_nombre_label
 import turismap.shared.generated.resources.perfil_editar_telefono_label
 import turismap.shared.generated.resources.perfil_editar_titulo
 import turismap.shared.generated.resources.perfil_privacidad_cambiar_contrasena
+import turismap.shared.generated.resources.perfil_privacidad_enviando
 import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_desc
 import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_titulo
 import turismap.shared.generated.resources.perfil_privacidad_titulo
@@ -54,6 +58,7 @@ import turismap.shared.generated.resources.perfil_privacidad_ubicacion_titulo
 internal fun DialogoPrivacidadPerfil(
     perfilPublico: Boolean,
     compartirUbicacion: Boolean,
+    enviandoRecuperacion: Boolean,
     paleta: PerfilPaleta,
     onPerfilPublicoChange: (Boolean) -> Unit,
     onCompartirUbicacionChange: (Boolean) -> Unit,
@@ -61,7 +66,7 @@ internal fun DialogoPrivacidadPerfil(
     onDismiss: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!enviandoRecuperacion) onDismiss() },
         containerColor = paleta.fondoTarjeta,
         title = { Text(stringResource(Res.string.perfil_privacidad_titulo), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
         text = {
@@ -104,18 +109,31 @@ internal fun DialogoPrivacidadPerfil(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onCambiarContrasenaClick,
+                    enabled = !enviandoRecuperacion,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = paleta.colorTextoPrincipal),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Icon(Icons.Default.LockReset, contentDescription = null, tint = paleta.fondoApp, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(Res.string.perfil_privacidad_cambiar_contrasena), color = paleta.fondoApp)
+                    Text(
+                        stringResource(
+                            if (enviandoRecuperacion) {
+                                Res.string.perfil_privacidad_enviando
+                            } else {
+                                Res.string.perfil_privacidad_cambiar_contrasena
+                            }
+                        ),
+                        color = paleta.fondoApp
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !enviandoRecuperacion
+            ) {
                 Text(stringResource(Res.string.btn_cerrar), color = VerdeTextoAdaptable, fontWeight = FontWeight.Bold)
             }
         }
@@ -126,25 +144,37 @@ internal fun DialogoPrivacidadPerfil(
 internal fun DialogoEditarPerfil(
     nombreInicial: String,
     telefonoInicial: String,
+    guardandoPerfil: Boolean,
     paleta: PerfilPaleta,
     onGuardarClick: (nombre: String, telefono: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var tempNombre by remember { mutableStateOf(nombreInicial) }
-    var tempTelefono by remember { mutableStateOf(telefonoInicial) }
+    var tempNombre by remember(nombreInicial) { mutableStateOf(nombreInicial.take(120)) }
+    var tempTelefono by remember(telefonoInicial) { mutableStateOf(telefonoInicial) }
+    val nombreInvalido = tempNombre.trim().length < 2
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!guardandoPerfil) onDismiss() },
         containerColor = paleta.fondoTarjeta,
         title = { Text(stringResource(Res.string.perfil_editar_titulo), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
         text = {
             Column {
                 OutlinedTextField(
                     value = tempNombre,
-                    onValueChange = { tempNombre = it },
+                    onValueChange = { if (it.length <= 120) tempNombre = it },
                     label = { Text(stringResource(Res.string.perfil_editar_nombre_label)) },
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = !guardandoPerfil,
                     singleLine = true,
+                    isError = nombreInvalido,
+                    supportingText = {
+                        if (nombreInvalido) {
+                            Text(
+                                stringResource(Res.string.perfil_editar_error_nombre_corto),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
                     textStyle = LocalTextStyle.current.copy(color = paleta.colorTextoPrincipal)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -153,6 +183,7 @@ internal fun DialogoEditarPerfil(
                     onValueChange = { tempTelefono = it },
                     label = { Text(stringResource(Res.string.perfil_editar_telefono_label)) },
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = !guardandoPerfil,
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(color = paleta.colorTextoPrincipal)
                 )
@@ -161,14 +192,22 @@ internal fun DialogoEditarPerfil(
         confirmButton = {
             Button(
                 onClick = { onGuardarClick(tempNombre, tempTelefono) },
-                enabled = tempNombre.isNotBlank(),
+                enabled = !nombreInvalido && !guardandoPerfil,
                 colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeEsmeralda)
             ) {
-                Text(stringResource(Res.string.btn_guardar), color = Color.White)
+                Text(
+                    stringResource(
+                        if (guardandoPerfil) Res.string.perfil_editar_guardando else Res.string.btn_guardar
+                    ),
+                    color = Color.White
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !guardandoPerfil
+            ) {
                 Text(stringResource(Res.string.btn_cancelar), color = TerracotaTextoAdaptable)
             }
         }
