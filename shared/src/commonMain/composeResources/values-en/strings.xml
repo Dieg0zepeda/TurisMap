@@ -129,4 +129,37 @@
     <string name="perfil_error_actualizar">Failed to update.</string>
     <string name="perfil_error_con_detalle">Error: %1$s</string>
     <string name="perfil_error_generico">An error occurred.</string>
+
+    <!-- Explore Screen -->
+    <string name="explorar_error_cargar_destinos">Could not load destinations.</string>
+    <string name="explorar_titulo">Explore the Route</string>
+    <string name="explorar_cd_fondo_destino">Background of %1$s</string>
+    <string name="explorar_badge_destino_destacado">FEATURED DESTINATION</string>
+    <string name="explorar_descubre_lugar">Discover %1$s</string>
+    <string name="explorar_seccion_explora_ruta">Explore the Route</string>
+    <string name="explorar_etiqueta_destino_predeterminada">Destination</string>
+    <string name="explorar_seccion_experiencias">Featured Experiences</string>
+    <string name="explorar_experiencias_vacio">No featured experiences published yet.</string>
+    <string name="explorar_precio_desde">From %1$s</string>
+    <string name="explorar_btn_ver_detalle">View details</string>
+
+    <!-- Place Detail Screen -->
+    <string name="detalle_lugar_cd_fondo">Background of %1$s</string>
+    <string name="detalle_lugar_cd_atras">Back</string>
+    <string name="detalle_lugar_cd_compartir">Share</string>
+    <string name="detalle_lugar_cd_quitar_favorito">Remove from favorites</string>
+    <string name="detalle_lugar_cd_guardar_favorito">Save to favorites</string>
+    <string name="detalle_lugar_historia_titulo">History &amp; Essence</string>
+    <string name="detalle_lugar_atractivos_titulo">Must-See Attractions</string>
+    <string name="detalle_lugar_atractivos_destacados">%1$d Highlights</string>
+    <string name="detalle_lugar_directorio_badge">LOCAL DIRECTORY</string>
+    <string name="detalle_lugar_directorio_titulo">Planning your visit to %1$s?</string>
+    <string name="detalle_lugar_directorio_desc_con_comercios">Explore the %1$d verified businesses and services available in %2$s.</string>
+    <string name="detalle_lugar_directorio_desc_sin_comercios">There are currently 0 registered businesses in %1$s. New establishments will join the network soon.</string>
+    <string name="detalle_lugar_directorio_cafeterias">%1$d Cafés &amp; Bars</string>
+    <string name="detalle_lugar_directorio_alojamientos">%1$d Hotels &amp; Cabins</string>
+    <string name="detalle_lugar_directorio_artesanias">%1$d Handicrafts &amp; Shops</string>
+    <string name="detalle_lugar_directorio_guias">%1$d Guides &amp; Tour Operators</string>
+    <string name="detalle_lugar_btn_ver_guia">View Business &amp; Leisure Guide →</string>
+    <string name="detalle_lugar_btn_explorar_guia">Explore General Guide →</string>
 </resources>

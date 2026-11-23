@@ -129,4 +129,37 @@
     <string name="perfil_error_actualizar">Error al actualizar.</string>
     <string name="perfil_error_con_detalle">Error: %1$s</string>
     <string name="perfil_error_generico">Error.</string>
+
+    <!-- Pantalla Explorar -->
+    <string name="explorar_error_cargar_destinos">No se pudieron cargar los destinos.</string>
+    <string name="explorar_titulo">Explorar la Ruta</string>
+    <string name="explorar_cd_fondo_destino">Fondo de %1$s</string>
+    <string name="explorar_badge_destino_destacado">DESTINO DESTACADO</string>
+    <string name="explorar_descubre_lugar">Descubre %1$s</string>
+    <string name="explorar_seccion_explora_ruta">Explora la Ruta</string>
+    <string name="explorar_etiqueta_destino_predeterminada">Destino</string>
+    <string name="explorar_seccion_experiencias">Experiencias Destacadas</string>
+    <string name="explorar_experiencias_vacio">Aún no hay experiencias destacadas publicadas.</string>
+    <string name="explorar_precio_desde">Desde %1$s</string>
+    <string name="explorar_btn_ver_detalle">Ver detalle</string>
+
+    <!-- Pantalla Detalle de Lugar -->
+    <string name="detalle_lugar_cd_fondo">Fondo de %1$s</string>
+    <string name="detalle_lugar_cd_atras">Atrás</string>
+    <string name="detalle_lugar_cd_compartir">Compartir</string>
+    <string name="detalle_lugar_cd_quitar_favorito">Quitar de favoritos</string>
+    <string name="detalle_lugar_cd_guardar_favorito">Guardar en favoritos</string>
+    <string name="detalle_lugar_historia_titulo">Historia &amp; Esencia</string>
+    <string name="detalle_lugar_atractivos_titulo">Atractivos Imperdibles</string>
+    <string name="detalle_lugar_atractivos_destacados">%1$d Destacados</string>
+    <string name="detalle_lugar_directorio_badge">DIRECTORIO LOCAL</string>
+    <string name="detalle_lugar_directorio_titulo">¿Planeas tu visita a %1$s?</string>
+    <string name="detalle_lugar_directorio_desc_con_comercios">Explora los %1$d comercios y servicios verificados disponibles en %2$s.</string>
+    <string name="detalle_lugar_directorio_desc_sin_comercios">Actualmente hay 0 comercios registrados en %1$s. Próximamente se integrarán nuevos establecimientos a la red.</string>
+    <string name="detalle_lugar_directorio_cafeterias">%1$d Cafeterías y Bares</string>
+    <string name="detalle_lugar_directorio_alojamientos">%1$d Hoteles y Cabañas</string>
+    <string name="detalle_lugar_directorio_artesanias">%1$d Artesanías y Tiendas</string>
+    <string name="detalle_lugar_directorio_guias">%1$d Guías y Operadores</string>
+    <string name="detalle_lugar_btn_ver_guia">Ver Guía de Comercio y Ocio →</string>
+    <string name="detalle_lugar_btn_explorar_guia">Explorar Guía General →</string>
 </resources>
