@@ -52,7 +52,7 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun App(
-    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
+    onSolicitarGoogleSignIn: (((String?) -> Unit) -> Unit)? = null
 ) {
     val esModoOscuro = isSystemInDarkTheme()
     val controladorNavegacion = rememberNavController()

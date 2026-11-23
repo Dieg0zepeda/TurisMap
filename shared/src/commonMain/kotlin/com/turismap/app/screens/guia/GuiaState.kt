@@ -212,7 +212,7 @@ internal fun rememberGuiaState(comerciosExternos: List<Comercio>?): Pair<GuiaSta
         )
     }
 
-    val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+    val usuarioActual by UsuarioRepository.usuarioActualFlow.collectAsState()
     val favoritosUsuario = remember(usuarioActual?.favoritos) {
         usuarioActual?.favoritos?.toSet() ?: emptySet()
     }

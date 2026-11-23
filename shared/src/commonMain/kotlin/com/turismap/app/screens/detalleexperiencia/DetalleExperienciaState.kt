@@ -1,5 +1,6 @@
 package com.turismap.app.screens.detalleexperiencia
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -10,17 +11,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.UriHandler
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.Resena
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.screens.mapa.codificarParametroMaps
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.detalle_exp_error_abrir_enlace
 import turismap.shared.generated.resources.detalle_exp_error_calificacion_invalida
 import turismap.shared.generated.resources.detalle_exp_error_cargar
 import turismap.shared.generated.resources.detalle_exp_error_guardar_resena
@@ -95,12 +99,20 @@ internal data class DetalleExperienciaDatosUi(
             } else {
                 "https://wa.me/503$telefonoLimpio"
             }
-            val direccionConsulta = datos.direccion.ifBlank { "${datos.nombre}, ${datos.lugarId}" }
-            val mapsUrl = "https://www.google.com/maps/search/?api=1&query=" +
-                direccionConsulta.replace(" ", "+")
-            val sitioWebUrl = datos.sitioWeb.takeIf { it.isNotBlank() }?.let { web ->
-                if (web.startsWith("http")) web else "https://$web"
+            val coordenadaPropia = datos.coordenadaPropiaValida()
+            val consultaMaps = if (coordenadaPropia != null) {
+                "${coordenadaPropia.latitud},${coordenadaPropia.longitud}"
+            } else {
+                datos.direccion.trim().ifBlank {
+                    listOf(datos.nombre, datos.municipio.ifBlank { datos.lugarId })
+                        .map(String::trim)
+                        .filter(String::isNotEmpty)
+                        .joinToString(", ")
+                }
             }
+            val mapsUrl = "https://www.google.com/maps/search/?api=1&query=" +
+                codificarParametroMaps(consultaMaps)
+            val sitioWebUrl = validarSitioWebSeguro(datos.sitioWeb)
 
             val precioTexto = if (datos.precioDesde != null && datos.precioDesde > 0) {
                 val pStr = datos.precioDesde.toString()
@@ -148,6 +160,19 @@ internal data class DetalleExperienciaDatosUi(
     }
 }
 
+internal fun validarSitioWebSeguro(sitioWeb: String): String? {
+    val webLimpia = sitioWeb.trim()
+    if (!webLimpia.startsWith("https://", ignoreCase = true)) return null
+    if (webLimpia.any(Char::isWhitespace)) return null
+    val sinEsquema = webLimpia.drop(8)
+    val host = sinEsquema
+        .substringBefore('/')
+        .substringBefore('?')
+        .substringBefore('#')
+    if (host.isBlank() || !host.contains('.')) return null
+    return "https://$sinEsquema"
+}
+
 internal fun validarCalificacionResena(calificacion: Int): StringResource? =
     if (calificacion !in 1..5) Res.string.detalle_exp_error_calificacion_invalida else null
 
@@ -155,7 +180,8 @@ internal fun sanitizarComentarioResena(comentario: String): String = comentario.
 
 internal class DetalleExperienciaState(
     private val comercioId: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    val snackbarHostState: SnackbarHostState
 ) {
     var comercio by mutableStateOf<Comercio?>(null)
     var resenas by mutableStateOf<List<Resena>>(emptyList())
@@ -174,6 +200,31 @@ internal class DetalleExperienciaState(
 
     val usuarioActualUid: String?
         get() = AutenticacionRepository.usuarioActual?.uid
+
+    fun mostrarAviso(recurso: StringResource) {
+        scope.launch {
+            snackbarHostState.showSnackbar(getString(recurso))
+        }
+    }
+
+    fun abrirUriSeguro(
+        uriHandler: UriHandler,
+        uri: String?,
+        errorFallback: StringResource = Res.string.detalle_exp_error_abrir_enlace
+    ) {
+        val urlLimpia = uri?.trim().orEmpty()
+        if (urlLimpia.isBlank()) {
+            mostrarAviso(errorFallback)
+            return
+        }
+        try {
+            uriHandler.openUri(urlLimpia)
+        } catch (cancelacion: CancellationException) {
+            throw cancelacion
+        } catch (_: Exception) {
+            mostrarAviso(errorFallback)
+        }
+    }
 
     fun reintentar() {
         intento++
@@ -234,9 +285,12 @@ internal class DetalleExperienciaState(
 @Composable
 internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleExperienciaState, Boolean> {
     val scope = rememberCoroutineScope()
-    val state = remember(comercioId) { DetalleExperienciaState(comercioId, scope) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val state = remember(comercioId, scope, snackbarHostState) {
+        DetalleExperienciaState(comercioId, scope, snackbarHostState)
+    }
 
-    val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+    val usuarioActual by UsuarioRepository.usuarioActualFlow.collectAsState()
     val esFavorito = remember(usuarioActual?.favoritos, comercioId) {
         usuarioActual?.favoritos?.any { it == comercioId || it == "comercio:$comercioId" } == true
     }

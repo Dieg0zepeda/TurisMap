@@ -226,6 +226,7 @@
     <string name="detalle_exp_error_guardar_resena">Could not save review.</string>
     <string name="detalle_exp_error_no_disponible">This business is not available.</string>
     <string name="detalle_exp_error_cargar">Could not load this business.</string>
+    <string name="detalle_exp_error_abrir_enlace">Could not open the link. Please verify you have a compatible app installed.</string>
     <string name="detalle_exp_badge_premium_fotos">PREMIUM PARTNER · %1$d/%2$d PHOTOS</string>
     <string name="detalle_exp_badge_galeria_fotos">Gallery (%1$d/%2$d photos)</string>
     <string name="detalle_exp_badge_contador_fotos">%1$d/%2$d photos</string>

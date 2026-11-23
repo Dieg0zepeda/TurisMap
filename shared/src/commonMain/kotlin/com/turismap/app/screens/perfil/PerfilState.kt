@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -85,9 +86,11 @@ internal fun rememberPerfilPaleta(): PerfilPaleta {
 
 internal class PerfilState(
     private val coroutineScope: CoroutineScope,
-    val snackbarHostState: SnackbarHostState
+    val snackbarHostState: SnackbarHostState,
+    private val usuarioBDState: State<UsuarioBD?>
 ) {
-    var usuarioBD by mutableStateOf<UsuarioBD?>(null)
+    val usuarioBD: UsuarioBD?
+        get() = usuarioBDState.value
     var estaCargando by mutableStateOf(true)
     var visitas by mutableStateOf(0)
     var errorPerfil by mutableStateOf<String?>(null)
@@ -102,6 +105,7 @@ internal class PerfilState(
     var cerrandoSesion by mutableStateOf(false)
     var enviandoRecuperacion by mutableStateOf(false)
     var guardandoPerfil by mutableStateOf(false)
+    var subiendoFoto by mutableStateOf(false)
     var tipoFotoSeleccionada by mutableStateOf("perfil")
 
     val cantDestinos: Int by derivedStateOf {
@@ -143,9 +147,12 @@ internal class PerfilState(
         get() = (usuarioBD?.favoritos?.size ?: 0).toString()
 
     fun actualizarFoto(uriLocal: String) {
+        if (subiendoFoto || uriLocal.isBlank()) return
+        val esPerfil = tipoFotoSeleccionada == "perfil"
+        subiendoFoto = true
         coroutineScope.launch {
             try {
-                UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", uriLocal)
+                UsuarioRepository.subirYActualizarFoto(perfil = esPerfil, uriLocal = uriLocal)
                 snackbarHostState.showSnackbar(getString(Res.string.perfil_foto_actualizada))
             } catch (error: CancellationException) {
                 throw error
@@ -157,6 +164,8 @@ internal class PerfilState(
                     getString(Res.string.perfil_error_generico)
                 }
                 snackbarHostState.showSnackbar(mensaje)
+            } finally {
+                subiendoFoto = false
             }
         }
     }
@@ -261,15 +270,19 @@ internal class PerfilState(
 internal fun rememberPerfilState(): PerfilState {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val state = remember(coroutineScope, snackbarHostState) {
-        PerfilState(coroutineScope = coroutineScope, snackbarHostState = snackbarHostState)
+
+    // 1. Observación reactiva centralizada del usuario desde Firestore (sin mutaciones en composición)
+    val usuarioBDState = UsuarioRepository.usuarioActualFlow.collectAsState()
+    val state = remember(coroutineScope, snackbarHostState, usuarioBDState) {
+        PerfilState(
+            coroutineScope = coroutineScope,
+            snackbarHostState = snackbarHostState,
+            usuarioBDState = usuarioBDState
+        )
     }
 
     val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
-
-    // 1. Observación reactiva en tiempo real del usuario desde Firestore
-    val usuarioBD by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
-    state.usuarioBD = usuarioBD
+    val usuarioBD = state.usuarioBD
 
     LaunchedEffect(idUsuarioActual) {
         state.estaCargando = true

@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -118,7 +119,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             TarjetaUbicacionComercio(
                                 datosUi = datosUi,
                                 paleta = paleta,
-                                onAbrirMapa = { uriHandler.openUri(datosUi.mapsUrl) }
+                                onAbrirMapa = { state.abrirUriSeguro(uriHandler, datosUi.mapsUrl) }
                             )
 
                             // 5. Canales de Contacto Directo (Socio y Premium)
@@ -131,11 +132,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     paleta = paleta,
                                     onAbrirWhatsapp = {
                                         if (datosUi.telefonoLimpio.isNotBlank()) {
-                                            uriHandler.openUri(datosUi.whatsappUrl)
+                                            state.abrirUriSeguro(uriHandler, datosUi.whatsappUrl)
                                         }
                                     },
                                     onAbrirSitioWeb = {
-                                        datosUi.sitioWebUrl?.let(uriHandler::openUri)
+                                        datosUi.sitioWebUrl?.let { url ->
+                                            state.abrirUriSeguro(uriHandler, url)
+                                        }
                                     }
                                 )
                             }
@@ -173,10 +176,25 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                     BarraInferiorExperiencia(
                         datosUi = datosUi,
                         paleta = paleta,
-                        onLlamar = { uriHandler.openUri(datosUi.telefonoUrl) },
-                        onAbrirWhatsapp = { uriHandler.openUri(datosUi.whatsappUrl) },
-                        onIniciarRuta = { uriHandler.openUri(datosUi.mapsUrl) },
+                        onLlamar = {
+                            if (datosUi.telefonoLimpio.isNotBlank()) {
+                                state.abrirUriSeguro(uriHandler, datosUi.telefonoUrl)
+                            }
+                        },
+                        onAbrirWhatsapp = {
+                            if (datosUi.telefonoLimpio.isNotBlank()) {
+                                state.abrirUriSeguro(uriHandler, datosUi.whatsappUrl)
+                            }
+                        },
+                        onIniciarRuta = { state.abrirUriSeguro(uriHandler, datosUi.mapsUrl) },
                         modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+
+                    SnackbarHost(
+                        hostState = state.snackbarHostState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 84.dp)
                     )
                 }
             }

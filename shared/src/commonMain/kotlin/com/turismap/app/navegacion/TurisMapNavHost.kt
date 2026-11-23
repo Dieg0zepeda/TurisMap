@@ -49,7 +49,7 @@ fun TurisMapNavHost(
     cantidadNotificacionesNoLeidas: Int = 0,
     onCerrarSesion: () -> Unit = {},
     destinoInicial: String = Pantalla.Explorar.ruta,
-    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
+    onSolicitarGoogleSignIn: (((String?) -> Unit) -> Unit)? = null
 ) {
     val abrirNotificaciones = {
         controladorNavegacion.navigate(Pantalla.Notificaciones.ruta) {
@@ -206,7 +206,7 @@ fun TurisMapNavHost(
             var mensajeAccion by remember { mutableStateOf<String?>(null) }
             val scope = rememberCoroutineScope()
 
-            val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+            val usuarioActual by UsuarioRepository.usuarioActualFlow.collectAsState()
             val favoritoGuardado = remember(usuarioActual?.favoritos, lugarId) {
                 usuarioActual?.favoritos?.contains(lugarId) == true
             }

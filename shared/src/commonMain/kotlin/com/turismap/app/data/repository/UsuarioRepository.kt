@@ -1,14 +1,26 @@
 package com.turismap.app.data.repository
 
+import com.turismap.app.components.getFirebaseFile
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.firestore
+import dev.gitlive.firebase.storage.storage
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
@@ -38,6 +50,10 @@ data class UsuarioBD(
 
 object UsuarioRepository {
     private val firestore by lazy { Firebase.firestore }
+    private val storage by lazy { Firebase.storage }
+    private val scopeObservacion by lazy {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
 
     fun obtenerIdUsuarioActual(): String? = Firebase.auth.currentUser?.uid
 
@@ -46,17 +62,34 @@ object UsuarioRepository {
     // ==========================================
 
     /**
-     * Emite el perfil actualizado cada vez que cambia el documento en Firestore
-     * (por ejemplo, al agregar o quitar favoritos desde cualquier pantalla).
+     * Flujo único centralizado ligado al estado de sesión de Firebase Auth.
+     * Evita crear múltiples listeners de Firestore en recomposiciones o pantallas concurrentes.
      */
-    fun observarUsuarioActual(): Flow<UsuarioBD?> {
-        val uid = obtenerIdUsuarioActual() ?: return flowOf(null)
-        return firestore.collection("usuarios").document(uid).snapshots
-            .map { snapshot ->
-                if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val usuarioActualFlow: StateFlow<UsuarioBD?> by lazy {
+        Firebase.auth.authStateChanged
+            .onStart { emit(Firebase.auth.currentUser) }
+            .map { it?.uid }
+            .distinctUntilChanged()
+            .flatMapLatest { uid ->
+                if (uid.isNullOrBlank()) {
+                    flowOf(null)
+                } else {
+                    observarUsuarioPorId(uid)
+                }
             }
             .catch { emit(null) }
+            .stateIn(
+                scope = scopeObservacion,
+                started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+                initialValue = null
+            )
     }
+
+    /**
+     * Devuelve el flujo compartido del usuario autenticado actual.
+     */
+    fun observarUsuarioActual(): StateFlow<UsuarioBD?> = usuarioActualFlow
 
     fun observarUsuarioPorId(idUsuario: String): Flow<UsuarioBD?> =
         firestore.collection("usuarios").document(idUsuario).snapshots
@@ -93,14 +126,19 @@ object UsuarioRepository {
         val documento = referencia.get()
 
         if (!documento.exists) {
+            val fotoInicial = fotoUrl?.trim()
+                ?.takeIf(::esUrlFotoHttpsValida)
+                .orEmpty()
+            // Esquema cerrado permitido por firestore.rules (sin enviar campos no autorizados como telefono)
             referencia.set(
-                UsuarioBD.serializer(),
-                UsuarioBD(
-                    email = email.trim(),
-                    rol = "viajero",
-                    nombre = nombre.trim().take(120),
-                    intereses = intereses,
-                    fotoPerfil = fotoUrl.orEmpty()
+                mapOf(
+                    "email" to email.trim(),
+                    "rol" to "viajero",
+                    "nombre" to nombre.trim().take(120),
+                    "favoritos" to emptyList<String>(),
+                    "intereses" to intereses,
+                    "fotoPerfil" to fotoInicial,
+                    "fotoPortada" to ""
                 )
             )
         } else {
@@ -112,8 +150,9 @@ object UsuarioRepository {
                 null
             }
 
-            if (usuarioBD != null && usuarioBD.fotoPerfil.isBlank() && !fotoUrl.isNullOrBlank()) {
-                referencia.update("fotoPerfil" to fotoUrl.trim())
+            val fotoLimpia = fotoUrl?.trim()
+            if (usuarioBD != null && usuarioBD.fotoPerfil.isBlank() && !fotoLimpia.isNullOrBlank() && esUrlFotoHttpsValida(fotoLimpia)) {
+                referencia.update("fotoPerfil" to fotoLimpia)
             }
         }
     }
@@ -154,18 +193,49 @@ object UsuarioRepository {
         }
     }
 
+    internal fun esUrlFotoHttpsValida(url: String): Boolean {
+        val urlLimpia = url.trim()
+        if (urlLimpia.isBlank()) return false
+        if (urlLimpia.any(Char::isWhitespace)) return false
+        if (urlLimpia.startsWith("file://", ignoreCase = true)) return false
+        if (urlLimpia.startsWith("content://", ignoreCase = true)) return false
+        return urlLimpia.startsWith("https://", ignoreCase = true)
+    }
+
+    suspend fun subirYActualizarFoto(perfil: Boolean, uriLocal: String): String {
+        val uid = obtenerIdUsuarioActual()
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_actualizar_fotos))
+
+        val uriLimpia = uriLocal.trim()
+        require(uriLimpia.isNotBlank()) {
+            getString(Res.string.repo_error_ruta_imagen_invalida)
+        }
+
+        val archivo = getFirebaseFile(uriLimpia)
+            ?: throw IllegalArgumentException(getString(Res.string.repo_error_ruta_imagen_invalida))
+
+        val nombreArchivo = if (perfil) "perfil.jpg" else "portada.jpg"
+        val referencia = storage.reference.child("usuarios/$uid/$nombreArchivo")
+
+        val urlDescarga = try {
+            referencia.putFile(archivo)
+            referencia.getDownloadUrl()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw AutenticacionRepository.traducirErrorAuth(error, Res.string.repo_usuario_error_guardar_imagen)
+        }
+
+        actualizarFoto(perfil = perfil, url = urlDescarga)
+        return urlDescarga
+    }
+
     suspend fun actualizarFoto(perfil: Boolean, url: String) {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_actualizar_fotos))
 
         val urlLimpia = url.trim()
-        val esRutaValida = urlLimpia.isBlank() ||
-                urlLimpia.startsWith("https://", ignoreCase = true) ||
-                urlLimpia.startsWith("http://", ignoreCase = true) ||
-                urlLimpia.startsWith("content://", ignoreCase = true) ||
-                urlLimpia.startsWith("file://", ignoreCase = true)
-
-        require(esRutaValida) {
+        require(esUrlFotoHttpsValida(urlLimpia)) {
             getString(Res.string.repo_error_ruta_imagen_invalida)
         }
 

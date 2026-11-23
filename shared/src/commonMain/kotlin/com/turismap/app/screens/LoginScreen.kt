@@ -81,7 +81,7 @@ import turismap.shared.generated.resources.repo_auth_error_contrasena_longitud
 @Composable
 fun LoginScreen(
     onLoginExitoso: () -> Unit = {},
-    onSolicitarGoogleSignIn: ((onTokenRecibido: (String) -> Unit) -> Unit)? = null
+    onSolicitarGoogleSignIn: ((onTokenRecibido: (String?) -> Unit) -> Unit)? = null
 ) {
     val esOscuro = isSystemInDarkTheme()
     val colorFondoArriba = if (esOscuro) Color(0xFF12221A) else Color(0xFFE8F0EC)
@@ -369,23 +369,34 @@ fun LoginScreen(
             onClick = {
                 if (!cargando && !cargandoGoogle) {
                     mensajeError = null
-                    cargandoGoogle = true
-                    onSolicitarGoogleSignIn?.invoke { idToken ->
-                        coroutineScope.launch {
-                            try {
-                                AutenticacionRepository.iniciarSesionConGoogle(idToken)
-                                onLoginExitoso()
-                            } catch (error: CancellationException) {
-                                throw error
-                            } catch (error: Exception) {
-                                mensajeError = error.message ?: getString(Res.string.auth_error_google)
-                            } finally {
-                                cargandoGoogle = false
-                            }
-                        }
-                    } ?: run {
-                        cargandoGoogle = false
+                    val lanzadorGoogle = onSolicitarGoogleSignIn
+                    if (lanzadorGoogle == null) {
                         mensajeError = errorGoogleNoConfigurado
+                    } else {
+                        cargandoGoogle = true
+                        try {
+                            lanzadorGoogle { idToken ->
+                                if (idToken.isNullOrBlank()) {
+                                    cargandoGoogle = false
+                                    return@lanzadorGoogle
+                                }
+                                coroutineScope.launch {
+                                    try {
+                                        AutenticacionRepository.iniciarSesionConGoogle(idToken)
+                                        onLoginExitoso()
+                                    } catch (error: CancellationException) {
+                                        throw error
+                                    } catch (error: Exception) {
+                                        mensajeError = error.message ?: getString(Res.string.auth_error_google)
+                                    } finally {
+                                        cargandoGoogle = false
+                                    }
+                                }
+                            }
+                        } catch (error: Exception) {
+                            cargandoGoogle = false
+                            mensajeError = error.message ?: errorGoogleNoConfigurado
+                        }
                     }
                 }
             },

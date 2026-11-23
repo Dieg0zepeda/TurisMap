@@ -226,6 +226,7 @@
     <string name="detalle_exp_error_guardar_resena">No se pudo guardar la reseña.</string>
     <string name="detalle_exp_error_no_disponible">Este comercio no está disponible.</string>
     <string name="detalle_exp_error_cargar">No se pudo cargar el comercio.</string>
+    <string name="detalle_exp_error_abrir_enlace">No se pudo abrir el enlace. Verifica que tengas una aplicación compatible.</string>
     <string name="detalle_exp_badge_premium_fotos">SOCIO PREMIUM · %1$d/%2$d FOTOS</string>
     <string name="detalle_exp_badge_galeria_fotos">Galería (%1$d/%2$d fotos)</string>
     <string name="detalle_exp_badge_contador_fotos">%1$d/%2$d fotos</string>

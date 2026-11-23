@@ -15,7 +15,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
 class MainActivity : ComponentActivity() {
-    private var callbackTokenGoogle: ((String) -> Unit)? = null
+    private var callbackTokenGoogle: ((String?) -> Unit)? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -25,17 +25,21 @@ class MainActivity : ComponentActivity() {
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { resultado ->
+        val callback = callbackTokenGoogle
+        callbackTokenGoogle = null
         if (resultado.resultCode == RESULT_OK) {
             val tarea = GoogleSignIn.getSignedInAccountFromIntent(resultado.data)
             try {
                 val cuenta = tarea.getResult(ApiException::class.java)
-                val idToken = cuenta.idToken
-                if (!idToken.isNullOrBlank()) {
-                    callbackTokenGoogle?.invoke(idToken)
-                }
+                val idToken = cuenta.idToken?.takeIf { it.isNotBlank() }
+                callback?.invoke(idToken)
+            } catch (_: ApiException) {
+                callback?.invoke(null)
             } catch (_: Exception) {
-                // Cancelación o fallo de red
+                callback?.invoke(null)
             }
+        } else {
+            callback?.invoke(null)
         }
     }
 
@@ -61,10 +65,22 @@ class MainActivity : ComponentActivity() {
         val googleClient = GoogleSignIn.getClient(this, gso)
 
         // Acción que pasamos directamente a App()
-        val solicitarGoogleSignIn: ((String) -> Unit) -> Unit = { callback ->
+        val solicitarGoogleSignIn: ((String?) -> Unit) -> Unit = { callback ->
             callbackTokenGoogle = callback
-            googleClient.signOut().addOnCompleteListener {
-                googleSignInLauncher.launch(googleClient.signInIntent)
+            try {
+                googleClient.signOut().addOnCompleteListener {
+                    try {
+                        googleSignInLauncher.launch(googleClient.signInIntent)
+                    } catch (_: Exception) {
+                        val pendiente = callbackTokenGoogle
+                        callbackTokenGoogle = null
+                        pendiente?.invoke(null)
+                    }
+                }
+            } catch (_: Exception) {
+                val pendiente = callbackTokenGoogle
+                callbackTokenGoogle = null
+                pendiente?.invoke(null)
             }
         }
 
