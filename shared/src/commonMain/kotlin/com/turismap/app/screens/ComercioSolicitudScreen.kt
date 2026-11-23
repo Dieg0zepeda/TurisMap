@@ -46,11 +46,93 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cancelar
+import turismap.shared.generated.resources.comercio_btn_cambiar_ubicacion_mapa
+import turismap.shared.generated.resources.comercio_btn_enviar_solicitud
+import turismap.shared.generated.resources.comercio_btn_horario_manual
+import turismap.shared.generated.resources.comercio_btn_horario_por_dias
+import turismap.shared.generated.resources.comercio_btn_solicitud_enviada
+import turismap.shared.generated.resources.comercio_btn_ubicar_mapa
+import turismap.shared.generated.resources.comercio_btn_volver_planes
+import turismap.shared.generated.resources.comercio_cd_seleccionar_categoria
+import turismap.shared.generated.resources.comercio_cd_seleccionar_ubicacion
+import turismap.shared.generated.resources.comercio_coordenadas_guardadas
+import turismap.shared.generated.resources.comercio_dia_domingo
+import turismap.shared.generated.resources.comercio_dia_jueves
+import turismap.shared.generated.resources.comercio_dia_lunes
+import turismap.shared.generated.resources.comercio_dia_martes
+import turismap.shared.generated.resources.comercio_dia_miercoles
+import turismap.shared.generated.resources.comercio_dia_sabado
+import turismap.shared.generated.resources.comercio_dia_viernes
+import turismap.shared.generated.resources.comercio_error_cargar_categorias
+import turismap.shared.generated.resources.comercio_error_cargar_plan
+import turismap.shared.generated.resources.comercio_error_cargar_ubicaciones
+import turismap.shared.generated.resources.comercio_error_enviar_solicitud
+import turismap.shared.generated.resources.comercio_error_permisos_coleccion
+import turismap.shared.generated.resources.comercio_error_plan_no_disponible
+import turismap.shared.generated.resources.comercio_error_seleccionar_ubicacion
+import turismap.shared.generated.resources.comercio_error_seleccionar_ubicacion_exacta
+import turismap.shared.generated.resources.comercio_error_sin_categorias
+import turismap.shared.generated.resources.comercio_error_sin_ubicaciones
+import turismap.shared.generated.resources.comercio_error_sitio_web_https
+import turismap.shared.generated.resources.comercio_horario_abre
+import turismap.shared.generated.resources.comercio_horario_cierra
+import turismap.shared.generated.resources.comercio_horario_conector_a
+import turismap.shared.generated.resources.comercio_label_categoria
+import turismap.shared.generated.resources.comercio_label_correo
+import turismap.shared.generated.resources.comercio_label_descripcion
+import turismap.shared.generated.resources.comercio_label_direccion
+import turismap.shared.generated.resources.comercio_label_horario_atencion
+import turismap.shared.generated.resources.comercio_label_horario_manual
+import turismap.shared.generated.resources.comercio_label_nombre_comercio
+import turismap.shared.generated.resources.comercio_label_nombre_completo
+import turismap.shared.generated.resources.comercio_label_promocion
+import turismap.shared.generated.resources.comercio_label_sitio_web
+import turismap.shared.generated.resources.comercio_label_telefono
+import turismap.shared.generated.resources.comercio_label_ubicacion_pueblo
+import turismap.shared.generated.resources.comercio_plan_desc_basico
+import turismap.shared.generated.resources.comercio_plan_desc_crecimiento
+import turismap.shared.generated.resources.comercio_plan_desc_vip
+import turismap.shared.generated.resources.comercio_plan_seleccionado_fallback
+import turismap.shared.generated.resources.comercio_seccion_beneficio_vip
+import turismap.shared.generated.resources.comercio_seccion_contacto
+import turismap.shared.generated.resources.comercio_seccion_datos_comercio
+import turismap.shared.generated.resources.comercio_seccion_operacion_redes
+import turismap.shared.generated.resources.comercio_solicitud_exito
+import turismap.shared.generated.resources.comercio_titulo_registrar
+import turismap.shared.generated.resources.planes_cd_volver
 
 data class HorarioDia(
     val apertura: String = "",
     val cierre: String = ""
 )
+
+private enum class DiaSemanaSolicitud(
+    val nombrePersistencia: String
+) {
+    LUNES("Lunes"),
+    MARTES("Martes"),
+    MIERCOLES("Miércoles"),
+    JUEVES("Jueves"),
+    VIERNES("Viernes"),
+    SABADO("Sábado"),
+    DOMINGO("Domingo");
+
+    val etiquetaRes: StringResource
+        get() = when (this) {
+            LUNES -> Res.string.comercio_dia_lunes
+            MARTES -> Res.string.comercio_dia_martes
+            MIERCOLES -> Res.string.comercio_dia_miercoles
+            JUEVES -> Res.string.comercio_dia_jueves
+            VIERNES -> Res.string.comercio_dia_viernes
+            SABADO -> Res.string.comercio_dia_sabado
+            DOMINGO -> Res.string.comercio_dia_domingo
+        }
+}
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,10 +182,11 @@ fun ComercioSolicitudScreen(
     var planError by remember { mutableStateOf<String?>(null) }
     var intentoCarga by remember { mutableStateOf(0) }
     var mostrarHorarioDetallado by remember { mutableStateOf(false) }
-    var diasSeleccionados by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var horariosPorDia: Map<String, HorarioDia> by remember { mutableStateOf(emptyMap()) }
+    var diasSeleccionados by remember { mutableStateOf<Set<DiaSemanaSolicitud>>(emptySet()) }
+    var horariosPorDia: Map<DiaSemanaSolicitud, HorarioDia> by remember { mutableStateOf(emptyMap()) }
     var solicitudEnviada by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val errorSitioWebHttps = stringResource(Res.string.comercio_error_sitio_web_https)
 
     LaunchedEffect(planId, intentoCarga) {
         cargandoLugares = true
@@ -118,7 +201,7 @@ fun ComercioSolicitudScreen(
         try {
             lugares = LugaresRepository.obtenerTodos()
             lugaresError = if (lugares.isEmpty()) {
-                "No hay ubicaciones disponibles en la colección lugares."
+                getString(Res.string.comercio_error_sin_ubicaciones)
             } else {
                 null
             }
@@ -128,7 +211,7 @@ fun ComercioSolicitudScreen(
             lugaresError = mensajeErrorCarga(
                 error = error,
                 coleccion = "lugares",
-                mensajePredeterminado = "No se pudieron cargar las ubicaciones."
+                mensajePredeterminadoRes = Res.string.comercio_error_cargar_ubicaciones
             )
         } finally {
             cargandoLugares = false
@@ -137,7 +220,7 @@ fun ComercioSolicitudScreen(
         try {
             categorias = ComercioRepository.obtenerCategorias()
             categoriasError = if (categorias.isEmpty()) {
-                "No hay categorías activas en categorias_comercio."
+                getString(Res.string.comercio_error_sin_categorias)
             } else {
                 null
             }
@@ -147,7 +230,7 @@ fun ComercioSolicitudScreen(
             categoriasError = mensajeErrorCarga(
                 error = error,
                 coleccion = "categorias_comercio",
-                mensajePredeterminado = "No se pudieron cargar las categorías."
+                mensajePredeterminadoRes = Res.string.comercio_error_cargar_categorias
             )
         } finally {
             cargandoCategorias = false
@@ -157,14 +240,14 @@ fun ComercioSolicitudScreen(
             val plan = ComercioRepository.obtenerPlanDisponible(planId)
             planNombre = plan?.nombre.orEmpty()
             planPrecio = plan?.precioFormateado()
-            planError = if (plan == null) "El plan seleccionado ya no está disponible." else null
+            planError = if (plan == null) getString(Res.string.comercio_error_plan_no_disponible) else null
         } catch (cancelacion: CancellationException) {
             throw cancelacion
         } catch (error: Exception) {
             planError = mensajeErrorCarga(
                 error = error,
                 coleccion = "planes_comercio",
-                mensajePredeterminado = "No se pudo cargar el plan seleccionado."
+                mensajePredeterminadoRes = Res.string.comercio_error_cargar_plan
             )
         } finally {
             cargandoPlan = false
@@ -187,12 +270,12 @@ fun ComercioSolicitudScreen(
     } else Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar mi comercio") },
+                title = { Text(stringResource(Res.string.comercio_titulo_registrar)) },
                 navigationIcon = {
                     IconButton(onClick = onBack, enabled = !enviando) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = stringResource(Res.string.planes_cd_volver)
                         )
                     }
                 }
@@ -225,7 +308,7 @@ fun ComercioSolicitudScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = planNombre.ifBlank { "Plan Seleccionado" },
+                            text = planNombre.ifBlank { stringResource(Res.string.comercio_plan_seleccionado_fallback) },
                             fontWeight = FontWeight.Bold,
                             fontSize = 17.sp,
                             color = when {
@@ -249,33 +332,35 @@ fun ComercioSolicitudScreen(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = when {
-                            esPremium -> "Plan VIP: Incluye presencia en inicio, redes, horarios y promoción destacada."
-                            esSocio -> "Plan Crecimiento: Incluye enlaces a redes sociales y horarios de atención."
-                            else -> "Plan Básico: Presencia esencial en el directorio y mapa turístico."
-                        },
+                        text = stringResource(
+                            when {
+                                esPremium -> Res.string.comercio_plan_desc_vip
+                                esSocio -> Res.string.comercio_plan_desc_crecimiento
+                                else -> Res.string.comercio_plan_desc_basico
+                            }
+                        ),
                         fontSize = 12.5.sp,
                         color = Color(0xFF475569)
                     )
                 }
             }
 
-            Text("Tus datos de contacto", fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.comercio_seccion_contacto), fontWeight = FontWeight.Bold)
             CampoSolicitud(
-                etiqueta = "Nombre completo",
+                etiqueta = stringResource(Res.string.comercio_label_nombre_completo),
                 valor = nombreCompleto,
                 alCambiar = { nombreCompleto = it }
             )
             CampoSolicitud(
-                etiqueta = "Correo electrónico",
+                etiqueta = stringResource(Res.string.comercio_label_correo),
                 valor = email,
                 alCambiar = {},
                 soloLectura = true
             )
 
-            Text("Datos del comercio", fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.comercio_seccion_datos_comercio), fontWeight = FontWeight.Bold)
             CampoSolicitud(
-                etiqueta = "Nombre del comercio",
+                etiqueta = stringResource(Res.string.comercio_label_nombre_comercio),
                 valor = nombreNegocio,
                 alCambiar = { nombreNegocio = it }
             )
@@ -286,7 +371,7 @@ fun ComercioSolicitudScreen(
                         value = lugarSeleccionado?.nombre.orEmpty(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Ubicación del negocio (Pueblo)") },
+                        label = { Text(stringResource(Res.string.comercio_label_ubicacion_pueblo)) },
                         trailingIcon = {
                             IconButton(
                                 onClick = { selectorMunicipioAbierto = true },
@@ -294,7 +379,7 @@ fun ComercioSolicitudScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Seleccionar ubicación"
+                                    contentDescription = stringResource(Res.string.comercio_cd_seleccionar_ubicacion)
                                 )
                             }
                         },
@@ -333,13 +418,22 @@ fun ComercioSolicitudScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        if (coordenadaSeleccionada == null) "Ubicar negocio en el mapa"
-                        else "Cambiar ubicación en el mapa"
+                        stringResource(
+                            if (coordenadaSeleccionada == null) {
+                                Res.string.comercio_btn_ubicar_mapa
+                            } else {
+                                Res.string.comercio_btn_cambiar_ubicacion_mapa
+                            }
+                        )
                     )
                 }
                 coordenadaSeleccionada?.let { coordenada ->
                     Text(
-                        "Coordenadas guardadas: ${coordenada.latitud}, ${coordenada.longitud}",
+                        stringResource(
+                            Res.string.comercio_coordenadas_guardadas,
+                            coordenada.latitud.toString(),
+                            coordenada.longitud.toString()
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
@@ -352,7 +446,7 @@ fun ComercioSolicitudScreen(
                         value = categoria,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Categoría") },
+                        label = { Text(stringResource(Res.string.comercio_label_categoria)) },
                         trailingIcon = {
                             IconButton(
                                 onClick = { selectorCategoriaAbierto = true },
@@ -360,7 +454,7 @@ fun ComercioSolicitudScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Seleccionar categoría"
+                                    contentDescription = stringResource(Res.string.comercio_cd_seleccionar_categoria)
                                 )
                             }
                         },
@@ -393,38 +487,49 @@ fun ComercioSolicitudScreen(
             }
 
             CampoSolicitud(
-                etiqueta = "Descripción breve",
+                etiqueta = stringResource(Res.string.comercio_label_descripcion),
                 valor = descripcion,
                 alCambiar = { descripcion = it },
                 multilinea = true
             )
             CampoSolicitud(
-                etiqueta = "Dirección física",
+                etiqueta = stringResource(Res.string.comercio_label_direccion),
                 valor = direccion,
                 alCambiar = { direccion = it }
             )
             CampoSolicitud(
-                etiqueta = "Teléfono de contacto",
+                etiqueta = stringResource(Res.string.comercio_label_telefono),
                 valor = telefono,
                 alCambiar = { telefono = it }
             )
 
             if (esSocio) {
-                Text("Detalles de Operación y Redes", fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.comercio_seccion_operacion_redes), fontWeight = FontWeight.Bold)
                 CampoSolicitud(
-                    etiqueta = "Sitio web o Instagram (ej. https://...)",
+                    etiqueta = stringResource(Res.string.comercio_label_sitio_web),
                     valor = sitioWeb,
                     alCambiar = { sitioWeb = it }
                 )
 
                 Column {
-                    Text("Horario de atención", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(Res.string.comercio_label_horario_atencion),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     TextButton(onClick = { mostrarHorarioDetallado = !mostrarHorarioDetallado }) {
-                        Text(if (mostrarHorarioDetallado) "Escribir horario manual" else "Configurar horario por días")
+                        Text(
+                            stringResource(
+                                if (mostrarHorarioDetallado) {
+                                    Res.string.comercio_btn_horario_manual
+                                } else {
+                                    Res.string.comercio_btn_horario_por_dias
+                                }
+                            )
+                        )
                     }
                     if (mostrarHorarioDetallado) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo").forEach { dia ->
+                            DiaSemanaSolicitud.entries.forEach { dia ->
                                 val seleccionado = diasSeleccionados.contains(dia)
                                 val horarioDia = horariosPorDia[dia] ?: HorarioDia()
                                 Row(
@@ -440,7 +545,7 @@ fun ComercioSolicitudScreen(
                                             }
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(dia)
+                                        Text(stringResource(dia.etiquetaRes))
                                     }
                                     if (seleccionado) {
                                         Row(
@@ -452,17 +557,17 @@ fun ComercioSolicitudScreen(
                                                 onValueChange = { nuevoValor ->
                                                     horariosPorDia = horariosPorDia + (dia to horarioDia.copy(apertura = nuevoValor))
                                                 },
-                                                label = { Text("Abre") },
+                                                label = { Text(stringResource(Res.string.comercio_horario_abre)) },
                                                 modifier = Modifier.width(90.dp),
                                                 singleLine = true
                                             )
-                                            Text("a")
+                                            Text(stringResource(Res.string.comercio_horario_conector_a))
                                             OutlinedTextField(
                                                 value = horarioDia.cierre,
                                                 onValueChange = { nuevoValor ->
                                                     horariosPorDia = horariosPorDia + (dia to horarioDia.copy(cierre = nuevoValor))
                                                 },
-                                                label = { Text("Cierra") },
+                                                label = { Text(stringResource(Res.string.comercio_horario_cierra)) },
                                                 modifier = Modifier.width(90.dp),
                                                 singleLine = true
                                             )
@@ -478,13 +583,13 @@ fun ComercioSolicitudScreen(
                             } else {
                                 diasSeleccionados.joinToString(", ") { dia ->
                                     val horarioDia = horariosPorDia[dia] ?: HorarioDia()
-                                    "$dia: ${horarioDia.apertura} a ${horarioDia.cierre}"
+                                    "${dia.nombrePersistencia}: ${horarioDia.apertura} a ${horarioDia.cierre}"
                                 }
                             }
                         }
                     } else {
                         CampoSolicitud(
-                            etiqueta = "Horario (ej. Lun a Dom 8:00 AM - 6:00 PM)",
+                            etiqueta = stringResource(Res.string.comercio_label_horario_manual),
                             valor = horario,
                             alCambiar = { horario = it }
                         )
@@ -493,9 +598,9 @@ fun ComercioSolicitudScreen(
             }
 
             if (esPremium) {
-                Text("Beneficio VIP TurisMap", fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.comercio_seccion_beneficio_vip), fontWeight = FontWeight.Bold)
                 CampoSolicitud(
-                    etiqueta = "Promoción exclusiva para turistas (ej. 10% en café)",
+                    etiqueta = stringResource(Res.string.comercio_label_promocion),
                     valor = promocionEspecial,
                     alCambiar = { promocionEspecial = it }
                 )
@@ -506,7 +611,7 @@ fun ComercioSolicitudScreen(
             }
             if (solicitudEnviada) {
                 Text(
-                    "Solicitud enviada con éxito. Será revisada y publicada desde el panel administrativo.",
+                    stringResource(Res.string.comercio_solicitud_exito),
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
@@ -533,13 +638,16 @@ fun ComercioSolicitudScreen(
                             !solicitudEnviada,
                     onClick = {
                         if (sitioWeb.isNotBlank() && !sitioWeb.startsWith("https://", ignoreCase = true)) {
-                            errorEnvio = "El sitio web debe comenzar con https://."
+                            errorEnvio = errorSitioWebHttps
                         } else {
                             enviando = true
                             errorEnvio = null
                             scope.launch {
                                 try {
-                                    val lugar = lugarSeleccionado ?: throw IllegalStateException("Selecciona una ubicación.")
+                                    val lugar = lugarSeleccionado
+                                        ?: throw IllegalStateException(
+                                            getString(Res.string.comercio_error_seleccionar_ubicacion)
+                                        )
 
                                     val descripcionFinal = if (esPremium && promocionEspecial.isNotBlank()) {
                                         "$descripcion\n\n[PROMO TURISMAP]: $promocionEspecial"
@@ -560,13 +668,16 @@ fun ComercioSolicitudScreen(
                                         horario = if (esSocio) horario else "",
                                         planId = planId,
                                         coordenadas = coordenadaSeleccionada
-                                            ?: throw IllegalStateException("Selecciona la ubicación exacta del negocio.")
+                                            ?: throw IllegalStateException(
+                                                getString(Res.string.comercio_error_seleccionar_ubicacion_exacta)
+                                            )
                                     )
                                     solicitudEnviada = true
                                 } catch (cancelacion: CancellationException) {
                                     throw cancelacion
                                 } catch (error: Exception) {
-                                    errorEnvio = error.message ?: "No se pudo enviar la solicitud."
+                                    errorEnvio = error.message
+                                        ?: getString(Res.string.comercio_error_enviar_solicitud)
                                 } finally {
                                     enviando = false
                                 }
@@ -575,21 +686,33 @@ fun ComercioSolicitudScreen(
                     }
                 ) {
                     if (enviando) CircularProgressIndicator()
-                    else Text(if (solicitudEnviada) "Solicitud enviada" else "Enviar solicitud")
+                    else Text(
+                        stringResource(
+                            if (solicitudEnviada) {
+                                Res.string.comercio_btn_solicitud_enviada
+                            } else {
+                                Res.string.comercio_btn_enviar_solicitud
+                            }
+                        )
+                    )
                 }
 
                 TextButton(onClick = if (solicitudEnviada) onSubmitted else onBack, enabled = !enviando) {
-                    Text(if (solicitudEnviada) "Volver a planes" else "Cancelar")
+                    Text(
+                        stringResource(
+                            if (solicitudEnviada) Res.string.comercio_btn_volver_planes else Res.string.btn_cancelar
+                        )
+                    )
                 }
             }
         }
     }
 }
 
-private fun mensajeErrorCarga(
+private suspend fun mensajeErrorCarga(
     error: Exception,
     coleccion: String,
-    mensajePredeterminado: String
+    mensajePredeterminadoRes: StringResource
 ): String {
     val detalle = generateSequence(error as Throwable?) { it.cause }
         .mapNotNull(Throwable::message)
@@ -598,9 +721,9 @@ private fun mensajeErrorCarga(
         detalle.contains("PERMISSION_DENIED", ignoreCase = true) ||
         detalle.contains("missing or insufficient permissions", ignoreCase = true)
     ) {
-        "Firestore no permite leer $coleccion. Verifica las reglas publicadas para esta colección."
+        getString(Res.string.comercio_error_permisos_coleccion, coleccion)
     } else {
-        error.message?.takeIf(String::isNotBlank) ?: mensajePredeterminado
+        error.message?.takeIf(String::isNotBlank) ?: getString(mensajePredeterminadoRes)
     }
 }
 

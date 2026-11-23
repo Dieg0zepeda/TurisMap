@@ -265,4 +265,82 @@
     <string name="detalle_exp_por_consumo">per visit</string>
     <string name="detalle_exp_precio_desde_usd">From %1$s USD</string>
     <string name="detalle_exp_btn_iniciar_ruta">Start route</string>
+
+    <!-- Business Flow: Plans -->
+    <string name="planes_error_permisos">Firestore permission error. Please check the rules.</string>
+    <string name="planes_error_cargar">Could not load plans.</string>
+    <string name="planes_titulo_barra">Business Plans</string>
+    <string name="planes_cd_volver">Back</string>
+    <string name="planes_encabezado_titulo">Grow your business</string>
+    <string name="planes_encabezado_subtitulo">Choose the membership that best fits your business to attract travelers along Ruta de las Flores.</string>
+    <string name="planes_estado_vacio">No plans configured yet.</string>
+    <string name="planes_precio_consultar">Contact us</string>
+    <string name="planes_badge_recomendado">Recommended</string>
+    <string name="planes_badge_destacado">Featured</string>
+    <string name="planes_descripcion_fallback">Our team will confirm the details with you.</string>
+    <string name="planes_btn_solicitar">Request plan</string>
+
+    <!-- Business Flow: Registration Request -->
+    <string name="comercio_error_sin_ubicaciones">No locations available in the lugares collection.</string>
+    <string name="comercio_error_cargar_ubicaciones">Could not load locations.</string>
+    <string name="comercio_error_sin_categorias">No active categories available in categorias_comercio.</string>
+    <string name="comercio_error_cargar_categorias">Could not load categories.</string>
+    <string name="comercio_error_plan_no_disponible">The selected plan is no longer available.</string>
+    <string name="comercio_error_cargar_plan">Could not load the selected plan.</string>
+    <string name="comercio_error_permisos_coleccion">Firestore does not allow reading %1$s. Verify the published rules for this collection.</string>
+    <string name="comercio_titulo_registrar">Register my business</string>
+    <string name="comercio_plan_seleccionado_fallback">Selected Plan</string>
+    <string name="comercio_plan_desc_vip">VIP Plan: Includes home screen placement, social links, business hours, and featured promotion.</string>
+    <string name="comercio_plan_desc_crecimiento">Growth Plan: Includes social media links and business hours.</string>
+    <string name="comercio_plan_desc_basico">Basic Plan: Essential presence in the directory and tourist map.</string>
+    <string name="comercio_seccion_contacto">Your contact information</string>
+    <string name="comercio_label_nombre_completo">Full name</string>
+    <string name="comercio_label_correo">Email</string>
+    <string name="comercio_seccion_datos_comercio">Business details</string>
+    <string name="comercio_label_nombre_comercio">Business name</string>
+    <string name="comercio_label_ubicacion_pueblo">Business location (Town)</string>
+    <string name="comercio_cd_seleccionar_ubicacion">Select location</string>
+    <string name="comercio_btn_ubicar_mapa">Pin business on the map</string>
+    <string name="comercio_btn_cambiar_ubicacion_mapa">Change location on the map</string>
+    <string name="comercio_coordenadas_guardadas">Saved coordinates: %1$s, %2$s</string>
+    <string name="comercio_label_categoria">Category</string>
+    <string name="comercio_cd_seleccionar_categoria">Select category</string>
+    <string name="comercio_label_descripcion">Short description</string>
+    <string name="comercio_label_direccion">Street address</string>
+    <string name="comercio_label_telefono">Contact phone</string>
+    <string name="comercio_seccion_operacion_redes">Operations &amp; Social Media</string>
+    <string name="comercio_label_sitio_web">Website or Instagram (e.g. https://...)</string>
+    <string name="comercio_label_horario_atencion">Business hours</string>
+    <string name="comercio_btn_horario_manual">Enter hours manually</string>
+    <string name="comercio_btn_horario_por_dias">Set hours by day</string>
+    <string name="comercio_dia_lunes">Monday</string>
+    <string name="comercio_dia_martes">Tuesday</string>
+    <string name="comercio_dia_miercoles">Wednesday</string>
+    <string name="comercio_dia_jueves">Thursday</string>
+    <string name="comercio_dia_viernes">Friday</string>
+    <string name="comercio_dia_sabado">Saturday</string>
+    <string name="comercio_dia_domingo">Sunday</string>
+    <string name="comercio_horario_abre">Opens</string>
+    <string name="comercio_horario_conector_a">to</string>
+    <string name="comercio_horario_cierra">Closes</string>
+    <string name="comercio_label_horario_manual">Hours (e.g. Mon to Sun 8:00 AM - 6:00 PM)</string>
+    <string name="comercio_seccion_beneficio_vip">TurisMap VIP Benefit</string>
+    <string name="comercio_label_promocion">Exclusive promotion for travelers (e.g. 10% off coffee)</string>
+    <string name="comercio_solicitud_exito">Request submitted successfully. It will be reviewed and published from the admin panel.</string>
+    <string name="comercio_error_sitio_web_https">The website URL must start with https://.</string>
+    <string name="comercio_error_seleccionar_ubicacion">Select a location.</string>
+    <string name="comercio_error_seleccionar_ubicacion_exacta">Select the exact location of your business.</string>
+    <string name="comercio_error_enviar_solicitud">Could not submit the request.</string>
+    <string name="comercio_btn_solicitud_enviada">Request sent</string>
+    <string name="comercio_btn_enviar_solicitud">Submit request</string>
+    <string name="comercio_btn_volver_planes">Back to plans</string>
+
+    <!-- Business Flow: Location Picker -->
+    <string name="comercio_ubicacion_titulo">Locate my business</string>
+    <string name="comercio_ubicacion_cd_volver">Back to form</string>
+    <string name="comercio_ubicacion_instrucciones">Tap the map at the exact location of your business. Then save to return to the form.</string>
+    <string name="comercio_ubicacion_latitud">Latitude</string>
+    <string name="comercio_ubicacion_longitud">Longitude</string>
+    <string name="comercio_ubicacion_error_rango">Select a valid point: latitude between -90 and 90, longitude between -180 and 180.</string>
+    <string name="comercio_ubicacion_btn_guardar">Save location and return</string>
 </resources>

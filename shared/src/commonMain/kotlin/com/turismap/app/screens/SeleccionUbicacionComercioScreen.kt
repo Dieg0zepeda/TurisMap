@@ -26,6 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.turismap.app.components.MapSelector
 import com.turismap.app.data.models.Coordenada
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.comercio_ubicacion_btn_guardar
+import turismap.shared.generated.resources.comercio_ubicacion_cd_volver
+import turismap.shared.generated.resources.comercio_ubicacion_error_rango
+import turismap.shared.generated.resources.comercio_ubicacion_instrucciones
+import turismap.shared.generated.resources.comercio_ubicacion_latitud
+import turismap.shared.generated.resources.comercio_ubicacion_longitud
+import turismap.shared.generated.resources.comercio_ubicacion_titulo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +66,12 @@ fun SeleccionarUbicacionComercioScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ubicar mi negocio") },
+                title = { Text(stringResource(Res.string.comercio_ubicacion_titulo)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver al formulario"
+                            contentDescription = stringResource(Res.string.comercio_ubicacion_cd_volver)
                         )
                     }
                 }
@@ -77,7 +86,7 @@ fun SeleccionarUbicacionComercioScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Toca el mapa en la ubicación exacta de tu negocio. Luego guarda para regresar al formulario.",
+                stringResource(Res.string.comercio_ubicacion_instrucciones),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             MapSelector(
@@ -95,21 +104,21 @@ fun SeleccionarUbicacionComercioScreen(
                 OutlinedTextField(
                     value = latitudTexto,
                     onValueChange = { latitudTexto = it },
-                    label = { Text("Latitud") },
+                    label = { Text(stringResource(Res.string.comercio_ubicacion_latitud)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = longitudTexto,
                     onValueChange = { longitudTexto = it },
-                    label = { Text("Longitud") },
+                    label = { Text(stringResource(Res.string.comercio_ubicacion_longitud)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
             }
             if (coordenadaSeleccionada == null) {
                 Text(
-                    "Selecciona un punto válido: latitud entre -90 y 90, longitud entre -180 y 180.",
+                    stringResource(Res.string.comercio_ubicacion_error_rango),
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -118,7 +127,7 @@ fun SeleccionarUbicacionComercioScreen(
                 enabled = coordenadaSeleccionada != null,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar ubicación y volver")
+                Text(stringResource(Res.string.comercio_ubicacion_btn_guardar))
             }
         }
     }

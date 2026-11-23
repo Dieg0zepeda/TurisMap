@@ -265,4 +265,82 @@
     <string name="detalle_exp_por_consumo">por consumo</string>
     <string name="detalle_exp_precio_desde_usd">Desde %1$s USD</string>
     <string name="detalle_exp_btn_iniciar_ruta">Iniciar ruta</string>
+
+    <!-- Flujo Comercial: Planes -->
+    <string name="planes_error_permisos">Error de permisos en Firestore. Verifica las reglas.</string>
+    <string name="planes_error_cargar">No se pudieron cargar los planes.</string>
+    <string name="planes_titulo_barra">Planes de negocio</string>
+    <string name="planes_cd_volver">Volver</string>
+    <string name="planes_encabezado_titulo">Impulsa tu negocio</string>
+    <string name="planes_encabezado_subtitulo">Elige la membresía que mejor se adapte a ti para atraer turistas en la Ruta de las Flores.</string>
+    <string name="planes_estado_vacio">Aún no hay planes configurados.</string>
+    <string name="planes_precio_consultar">Consultar</string>
+    <string name="planes_badge_recomendado">Recomendado</string>
+    <string name="planes_badge_destacado">Destacado</string>
+    <string name="planes_descripcion_fallback">El equipo confirmará los detalles contigo.</string>
+    <string name="planes_btn_solicitar">Solicitar plan</string>
+
+    <!-- Flujo Comercial: Solicitud de Registro -->
+    <string name="comercio_error_sin_ubicaciones">No hay ubicaciones disponibles en la colección lugares.</string>
+    <string name="comercio_error_cargar_ubicaciones">No se pudieron cargar las ubicaciones.</string>
+    <string name="comercio_error_sin_categorias">No hay categorías activas en categorias_comercio.</string>
+    <string name="comercio_error_cargar_categorias">No se pudieron cargar las categorías.</string>
+    <string name="comercio_error_plan_no_disponible">El plan seleccionado ya no está disponible.</string>
+    <string name="comercio_error_cargar_plan">No se pudo cargar el plan seleccionado.</string>
+    <string name="comercio_error_permisos_coleccion">Firestore no permite leer %1$s. Verifica las reglas publicadas para esta colección.</string>
+    <string name="comercio_titulo_registrar">Registrar mi comercio</string>
+    <string name="comercio_plan_seleccionado_fallback">Plan Seleccionado</string>
+    <string name="comercio_plan_desc_vip">Plan VIP: Incluye presencia en inicio, redes, horarios y promoción destacada.</string>
+    <string name="comercio_plan_desc_crecimiento">Plan Crecimiento: Incluye enlaces a redes sociales y horarios de atención.</string>
+    <string name="comercio_plan_desc_basico">Plan Básico: Presencia esencial en el directorio y mapa turístico.</string>
+    <string name="comercio_seccion_contacto">Tus datos de contacto</string>
+    <string name="comercio_label_nombre_completo">Nombre completo</string>
+    <string name="comercio_label_correo">Correo electrónico</string>
+    <string name="comercio_seccion_datos_comercio">Datos del comercio</string>
+    <string name="comercio_label_nombre_comercio">Nombre del comercio</string>
+    <string name="comercio_label_ubicacion_pueblo">Ubicación del negocio (Pueblo)</string>
+    <string name="comercio_cd_seleccionar_ubicacion">Seleccionar ubicación</string>
+    <string name="comercio_btn_ubicar_mapa">Ubicar negocio en el mapa</string>
+    <string name="comercio_btn_cambiar_ubicacion_mapa">Cambiar ubicación en el mapa</string>
+    <string name="comercio_coordenadas_guardadas">Coordenadas guardadas: %1$s, %2$s</string>
+    <string name="comercio_label_categoria">Categoría</string>
+    <string name="comercio_cd_seleccionar_categoria">Seleccionar categoría</string>
+    <string name="comercio_label_descripcion">Descripción breve</string>
+    <string name="comercio_label_direccion">Dirección física</string>
+    <string name="comercio_label_telefono">Teléfono de contacto</string>
+    <string name="comercio_seccion_operacion_redes">Detalles de Operación y Redes</string>
+    <string name="comercio_label_sitio_web">Sitio web o Instagram (ej. https://...)</string>
+    <string name="comercio_label_horario_atencion">Horario de atención</string>
+    <string name="comercio_btn_horario_manual">Escribir horario manual</string>
+    <string name="comercio_btn_horario_por_dias">Configurar horario por días</string>
+    <string name="comercio_dia_lunes">Lunes</string>
+    <string name="comercio_dia_martes">Martes</string>
+    <string name="comercio_dia_miercoles">Miércoles</string>
+    <string name="comercio_dia_jueves">Jueves</string>
+    <string name="comercio_dia_viernes">Viernes</string>
+    <string name="comercio_dia_sabado">Sábado</string>
+    <string name="comercio_dia_domingo">Domingo</string>
+    <string name="comercio_horario_abre">Abre</string>
+    <string name="comercio_horario_conector_a">a</string>
+    <string name="comercio_horario_cierra">Cierra</string>
+    <string name="comercio_label_horario_manual">Horario (ej. Lun a Dom 8:00 AM - 6:00 PM)</string>
+    <string name="comercio_seccion_beneficio_vip">Beneficio VIP TurisMap</string>
+    <string name="comercio_label_promocion">Promoción exclusiva para turistas (ej. 10% en café)</string>
+    <string name="comercio_solicitud_exito">Solicitud enviada con éxito. Será revisada y publicada desde el panel administrativo.</string>
+    <string name="comercio_error_sitio_web_https">El sitio web debe comenzar con https://.</string>
+    <string name="comercio_error_seleccionar_ubicacion">Selecciona una ubicación.</string>
+    <string name="comercio_error_seleccionar_ubicacion_exacta">Selecciona la ubicación exacta del negocio.</string>
+    <string name="comercio_error_enviar_solicitud">No se pudo enviar la solicitud.</string>
+    <string name="comercio_btn_solicitud_enviada">Solicitud enviada</string>
+    <string name="comercio_btn_enviar_solicitud">Enviar solicitud</string>
+    <string name="comercio_btn_volver_planes">Volver a planes</string>
+
+    <!-- Flujo Comercial: Selección de Ubicación -->
+    <string name="comercio_ubicacion_titulo">Ubicar mi negocio</string>
+    <string name="comercio_ubicacion_cd_volver">Volver al formulario</string>
+    <string name="comercio_ubicacion_instrucciones">Toca el mapa en la ubicación exacta de tu negocio. Luego guarda para regresar al formulario.</string>
+    <string name="comercio_ubicacion_latitud">Latitud</string>
+    <string name="comercio_ubicacion_longitud">Longitud</string>
+    <string name="comercio_ubicacion_error_rango">Selecciona un punto válido: latitud entre -90 y 90, longitud entre -180 y 180.</string>
+    <string name="comercio_ubicacion_btn_guardar">Guardar ubicación y volver</string>
 </resources>
