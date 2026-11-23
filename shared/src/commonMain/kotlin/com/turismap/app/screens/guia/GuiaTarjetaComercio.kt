@@ -2,6 +2,7 @@ package com.turismap.app.screens.guia
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
+import com.turismap.app.theme.ObsidianaFondo
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.detalle_exp_precio_desde_usd
@@ -63,7 +66,8 @@ internal fun TarjetaComercioGuia(
 
     val calificacion = formatearCalificacionComercio(comercio.calificacionPromedio)
         ?: stringResource(Res.string.guia_calificacion_nuevo)
-    val subtitulo = formatearSubtituloComercio(municipio, categoriaEtiqueta)
+    val municipioLimpio = municipio.trim()
+    val categoriaLimpia = categoriaEtiqueta.trim()
 
     val precioDesdeValido = comercio.precioDesde?.takeIf { it > 0.0 }
     val detalleBreve = when {
@@ -73,11 +77,16 @@ internal fun TarjetaComercioGuia(
         comercio.descripcion.isNotBlank() -> comercio.descripcion.trim()
         else -> null
     }
+    val bordeTarjeta = when (comercio.planInt) {
+        3 -> paleta.ambarAcento.copy(alpha = if (paleta.esOscuro) 0.38f else 0.32f)
+        2 -> paleta.bordeEnfocado.copy(alpha = if (paleta.esOscuro) 0.40f else 0.28f)
+        else -> paleta.airbnbBorder
+    }
 
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = paleta.superficieTarjeta),
-        border = BorderStroke(0.8.dp, paleta.airbnbBorder),
+        border = BorderStroke(1.dp, bordeTarjeta),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -111,7 +120,7 @@ internal fun TarjetaComercioGuia(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 8.dp)
-                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                            .background(ObsidianaFondo.copy(alpha = 0.56f), RoundedCornerShape(10.dp))
                             .padding(horizontal = 7.dp, vertical = 3.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -163,9 +172,10 @@ internal fun TarjetaComercioGuia(
 
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.38f))
+                            .background(ObsidianaFondo.copy(alpha = 0.58f))
+                            .border(0.8.dp, Color.White.copy(alpha = 0.16f), CircleShape)
                             .clickable(enabled = !favoritoEnProceso, onClick = onToggleFavorito),
                         contentAlignment = Alignment.Center
                     ) {
@@ -218,26 +228,52 @@ internal fun TarjetaComercioGuia(
                     }
                 }
 
-                // Fila 2: Pueblo · Categoría en una sola línea
-                if (subtitulo.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = subtitulo,
-                        color = paleta.airbnbGray,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Normal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                // Fila 2: Etiqueta de categoría tonal salvia + municipio legible
+                if (categoriaLimpia.isNotEmpty() || municipioLimpio.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (categoriaLimpia.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = paleta.etiquetaFondo,
+                                border = BorderStroke(0.8.dp, paleta.etiquetaBorde)
+                            ) {
+                                Text(
+                                    text = categoriaLimpia,
+                                    color = paleta.etiquetaTexto,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                        if (municipioLimpio.isNotEmpty()) {
+                            Text(
+                                text = municipioLimpio,
+                                color = paleta.airbnbGray,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                    }
                 }
 
                 // Fila 3 (solo si tiene dato): precio o detalle breve discreto en 1 línea
                 if (!detalleBreve.isNullOrEmpty()) {
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = detalleBreve,
                         color = if (precioDesdeValido != null) {
-                            paleta.airbnbBlack.copy(alpha = 0.85f)
+                            paleta.airbnbBlack.copy(alpha = 0.88f)
                         } else {
                             paleta.airbnbGray
                         },
@@ -260,7 +296,7 @@ private fun GradienteSuperiorTarjeta(modifier: Modifier = Modifier) {
             .height(52.dp)
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.36f), Color.Transparent)
+                    listOf(ObsidianaFondo.copy(alpha = 0.44f), Color.Transparent)
                 )
             )
     )

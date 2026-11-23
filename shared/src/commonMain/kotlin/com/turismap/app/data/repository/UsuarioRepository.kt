@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.Serializable
@@ -53,8 +55,25 @@ object UsuarioRepository {
     private val scopeObservacion by lazy {
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
+    private val visitasPorUidCache = MutableStateFlow<Pair<String, Int>?>(null)
+    private val perfilAseguradoUidCache = MutableStateFlow<String?>(null)
 
     fun obtenerIdUsuarioActual(): String? = Firebase.auth.currentUser?.uid
+
+    fun visitasEnCache(idUsuario: String?): Int? {
+        val uidLimpio = idUsuario?.trim()?.takeIf(String::isNotEmpty) ?: return null
+        return visitasPorUidCache.value?.takeIf { it.first == uidLimpio }?.second
+    }
+
+    fun perfilYaAsegurado(idUsuario: String?): Boolean {
+        val uidLimpio = idUsuario?.trim()?.takeIf(String::isNotEmpty) ?: return false
+        return perfilAseguradoUidCache.value == uidLimpio
+    }
+
+    fun limpiarCacheUsuario() {
+        visitasPorUidCache.value = null
+        perfilAseguradoUidCache.value = null
+    }
 
     // ==========================================
     // 1. OBSERVADORES EN TIEMPO REAL (FLOW)
@@ -70,6 +89,14 @@ object UsuarioRepository {
             .onStart { emit(Firebase.auth.currentUser) }
             .map { it?.uid }
             .distinctUntilChanged()
+            .onEach { uid ->
+                if (visitasPorUidCache.value?.first != uid) {
+                    visitasPorUidCache.value = null
+                }
+                if (perfilAseguradoUidCache.value != uid) {
+                    perfilAseguradoUidCache.value = null
+                }
+            }
             .flatMapLatest { uid ->
                 if (uid.isNullOrBlank()) {
                     flowOf(null)
@@ -111,6 +138,12 @@ object UsuarioRepository {
     ) {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException(getString(Res.string.perfil_error_sin_sesion))
+        if (perfilAseguradoUidCache.value == usuario.uid &&
+            usuarioActualFlow.value != null &&
+            fotoUrl.isNullOrBlank()
+        ) {
+            return
+        }
         val referencia = firestore.collection("usuarios").document(usuario.uid)
         val documento = referencia.get()
 
@@ -144,6 +177,7 @@ object UsuarioRepository {
                 referencia.update("fotoPerfil" to fotoLimpia)
             }
         }
+        perfilAseguradoUidCache.value = usuario.uid
     }
 
     suspend fun obtenerUsuarioPorId(idUsuario: String): UsuarioBD? {
@@ -294,6 +328,10 @@ object UsuarioRepository {
                         "tipoInteraccion" to tipoInteraccion
                     )
                 )
+            val cacheActual = visitasPorUidCache.value
+            if (cacheActual != null && cacheActual.first == uid) {
+                visitasPorUidCache.value = uid to (cacheActual.second + 1)
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -301,15 +339,24 @@ object UsuarioRepository {
         }
     }
 
-    suspend fun contarVisitas(idUsuario: String): Int = try {
-        firestore.collection("usuarios").document(idUsuario)
-            .collection("historial_rutas")
-            .get()
-            .documents
-            .size
-    } catch (error: CancellationException) {
-        throw error
-    } catch (_: Exception) {
-        0
+    suspend fun contarVisitas(idUsuario: String, forzarRecarga: Boolean = false): Int {
+        val uidLimpio = idUsuario.trim()
+        if (uidLimpio.isEmpty()) return 0
+        if (!forzarRecarga) {
+            visitasEnCache(uidLimpio)?.let { return it }
+        }
+        return try {
+            val total = firestore.collection("usuarios").document(uidLimpio)
+                .collection("historial_rutas")
+                .get()
+                .documents
+                .size
+            visitasPorUidCache.value = uidLimpio to total
+            total
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            visitasEnCache(uidLimpio) ?: 0
+        }
     }
 }

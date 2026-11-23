@@ -8,6 +8,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 
 private val firestore by lazy { Firebase.firestore }
@@ -106,26 +107,55 @@ private fun DocumentSnapshot.aLugarSeguro(): Lugar? {
 }
 
 actual object LugaresRepository {
-    actual suspend fun obtenerTodos(): List<Lugar> {
-        try {
-            return firestore.collection("lugares").get().documents.mapNotNull { document ->
-                document.aLugarSeguro()
+
+    actual val lugaresEnCache: List<Lugar>?
+        get() = LugaresCache.obtenerLista()
+
+    actual fun obtenerEnCachePorId(id: String): Lugar? = LugaresCache.obtenerPorId(id)
+
+    actual suspend fun obtenerTodos(forzarRecarga: Boolean): List<Lugar> {
+        if (!forzarRecarga) {
+            LugaresCache.obtenerLista()?.let { return it }
+        }
+        return LugaresCache.mutex.withLock {
+            if (!forzarRecarga) {
+                LugaresCache.obtenerLista()?.let { return@withLock it }
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            throw IllegalStateException("No se pudieron cargar los lugares desde Firestore.", error)
+            try {
+                val lugares = firestore.collection("lugares").get().documents.mapNotNull { document ->
+                    document.aLugarSeguro()
+                }
+                LugaresCache.guardarLista(lugares)
+                lugares
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                throw IllegalStateException("No se pudieron cargar los lugares desde Firestore.", error)
+            }
         }
     }
 
-    actual suspend fun obtenerPorId(id: String): Lugar? {
+    actual suspend fun obtenerPorId(id: String, forzarRecarga: Boolean): Lugar? {
+        val idLimpio = id.trim()
+        if (idLimpio.isEmpty()) return null
+        if (!forzarRecarga) {
+            LugaresCache.obtenerPorId(idLimpio)?.let { return it }
+        }
         try {
-            val document = firestore.collection("lugares").document(id).get()
-            return document.aLugarSeguro()
+            val document = firestore.collection("lugares").document(idLimpio).get()
+            val lugar = document.aLugarSeguro()
+            if (lugar != null) {
+                LugaresCache.guardarLugar(lugar)
+            }
+            return lugar
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            throw IllegalStateException("No se pudo cargar el lugar '$id' desde Firestore.", error)
+            throw IllegalStateException("No se pudo cargar el lugar '$idLimpio' desde Firestore.", error)
         }
+    }
+
+    actual fun limpiarCache() {
+        LugaresCache.limpiar()
     }
 }

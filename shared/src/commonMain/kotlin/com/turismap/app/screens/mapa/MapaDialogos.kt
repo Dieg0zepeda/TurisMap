@@ -32,6 +32,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.theme.FondoBlancoAdaptable
+import com.turismap.app.theme.PinoContenedor
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
@@ -55,7 +57,7 @@ internal fun ModalCapasMapa(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = if (paleta.esOscuro) Color(0xFF0F172A) else Color.White,
+        containerColor = FondoBlancoAdaptable,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = { BottomSheetDefaults.DragHandle(color = paleta.airbnbBorde) }
     ) {
@@ -76,7 +78,7 @@ internal fun ModalCapasMapa(
                     modifier = Modifier
                         .size(68.dp)
                         .clip(CircleShape)
-                        .background(if (paleta.esOscuro) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                        .background(if (paleta.esOscuro) PinoContenedor else Color(0xFFF1F5F9))
                         .border(2.dp, paleta.turismapAcento, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -215,7 +217,7 @@ private fun ItemFiltroWaze(
             ) {
                 Text(
                     text = cantidad.toString(),
-                    color = if (seleccionado) Color.White else paleta.airbnbOscuro,
+                    color = if (seleccionado) paleta.sobrePrimario else paleta.airbnbOscuro,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

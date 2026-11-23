@@ -202,17 +202,20 @@ internal fun TarjetaMarcadorMapa(
                         Button(
                             onClick = { onAbrirGoogleMaps(urlGoogleMaps(comercio, lugar, municipio)) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = paleta.turismapPrimario),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = paleta.turismapPrimario,
+                                contentColor = paleta.sobrePrimario
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Navigation,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = paleta.sobrePrimario,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(Res.string.mapa_btn_como_llegar), color = Color.White)
+                            Text(stringResource(Res.string.mapa_btn_como_llegar), color = paleta.sobrePrimario)
                         }
 
                         if (comercio != null) {

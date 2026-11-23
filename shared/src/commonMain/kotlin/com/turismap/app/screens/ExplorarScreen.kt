@@ -1,7 +1,9 @@
 package com.turismap.app.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -25,6 +28,8 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
@@ -38,7 +43,7 @@ import turismap.shared.generated.resources.explorar_error_cargar_destinos
 import turismap.shared.generated.resources.explorar_experiencias_vacio
 import turismap.shared.generated.resources.explorar_precio_desde
 import turismap.shared.generated.resources.explorar_seccion_experiencias
-import turismap.shared.generated.resources.explorar_seccion_explora_ruta
+import turismap.shared.generated.resources.explorar_seccion_pueblos_ruta
 import turismap.shared.generated.resources.explorar_titulo
 
 @Composable
@@ -48,24 +53,63 @@ fun ExplorarScreen(
     onLugarClick: (Lugar) -> Unit = {},
     onComercioClick: (String) -> Unit = {}
 ) {
-    var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
-    var lugarDestacado by remember { mutableStateOf<Lugar?>(null) }
-    var cargando by remember { mutableStateOf(true) }
+    val lugaresIniciales = remember { LugaresRepository.lugaresEnCache }
+    val destacadosIniciales = remember { ComercioRepository.destacadosEnCache }
+    val tieneCacheInicial = lugaresIniciales != null && destacadosIniciales != null
+
+    var lugares by remember { mutableStateOf(lugaresIniciales.orEmpty()) }
+    var lugarDestacado by remember {
+        mutableStateOf(
+            lugaresIniciales?.let { lista ->
+                lista.firstOrNull { it.id == "ataco" } ?: lista.firstOrNull()
+            }
+        )
+    }
+    var cargando by remember { mutableStateOf(!tieneCacheInicial) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
-    var intentoCarga by remember { mutableStateOf(0) }
-    var experienciasDestacadas by remember { mutableStateOf<List<Comercio>>(emptyList()) }
+    var intentoCarga by remember { mutableIntStateOf(0) }
+    var experienciasDestacadas by remember { mutableStateOf(destacadosIniciales.orEmpty()) }
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(intentoCarga) {
-        cargando = true
+        val esReintentoManual = intentoCarga > 0
+        if (!esReintentoManual) {
+            val cacheLugares = LugaresRepository.lugaresEnCache
+            val cacheDestacados = ComercioRepository.destacadosEnCache
+            if (cacheLugares != null && cacheDestacados != null) {
+                lugares = cacheLugares
+                lugarDestacado = cacheLugares.firstOrNull { it.id == "ataco" } ?: cacheLugares.firstOrNull()
+                experienciasDestacadas = cacheDestacados
+                errorCarga = null
+                cargando = false
+                return@LaunchedEffect
+            }
+        }
+
+        val tieneDatosVisibles = lugares.isNotEmpty()
+        if (!tieneDatosVisibles) {
+            cargando = true
+        }
         errorCarga = null
         try {
-            lugares = LugaresRepository.obtenerTodos()
-            lugarDestacado = lugares.firstOrNull { it.id == "ataco" } ?: lugares.firstOrNull()
-            experienciasDestacadas = ComercioRepository.obtenerDestacados()
+            val (lugaresCargados, destacadosCargados) = coroutineScope {
+                val tareaLugares = async {
+                    LugaresRepository.obtenerTodos(forzarRecarga = esReintentoManual)
+                }
+                val tareaDestacados = async {
+                    ComercioRepository.obtenerDestacados(forzarRecarga = esReintentoManual)
+                }
+                tareaLugares.await() to tareaDestacados.await()
+            }
+            lugares = lugaresCargados
+            lugarDestacado = lugaresCargados.firstOrNull { it.id == "ataco" } ?: lugaresCargados.firstOrNull()
+            experienciasDestacadas = destacadosCargados
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            errorCarga = error.message ?: getString(Res.string.explorar_error_cargar_destinos)
+            if (!tieneDatosVisibles) {
+                errorCarga = error.message ?: getString(Res.string.explorar_error_cargar_destinos)
+            }
         } finally {
             cargando = false
         }
@@ -75,14 +119,23 @@ fun ExplorarScreen(
     val destinosSinDestacado = remember(lugares, lugarDestacado) {
         lugares.filter { it.id != lugarDestacado?.id }
     }
+    val esModoOscuro = isSystemInDarkTheme()
 
     if (cargando) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = VerdePrimario)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else if (errorCarga != null) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -96,8 +149,8 @@ fun ExplorarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .background(GrisFondo)
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(scrollState)
                 .padding(bottom = 24.dp)
         ) {
             // Cabecera con título y acceso a notificaciones
@@ -142,7 +195,10 @@ fun ExplorarScreen(
                         .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
                         .clickable { onLugarClick(lugarDestacado!!) },
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = VerdePrimario)
+                    border = if (esModoOscuro) BorderStroke(1.dp, GrisBorde) else null,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         val urlImagenDestacado = lugarDestacado!!.imagenPortadaUrl.ifBlank {
@@ -162,8 +218,12 @@ fun ExplorarScreen(
                                 .fillMaxSize()
                                 .background(
                                     brush = Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                                        startY = 300f
+                                        colorStops = arrayOf(
+                                            0.0f to Color.Transparent,
+                                            0.38f to ObsidianaFondo.copy(alpha = 0.14f),
+                                            0.72f to ObsidianaFondo.copy(alpha = 0.66f),
+                                            1.0f to ObsidianaFondo.copy(alpha = 0.90f)
+                                        )
                                     )
                                 )
                         )
@@ -175,14 +235,14 @@ fun ExplorarScreen(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.2f)
+                                color = TerracotaAcento
                             ) {
                                 Text(
                                     text = stringResource(Res.string.explorar_badge_destino_destacado),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp),
                                     letterSpacing = 0.8.sp
                                 )
                             }
@@ -206,7 +266,7 @@ fun ExplorarScreen(
                             Text(
                                 text = lugarDestacado!!.nombre,
                                 fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.9f)
+                                color = Color.White.copy(alpha = 0.92f)
                             )
                         }
                     }
@@ -216,7 +276,7 @@ fun ExplorarScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = stringResource(Res.string.explorar_seccion_explora_ruta),
+                text = stringResource(Res.string.explorar_seccion_pueblos_ruta),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextoPrincipalOscuro,
@@ -225,7 +285,7 @@ fun ExplorarScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Carrusel horizontal con foco central sin el elemento repetido
+            // Carrusel horizontal alineado a la izquierda sin el elemento repetido
             CarruselExploraRuta(
                 destinos = destinosSinDestacado,
                 onLugarClick = onLugarClick
@@ -262,6 +322,7 @@ fun ExplorarScreen(
                                     onComercioClick(experiencia.id)
                                 },
                             shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, GrisBorde),
                             colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable)
                         ) {
                             Column(Modifier.padding(16.dp)) {
@@ -273,6 +334,7 @@ fun ExplorarScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(150.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                     )
                                     Spacer(Modifier.height(12.dp))
                                 }
@@ -291,14 +353,17 @@ fun ExplorarScreen(
                                     Spacer(Modifier.height(8.dp))
                                     Text(
                                         text = stringResource(Res.string.explorar_precio_desde, it.toString()),
-                                        color = TerracotaAcento,
+                                        color = TerracotaTextoAdaptable,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = { onComercioClick(experiencia.id) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario)
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 ) {
                                     Text(stringResource(Res.string.explorar_btn_ver_detalle))
                                 }

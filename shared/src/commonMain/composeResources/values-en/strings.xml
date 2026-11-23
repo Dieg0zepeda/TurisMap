@@ -130,11 +130,11 @@
 
     <!-- Explore Screen -->
     <string name="explorar_error_cargar_destinos">Could not load destinations.</string>
-    <string name="explorar_titulo">Explore the Route</string>
+    <string name="explorar_titulo">Ruta de las Flores</string>
     <string name="explorar_cd_fondo_destino">Background of %1$s</string>
     <string name="explorar_badge_destino_destacado">FEATURED DESTINATION</string>
     <string name="explorar_descubre_lugar">Discover %1$s</string>
-    <string name="explorar_seccion_explora_ruta">Explore the Route</string>
+    <string name="explorar_seccion_pueblos_ruta">Towns along the Route</string>
     <string name="explorar_etiqueta_destino_predeterminada">Destination</string>
     <string name="explorar_seccion_experiencias">Featured Experiences</string>
     <string name="explorar_experiencias_vacio">No featured experiences published yet.</string>
@@ -317,6 +317,27 @@
     <string name="comercio_seccion_operacion_redes">Operations &amp; Social Media</string>
     <string name="comercio_label_sitio_web">Website or Instagram (e.g. https://...)</string>
     <string name="comercio_label_horario_atencion">Business hours</string>
+    <string name="comercio_horario_placeholder">Set business hours</string>
+    <string name="comercio_cd_configurar_horario">Set business hours</string>
+    <string name="comercio_horario_bloque_titulo">Schedule %1$d</string>
+    <string name="comercio_horario_cd_eliminar_bloque">Remove schedule</string>
+    <string name="comercio_horario_atajo_todos">Every day</string>
+    <string name="comercio_horario_atajo_semana">Mon to Fri</string>
+    <string name="comercio_horario_atajo_finde">Weekend</string>
+    <string name="comercio_dia_inicial_lunes">M</string>
+    <string name="comercio_dia_inicial_martes">T</string>
+    <string name="comercio_dia_inicial_miercoles">W</string>
+    <string name="comercio_dia_inicial_jueves">T</string>
+    <string name="comercio_dia_inicial_viernes">F</string>
+    <string name="comercio_dia_inicial_sabado">S</string>
+    <string name="comercio_dia_inicial_domingo">S</string>
+    <string name="comercio_horario_btn_agregar">Add another schedule</string>
+    <string name="comercio_horario_btn_guardar">Save hours</string>
+    <string name="comercio_horario_btn_limpiar">Clear</string>
+    <string name="comercio_horario_btn_aceptar">Accept</string>
+    <string name="comercio_horario_dialogo_abre">Opening time</string>
+    <string name="comercio_horario_dialogo_cierra">Closing time</string>
+    <string name="comercio_horario_error_horas_iguales">Closing time must be different from opening time</string>
     <string name="comercio_btn_horario_manual">Enter hours manually</string>
     <string name="comercio_btn_horario_por_dias">Set hours by day</string>
     <string name="comercio_btn_aplicar_horario">Apply schedule</string>

@@ -33,9 +33,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -43,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.theme.FondoBlancoAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_buscar
@@ -63,6 +67,7 @@ internal fun CabeceraBusquedaYPueblo(
 ) {
     val puebloActivo = municipioSeleccionado != null
     val etiquetaPueblo = municipioSeleccionado ?: stringResource(Res.string.categoria_lugar_todos)
+    var buscadorEnfocado by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -71,21 +76,25 @@ internal fun CabeceraBusquedaYPueblo(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Campo de búsqueda compacto
+        // Campo de búsqueda compacto con fondo tonal elevado y foco verde salvia
         Row(
             modifier = Modifier
                 .weight(1f)
                 .height(44.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(FondoBlancoAdaptable)
-                .border(0.8.dp, paleta.airbnbBorder, RoundedCornerShape(22.dp))
+                .background(paleta.superficieBuscador)
+                .border(
+                    width = if (buscadorEnfocado) 1.2.dp else 1.dp,
+                    color = if (buscadorEnfocado) paleta.bordeEnfocado else paleta.airbnbBorder,
+                    shape = RoundedCornerShape(22.dp)
+                )
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = stringResource(Res.string.btn_buscar),
-                tint = paleta.airbnbGray,
+                tint = if (buscadorEnfocado) paleta.bordeEnfocado else paleta.airbnbGray,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -111,8 +120,10 @@ internal fun CabeceraBusquedaYPueblo(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal
                     ),
-                    cursorBrush = SolidColor(paleta.filtroActivoContenido),
-                    modifier = Modifier.fillMaxWidth()
+                    cursorBrush = SolidColor(paleta.bordeEnfocado),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { buscadorEnfocado = it.isFocused }
                 )
             }
             if (searchQuery.isNotEmpty()) {
@@ -135,12 +146,11 @@ internal fun CabeceraBusquedaYPueblo(
                 .widthIn(max = 146.dp)
                 .clip(RoundedCornerShape(22.dp))
                 .background(
-                    if (puebloActivo) paleta.filtroActivoFondo.copy(alpha = 0.12f)
-                    else FondoBlancoAdaptable
+                    if (puebloActivo) paleta.puebloActivoFondo else paleta.superficieTarjeta
                 )
                 .border(
-                    width = if (puebloActivo) 1.dp else 0.8.dp,
-                    color = if (puebloActivo) paleta.filtroActivoContenido.copy(alpha = 0.5f) else paleta.airbnbBorder,
+                    width = 1.dp,
+                    color = if (puebloActivo) paleta.puebloActivoBorde else paleta.airbnbBorder,
                     shape = RoundedCornerShape(22.dp)
                 )
                 .clickable(onClick = onAbrirSelectorPueblo)
@@ -150,13 +160,13 @@ internal fun CabeceraBusquedaYPueblo(
             Icon(
                 imageVector = Icons.Rounded.LocationOn,
                 contentDescription = null,
-                tint = if (puebloActivo) paleta.filtroActivoContenido else paleta.airbnbGray,
+                tint = if (puebloActivo) paleta.puebloActivoContenido else paleta.airbnbGray,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = etiquetaPueblo,
-                color = if (puebloActivo) paleta.filtroActivoContenido else paleta.airbnbBlack,
+                color = if (puebloActivo) paleta.puebloActivoContenido else paleta.airbnbBlack,
                 fontSize = 13.sp,
                 fontWeight = if (puebloActivo) FontWeight.SemiBold else FontWeight.Medium,
                 maxLines = 1,
@@ -167,7 +177,7 @@ internal fun CabeceraBusquedaYPueblo(
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = stringResource(Res.string.guia_selector_pueblo_titulo),
-                tint = if (puebloActivo) paleta.filtroActivoContenido else paleta.airbnbGray,
+                tint = if (puebloActivo) paleta.puebloActivoContenido else paleta.airbnbGray,
                 modifier = Modifier.size(17.dp)
             )
         }
@@ -188,7 +198,7 @@ internal fun SelectorPuebloBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = FondoBlancoAdaptable,
+        containerColor = paleta.superficieTarjeta,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
@@ -223,8 +233,7 @@ internal fun SelectorPuebloBottomSheet(
                         .padding(horizontal = 12.dp, vertical = 2.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (activo) paleta.filtroActivoFondo.copy(alpha = 0.1f)
-                            else Color.Transparent
+                            if (activo) paleta.puebloActivoFondo else Color.Transparent
                         )
                         .clickable { onMunicipioSeleccionado(muni) }
                         .padding(horizontal = 12.dp, vertical = 12.dp),
@@ -233,13 +242,13 @@ internal fun SelectorPuebloBottomSheet(
                     Icon(
                         imageVector = if (muni == null) Icons.Rounded.Map else Icons.Rounded.LocationOn,
                         contentDescription = null,
-                        tint = if (activo) paleta.filtroActivoContenido else paleta.airbnbGray,
+                        tint = if (activo) paleta.puebloActivoContenido else paleta.airbnbGray,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = muni ?: stringResource(Res.string.guia_filtro_todos_pueblos),
-                        color = if (activo) paleta.filtroActivoContenido else paleta.airbnbBlack,
+                        color = if (activo) paleta.puebloActivoContenido else paleta.airbnbBlack,
                         fontSize = 15.sp,
                         fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Normal,
                         modifier = Modifier.weight(1f)
@@ -248,7 +257,7 @@ internal fun SelectorPuebloBottomSheet(
                         Icon(
                             imageVector = Icons.Rounded.Check,
                             contentDescription = null,
-                            tint = paleta.filtroActivoContenido,
+                            tint = paleta.puebloActivoContenido,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -274,10 +283,11 @@ internal fun FilaFiltrosCategoria(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(18.dp))
-                    .background(if (activa) paleta.filtroActivoFondo else FondoBlancoAdaptable)
-                    .then(
-                        if (activa) Modifier
-                        else Modifier.border(0.8.dp, paleta.airbnbBorder, RoundedCornerShape(18.dp))
+                    .background(if (activa) paleta.filtroActivoFondo else paleta.superficieTarjeta)
+                    .border(
+                        width = 1.dp,
+                        color = if (activa) paleta.filtroActivoBorde else paleta.airbnbBorder,
+                        shape = RoundedCornerShape(18.dp)
                     )
                     .clickable { onCategoriaSeleccionada(cat.id) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
@@ -285,7 +295,7 @@ internal fun FilaFiltrosCategoria(
             ) {
                 Text(
                     text = stringResource(cat.etiquetaRes),
-                    color = if (activa) Color.White else paleta.airbnbBlack,
+                    color = if (activa) paleta.filtroActivoContenido else paleta.airbnbBlack,
                     fontSize = 13.sp,
                     fontWeight = if (activa) FontWeight.SemiBold else FontWeight.Medium,
                     maxLines = 1

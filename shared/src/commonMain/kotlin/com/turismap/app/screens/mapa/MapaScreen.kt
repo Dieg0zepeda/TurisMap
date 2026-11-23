@@ -51,12 +51,14 @@ fun MapaScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val alturaMaximaTarjeta = maxHeight * 0.65f
 
-        // 1. Google Maps / Mapa Turístico con centrado reactivo (ruta inicial y búsqueda)
+        // 1. Google Maps / Mapa Turístico con centrado reactivo y preservación de cámara
         MapaTuristico(
             lugares = state.lugaresParaElMapa,
             latInicial = state.camaraLatObjetivo,
             lngInicial = state.camaraLngObjetivo,
             zoomInicial = state.camaraZoomObjetivo,
+            camaraGuardada = state.camaraGuardada,
+            onCamaraCambiada = state::guardarEstadoCamara,
             onLugarClick = state::seleccionarMarcadorEnMapa,
             modifier = Modifier.fillMaxSize()
         )

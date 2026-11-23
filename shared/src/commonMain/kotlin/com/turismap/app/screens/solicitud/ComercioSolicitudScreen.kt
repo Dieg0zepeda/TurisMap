@@ -263,20 +263,10 @@ fun ComercioSolicitudScreen(
                         )
                         if (state.esSocio) {
                             HorizontalDivider(color = GrisBorde.copy(alpha = 0.65f))
-                            SeccionHorarioSolicitud(
+                            CampoSelectorHorarioSolicitud(
                                 horario = state.horario,
-                                mostrarHorarioDetallado = state.mostrarHorarioDetallado,
-                                diasSeleccionados = state.diasSeleccionados,
-                                horariosPorDia = state.horariosPorDia,
-                                onToggleModo = { state.mostrarHorarioDetallado = !state.mostrarHorarioDetallado },
-                                onHorarioManualChange = { state.horario = it.take(200) },
-                                onToggleDia = { dia, checked ->
-                                    state.diasSeleccionados = if (checked) state.diasSeleccionados + dia else state.diasSeleccionados - dia
-                                },
-                                onActualizarHorarioDia = { dia, horarioDia ->
-                                    state.horariosPorDia = state.horariosPorDia + (dia to horarioDia)
-                                },
-                                onAplicarHorario = state::aplicarHorarioPorDias
+                                habilitado = !state.enviando,
+                                onAbrir = { state.selectorHorarioAbierto = true }
                             )
                         }
                     }
@@ -322,6 +312,16 @@ fun ComercioSolicitudScreen(
                     state.categoriaId = opcion.id
                     state.selectorCategoriaAbierto = false
                 }
+            )
+        }
+
+        if (state.selectorHorarioAbierto) {
+            HorarioAtencionModalSheet(
+                bloquesIniciales = state.bloquesHorario,
+                tieneHorarioGuardado = state.horario.isNotBlank(),
+                onDismiss = { state.selectorHorarioAbierto = false },
+                onGuardar = state::guardarHorarioBloques,
+                onLimpiar = state::limpiarHorario
             )
         }
     }

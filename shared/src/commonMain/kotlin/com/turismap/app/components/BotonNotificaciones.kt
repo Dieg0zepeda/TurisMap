@@ -20,8 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.formatearBadgeNotificaciones
-import com.turismap.app.theme.FondoBlancoAdaptable
 import com.turismap.app.theme.GrisBorde
+import com.turismap.app.theme.ObsidianaFondo
+import com.turismap.app.theme.SuperficieContenedorAdaptable
 import com.turismap.app.theme.TerracotaAcento
 import com.turismap.app.theme.VerdeTextoAdaptable
 import org.jetbrains.compose.resources.stringResource
@@ -49,7 +50,7 @@ fun BotonNotificaciones(
     }
 
     val esSobreImagen = variante == VarianteBotonNotificaciones.SOBRE_IMAGEN
-    val colorFondo = if (esSobreImagen) Color.Black.copy(alpha = 0.4f) else FondoBlancoAdaptable
+    val colorFondo = if (esSobreImagen) ObsidianaFondo.copy(alpha = 0.52f) else SuperficieContenedorAdaptable
     val borde = if (esSobreImagen) null else BorderStroke(1.dp, GrisBorde)
     val colorIcono = if (esSobreImagen) Color.White else VerdeTextoAdaptable
     val tamanoBoton = if (esSobreImagen) 36.dp else 42.dp

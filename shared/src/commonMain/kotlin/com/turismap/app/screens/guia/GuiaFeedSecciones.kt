@@ -30,6 +30,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,6 +54,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
+import com.turismap.app.theme.ObsidianaFondo
+import com.turismap.app.theme.PinoContenedorAlto
+import com.turismap.app.theme.PinoSuperficie
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.auth_ruta_flores
@@ -76,8 +80,8 @@ internal fun Modifier.shimmerEffect(esOscuro: Boolean = false): Modifier = compo
         ),
         label = "shimmer_x"
     )
-    val base = if (esOscuro) Color(0xFF2A2E2C) else Color(0xFFE5E7EB)
-    val brillo = if (esOscuro) Color(0xFF383E3B) else Color(0xFFF3F4F6)
+    val base = if (esOscuro) PinoSuperficie else Color(0xFFE5E7EB)
+    val brillo = if (esOscuro) PinoContenedorAlto else Color(0xFFF3F4F6)
 
     background(
         brush = Brush.linearGradient(
@@ -201,9 +205,12 @@ internal fun EstadoErrorGuia(
         Spacer(modifier = Modifier.height(12.dp))
         Button(
             onClick = onReintentar,
-            colors = ButtonDefaults.buttonColors(containerColor = paleta.filtroActivoFondo)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
-            Text(stringResource(Res.string.btn_reintentar), color = Color.White)
+            Text(stringResource(Res.string.btn_reintentar))
         }
     }
 }
@@ -241,10 +248,16 @@ internal fun TarjetaMiniDestacada(
     }
     val subtitulo = formatearSubtituloComercio(municipio, categoriaEtiqueta)
 
+    val bordeDestacada = when (comercio.planInt) {
+        3 -> paleta.ambarAcento.copy(alpha = if (paleta.esOscuro) 0.38f else 0.32f)
+        2 -> paleta.bordeEnfocado.copy(alpha = if (paleta.esOscuro) 0.40f else 0.28f)
+        else -> paleta.airbnbBorder
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = paleta.superficieTarjeta),
-        border = BorderStroke(0.8.dp, paleta.airbnbBorder),
+        border = BorderStroke(1.dp, bordeDestacada),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .width(248.dp)
@@ -276,9 +289,9 @@ internal fun TarjetaMiniDestacada(
                     .background(
                         Brush.verticalGradient(
                             colorStops = arrayOf(
-                                0.0f to Color.Black.copy(alpha = 0.08f),
+                                0.0f to ObsidianaFondo.copy(alpha = 0.12f),
                                 0.42f to Color.Transparent,
-                                1.0f to Color.Black.copy(alpha = if (urlPortada != null) 0.80f else 0.68f)
+                                1.0f to ObsidianaFondo.copy(alpha = if (urlPortada != null) 0.86f else 0.74f)
                             )
                         )
                     )

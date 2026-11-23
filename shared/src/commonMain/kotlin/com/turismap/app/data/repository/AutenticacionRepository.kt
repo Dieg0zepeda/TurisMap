@@ -209,6 +209,7 @@ object AutenticacionRepository {
     }
 
     suspend fun cerrarSesion() {
+        UsuarioRepository.limpiarCacheUsuario()
         auth.signOut()
     }
 }
