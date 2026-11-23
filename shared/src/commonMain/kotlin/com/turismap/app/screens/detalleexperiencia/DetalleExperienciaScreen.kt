@@ -37,6 +37,9 @@ import com.turismap.app.screens.detalleexperiencia.TarjetaExperienciasPremium
 import com.turismap.app.screens.detalleexperiencia.TarjetaUbicacionComercio
 import com.turismap.app.screens.detalleexperiencia.rememberDetalleExperienciaPaleta
 import com.turismap.app.screens.detalleexperiencia.rememberDetalleExperienciaState
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_reintentar
 
 @Composable
 fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
@@ -73,7 +76,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                     onClick = state::reintentar,
                     colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap)
                 ) {
-                    Text("Reintentar", color = Color.White)
+                    Text(stringResource(Res.string.btn_reintentar), color = Color.White)
                 }
             }
             state.comercio != null -> {

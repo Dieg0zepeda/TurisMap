@@ -34,6 +34,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.detalle_exp_badge_contador_fotos
+import turismap.shared.generated.resources.detalle_exp_badge_foto_principal
+import turismap.shared.generated.resources.detalle_exp_badge_galeria_fotos
+import turismap.shared.generated.resources.detalle_exp_badge_premium_fotos
+import turismap.shared.generated.resources.detalle_exp_cd_volver
+import turismap.shared.generated.resources.detalle_exp_sin_resenas
+import turismap.shared.generated.resources.detalle_exp_una_resena
+import turismap.shared.generated.resources.detalle_exp_varias_resenas
+import turismap.shared.generated.resources.guia_badge_socio_premium
+import turismap.shared.generated.resources.guia_badge_socio_turismap
+import turismap.shared.generated.resources.guia_calificacion_nuevo
 
 @Composable
 internal fun CabeceraMultimediaExperiencia(
@@ -124,7 +138,11 @@ internal fun CabeceraMultimediaExperiencia(
                                 Text("👑", fontSize = 13.sp)
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    "SOCIO PREMIUM · ${pagerState.currentPage + 1}/${fotos.size} FOTOS",
+                                    stringResource(
+                                        Res.string.detalle_exp_badge_premium_fotos,
+                                        pagerState.currentPage + 1,
+                                        fotos.size
+                                    ),
                                     color = paleta.doradoCorona,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold,
@@ -140,7 +158,7 @@ internal fun CabeceraMultimediaExperiencia(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                "📷 Galería (${pagerState.currentPage + 1}/${fotos.size} fotos)",
+                                "📷 ${stringResource(Res.string.detalle_exp_badge_galeria_fotos, pagerState.currentPage + 1, fotos.size)}",
                                 color = paleta.verdeTurisMap,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -154,7 +172,11 @@ internal fun CabeceraMultimediaExperiencia(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                if (fotos.size > 1) "📷 ${pagerState.currentPage + 1}/${fotos.size} fotos" else "📷 Foto Principal",
+                                if (fotos.size > 1) {
+                                    "📷 ${stringResource(Res.string.detalle_exp_badge_contador_fotos, pagerState.currentPage + 1, fotos.size)}"
+                                } else {
+                                    "📷 ${stringResource(Res.string.detalle_exp_badge_foto_principal)}"
+                                },
                                 color = Color.White.copy(alpha = 0.9f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
@@ -193,7 +215,11 @@ internal fun CabeceraMultimediaExperiencia(
                         .size(36.dp)
                         .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = stringResource(Res.string.detalle_exp_cd_volver),
+                        tint = Color.White
+                    )
                 }
 
                 if (datosUi.esPremium) {
@@ -209,7 +235,7 @@ internal fun CabeceraMultimediaExperiencia(
                             Text("👑", fontSize = 12.sp)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "Socio Premium",
+                                stringResource(Res.string.guia_badge_socio_premium),
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold
@@ -219,7 +245,7 @@ internal fun CabeceraMultimediaExperiencia(
                 } else if (datosUi.esSocio) {
                     Surface(color = paleta.verdeTurisMap, shape = RoundedCornerShape(20.dp)) {
                         Text(
-                            "✓ Socio TurisMap",
+                            "✓ ${stringResource(Res.string.guia_badge_socio_turismap)}",
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -246,7 +272,11 @@ internal fun CabeceraMultimediaExperiencia(
                         .size(36.dp)
                         .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(Res.string.btn_cerrar),
+                        tint = Color.White
+                    )
                 }
             }
         }
@@ -259,6 +289,12 @@ internal fun EncabezadoComercio(
     paleta: DetalleExperienciaPaleta
 ) {
     val datos = datosUi.comercio
+    val promedioTexto = datosUi.promedioNumericoTexto ?: stringResource(Res.string.guia_calificacion_nuevo)
+    val resenasTexto = when (datosUi.totalResenas) {
+        0 -> stringResource(Res.string.detalle_exp_sin_resenas)
+        1 -> stringResource(Res.string.detalle_exp_una_resena)
+        else -> stringResource(Res.string.detalle_exp_varias_resenas, datosUi.totalResenas)
+    }
 
     Row(
         Modifier.fillMaxWidth(),
@@ -269,7 +305,7 @@ internal fun EncabezadoComercio(
             Text("★", color = paleta.verdeTurisMap, fontSize = 15.sp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "${datosUi.promedioTexto} · ${datosUi.resenasTexto} · ${datos.categoria}",
+                "$promedioTexto · $resenasTexto · ${datos.categoria}",
                 color = paleta.colorTextoSecundario,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold

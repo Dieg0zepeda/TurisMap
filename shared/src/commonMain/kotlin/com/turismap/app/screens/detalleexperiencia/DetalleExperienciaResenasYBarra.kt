@@ -33,6 +33,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.repository.Resena
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.detalle_exp_btn_iniciar_ruta
+import turismap.shared.generated.resources.detalle_exp_btn_publicar_resena
+import turismap.shared.generated.resources.detalle_exp_por_consumo
+import turismap.shared.generated.resources.detalle_exp_precio_desde_usd
+import turismap.shared.generated.resources.detalle_exp_resena_comentario_label
+import turismap.shared.generated.resources.detalle_exp_resena_escribir
+import turismap.shared.generated.resources.detalle_exp_resena_fallback
+import turismap.shared.generated.resources.detalle_exp_resena_iniciar_sesion
+import turismap.shared.generated.resources.detalle_exp_resena_propio_comercio
+import turismap.shared.generated.resources.detalle_exp_resenas_titulo
+import turismap.shared.generated.resources.detalle_exp_resenas_vacio
+import turismap.shared.generated.resources.guia_badge_socio_premium
 
 @Composable
 internal fun SeccionResenasExperiencia(
@@ -50,7 +64,7 @@ internal fun SeccionResenasExperiencia(
 ) {
     Spacer(Modifier.height(28.dp))
     Text(
-        "Reseñas de Visitantes",
+        stringResource(Res.string.detalle_exp_resenas_titulo),
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold,
         color = paleta.colorTextoPrincipal
@@ -59,7 +73,7 @@ internal fun SeccionResenasExperiencia(
 
     if (resenas.isEmpty()) {
         Text(
-            "Aún no hay comentarios para este lugar. ¡Sé el primero en compartir tu experiencia!",
+            stringResource(Res.string.detalle_exp_resenas_vacio),
             color = paleta.colorTextoSecundario,
             fontSize = 13.sp
         )
@@ -81,7 +95,7 @@ internal fun SeccionResenasExperiencia(
                     Text("★".repeat(r.calificacion), color = paleta.verdeTurisMap, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        r.comentario.ifBlank { "Excelente lugar recomendado." },
+                        r.comentario.ifBlank { stringResource(Res.string.detalle_exp_resena_fallback) },
                         color = paleta.colorTextoPrincipal,
                         fontSize = 13.sp
                     )
@@ -92,9 +106,13 @@ internal fun SeccionResenasExperiencia(
 
     Spacer(Modifier.height(20.dp))
     Text(
-        if (!tieneUsuarioAutenticado) "Inicia sesión para reseñar"
-        else if (esPropietario) "No puedes reseñar tu propio comercio"
-        else "Escribe tu reseña",
+        stringResource(
+            when {
+                !tieneUsuarioAutenticado -> Res.string.detalle_exp_resena_iniciar_sesion
+                esPropietario -> Res.string.detalle_exp_resena_propio_comercio
+                else -> Res.string.detalle_exp_resena_escribir
+            }
+        ),
         fontWeight = FontWeight.Bold,
         color = paleta.colorTextoPrincipal,
         fontSize = 14.sp
@@ -118,7 +136,7 @@ internal fun SeccionResenasExperiencia(
     OutlinedTextField(
         value = comentario,
         onValueChange = onComentarioChange,
-        label = { Text("Comentario (opcional)") },
+        label = { Text(stringResource(Res.string.detalle_exp_resena_comentario_label)) },
         modifier = Modifier.fillMaxWidth(),
         enabled = tieneUsuarioAutenticado && !esPropietario,
         minLines = 2,
@@ -144,7 +162,7 @@ internal fun SeccionResenasExperiencia(
         if (enviando) {
             CircularProgressIndicator(Modifier.size(18.dp), color = Color.White)
         } else {
-            Text("Publicar reseña", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.detalle_exp_btn_publicar_resena), color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -173,12 +191,18 @@ internal fun BarraInferiorExperiencia(
         ) {
             Column {
                 Text(
-                    if (datosUi.esPremium) "Socio Premium" else "por consumo",
+                    stringResource(
+                        if (datosUi.esPremium) {
+                            Res.string.guia_badge_socio_premium
+                        } else {
+                            Res.string.detalle_exp_por_consumo
+                        }
+                    ),
                     fontSize = 11.sp,
                     color = paleta.colorTextoSecundario
                 )
                 Text(
-                    "Desde ${datosUi.precioTexto} USD",
+                    stringResource(Res.string.detalle_exp_precio_desde_usd, datosUi.precioTexto),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = paleta.colorTextoPrincipal
@@ -227,7 +251,7 @@ internal fun BarraInferiorExperiencia(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Text(
-                        "Iniciar ruta",
+                        stringResource(Res.string.detalle_exp_btn_iniciar_ruta),
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 13.sp

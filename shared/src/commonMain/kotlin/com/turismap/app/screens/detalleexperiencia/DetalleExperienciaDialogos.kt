@@ -14,6 +14,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.detalle_exp_menu_descripcion
+import turismap.shared.generated.resources.detalle_exp_menu_establecimiento
+import turismap.shared.generated.resources.detalle_exp_menu_titulo
 
 @Composable
 internal fun MenuDigitalDialog(
@@ -30,7 +36,7 @@ internal fun MenuDigitalDialog(
             ) {
                 Text("📖", fontSize = 22.sp)
                 Text(
-                    "Menú Digital y Catálogo",
+                    stringResource(Res.string.detalle_exp_menu_titulo),
                     fontWeight = FontWeight.Bold,
                     color = paleta.verdeTurisMap
                 )
@@ -39,12 +45,12 @@ internal fun MenuDigitalDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Establecimiento: $nombreComercio",
+                    stringResource(Res.string.detalle_exp_menu_establecimiento, nombreComercio),
                     fontWeight = FontWeight.Bold,
                     color = paleta.colorTextoPrincipal
                 )
                 Text(
-                    "Como beneficio de Socio Premium, este comercio cuenta con carta digitalizada en alta resolución y catálogo de productos.",
+                    stringResource(Res.string.detalle_exp_menu_descripcion),
                     color = paleta.colorTextoSecundario,
                     fontSize = 13.5.sp,
                     lineHeight = 19.sp
@@ -56,7 +62,7 @@ internal fun MenuDigitalDialog(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap)
             ) {
-                Text("Cerrar", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.btn_cerrar), color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         containerColor = if (paleta.esOscuro) Color(0xFF1E1B18) else Color.White,

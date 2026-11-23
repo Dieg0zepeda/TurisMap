@@ -35,6 +35,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.detalle_exp_abierto_ahora
+import turismap.shared.generated.resources.detalle_exp_abierto_todos_dias
+import turismap.shared.generated.resources.detalle_exp_acerca_titulo
+import turismap.shared.generated.resources.detalle_exp_badge_premium
+import turismap.shared.generated.resources.detalle_exp_btn_redes_web
+import turismap.shared.generated.resources.detalle_exp_btn_ver_catalogo
+import turismap.shared.generated.resources.detalle_exp_btn_ver_mapa
+import turismap.shared.generated.resources.detalle_exp_btn_whatsapp_directo
+import turismap.shared.generated.resources.detalle_exp_canal_oficial
+import turismap.shared.generated.resources.detalle_exp_canal_premium
+import turismap.shared.generated.resources.detalle_exp_descripcion_fallback
+import turismap.shared.generated.resources.detalle_exp_enlaces_titulo
+import turismap.shared.generated.resources.detalle_exp_galeria_titulo
+import turismap.shared.generated.resources.detalle_exp_horario_fallback
+import turismap.shared.generated.resources.detalle_exp_parada_recomendada
+import turismap.shared.generated.resources.detalle_exp_premium_descripcion
+import turismap.shared.generated.resources.detalle_exp_premium_subtitulo
+import turismap.shared.generated.resources.detalle_exp_servicios_titulo
+import turismap.shared.generated.resources.detalle_exp_ubicacion_titulo
+import turismap.shared.generated.resources.guia_seccion_destacadas
 
 @Composable
 internal fun TarjetaExperienciasPremium(
@@ -61,7 +83,7 @@ internal fun TarjetaExperienciasPremium(
                     Text("👑", fontSize = 16.sp)
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "EXPERIENCIAS DESTACADAS",
+                        stringResource(Res.string.guia_seccion_destacadas),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.sp,
@@ -73,7 +95,7 @@ internal fun TarjetaExperienciasPremium(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "PREMIUM",
+                        stringResource(Res.string.detalle_exp_badge_premium),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -85,14 +107,14 @@ internal fun TarjetaExperienciasPremium(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                "★ Experiencia recomendada en la Ruta de las Flores:",
+                stringResource(Res.string.detalle_exp_premium_subtitulo),
                 color = paleta.colorTextoPrincipal,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                "Este comercio cuenta con atención prioritaria, especialidades insignia y promociones exclusivas para turistas.",
+                stringResource(Res.string.detalle_exp_premium_descripcion),
                 color = paleta.colorTextoSecundario,
                 fontSize = 12.5.sp,
                 lineHeight = 18.sp
@@ -111,7 +133,7 @@ internal fun TarjetaExperienciasPremium(
                     Text("📖", fontSize = 14.sp)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Ver Experiencias y Catálogo",
+                        stringResource(Res.string.detalle_exp_btn_ver_catalogo),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.5.sp
@@ -146,7 +168,7 @@ internal fun TarjetaUbicacionComercio(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "UBICACIÓN EN LA RUTA",
+                    stringResource(Res.string.detalle_exp_ubicacion_titulo),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp,
@@ -154,7 +176,7 @@ internal fun TarjetaUbicacionComercio(
                 )
                 if (datosUi.esPremium) {
                     Text(
-                        "Parada Recomendada",
+                        stringResource(Res.string.detalle_exp_parada_recomendada),
                         color = paleta.verdeTurisMap,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -193,7 +215,7 @@ internal fun TarjetaUbicacionComercio(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "🗺️ Ver en Mapa",
+                        "🗺️ ${stringResource(Res.string.detalle_exp_btn_ver_mapa)}",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.5.sp
@@ -217,13 +239,19 @@ internal fun SeccionEnlacesDirectos(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            "ENLACES DIRECTOS",
+            stringResource(Res.string.detalle_exp_enlaces_titulo),
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,
             color = paleta.colorTextoSecundario
         )
         Text(
-            if (datosUi.esPremium) "CANAL PREMIUM" else "CANAL OFICIAL",
+            stringResource(
+                if (datosUi.esPremium) {
+                    Res.string.detalle_exp_canal_premium
+                } else {
+                    Res.string.detalle_exp_canal_oficial
+                }
+            ),
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,
             color = paleta.verdeTurisMap
@@ -243,7 +271,7 @@ internal fun SeccionEnlacesDirectos(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                "💬 WhatsApp Directo",
+                "💬 ${stringResource(Res.string.detalle_exp_btn_whatsapp_directo)}",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp
@@ -257,7 +285,7 @@ internal fun SeccionEnlacesDirectos(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                "🌐 Redes / Web",
+                "🌐 ${stringResource(Res.string.detalle_exp_btn_redes_web)}",
                 color = paleta.colorTextoPrincipal,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp
@@ -276,7 +304,7 @@ internal fun SeccionDescripcionYServicios(
     // 6. Descripción
     Spacer(Modifier.height(18.dp))
     Text(
-        "ACERCA DE ESTE LUGAR",
+        stringResource(Res.string.detalle_exp_acerca_titulo),
         fontSize = 11.sp,
         fontWeight = FontWeight.ExtraBold,
         color = paleta.colorTextoSecundario,
@@ -284,7 +312,7 @@ internal fun SeccionDescripcionYServicios(
     )
     Spacer(Modifier.height(6.dp))
     Text(
-        datos.descripcion.ifBlank { "Un espacio acogedor en la Ruta de las Flores preparado para atenderte." },
+        datos.descripcion.ifBlank { stringResource(Res.string.detalle_exp_descripcion_fallback) },
         color = paleta.colorTextoPrincipal.copy(alpha = 0.9f),
         fontSize = 13.5.sp,
         lineHeight = 21.sp
@@ -294,7 +322,7 @@ internal fun SeccionDescripcionYServicios(
     if (datos.servicios.isNotEmpty()) {
         Spacer(Modifier.height(18.dp))
         Text(
-            "SERVICIOS Y COMODIDADES",
+            stringResource(Res.string.detalle_exp_servicios_titulo),
             fontSize = 11.sp,
             fontWeight = FontWeight.ExtraBold,
             color = paleta.colorTextoSecundario,
@@ -348,14 +376,20 @@ internal fun FilaHorarioComercio(
             Box(Modifier.size(8.dp).background(paleta.verdeTurisMap, CircleShape))
             Spacer(Modifier.width(6.dp))
             Text(
-                if (datosUi.esPremium) "Abierto todos los días" else "Abierto ahora",
+                stringResource(
+                    if (datosUi.esPremium) {
+                        Res.string.detalle_exp_abierto_todos_dias
+                    } else {
+                        Res.string.detalle_exp_abierto_ahora
+                    }
+                ),
                 color = if (paleta.esOscuro) Color(0xFF34D399) else Color(0xFF047857),
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.5.sp
             )
         }
         Text(
-            datosUi.comercio.horario.ifBlank { "Lun a Dom: 7:00 AM - 8:00 PM" },
+            datosUi.comercio.horario.ifBlank { stringResource(Res.string.detalle_exp_horario_fallback) },
             color = paleta.colorTextoSecundario,
             fontSize = 12.5.sp
         )
@@ -369,7 +403,7 @@ internal fun GaleriaMiniaturas(
 ) {
     Spacer(Modifier.height(18.dp))
     Text(
-        "VISTA DE GALERÍA (${fotos.size} FOTOS)",
+        stringResource(Res.string.detalle_exp_galeria_titulo, fotos.size),
         fontSize = 11.sp,
         fontWeight = FontWeight.ExtraBold,
         color = paleta.colorTextoSecundario,

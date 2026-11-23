@@ -18,6 +18,14 @@ import com.turismap.app.data.repository.UsuarioRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.detalle_exp_error_calificacion_invalida
+import turismap.shared.generated.resources.detalle_exp_error_cargar
+import turismap.shared.generated.resources.detalle_exp_error_guardar_resena
+import turismap.shared.generated.resources.detalle_exp_error_no_disponible
+import turismap.shared.generated.resources.guia_error_actualizar_favorito
 
 internal data class DetalleExperienciaPaleta(
     val esOscuro: Boolean,
@@ -59,8 +67,8 @@ internal data class DetalleExperienciaDatosUi(
     val mapsUrl: String,
     val sitioWebUrl: String?,
     val precioTexto: String,
-    val promedioTexto: String,
-    val resenasTexto: String
+    val promedioNumericoTexto: String?,
+    val totalResenas: Int
 ) {
     companion object {
         fun desde(
@@ -113,17 +121,11 @@ internal data class DetalleExperienciaDatosUi(
                 datos.calificacionPromedio?.takeIf { it > 0.0 } ?: 0.0
             }
 
-            val promedioTexto = if (promedioReal > 0.0) {
+            val promedioNumericoTexto = if (promedioReal > 0.0) {
                 val red = kotlin.math.round(promedioReal * 10) / 10
                 "$red"
             } else {
-                "Nuevo"
-            }
-
-            val resenasTexto = when (totalResenasReal) {
-                0 -> "Sin reseñas aún"
-                1 -> "1 reseña"
-                else -> "$totalResenasReal reseñas"
+                null
             }
 
             return DetalleExperienciaDatosUi(
@@ -139,15 +141,15 @@ internal data class DetalleExperienciaDatosUi(
                 mapsUrl = mapsUrl,
                 sitioWebUrl = sitioWebUrl,
                 precioTexto = precioTexto,
-                promedioTexto = promedioTexto,
-                resenasTexto = resenasTexto
+                promedioNumericoTexto = promedioNumericoTexto,
+                totalResenas = totalResenasReal
             )
         }
     }
 }
 
-internal fun validarCalificacionResena(calificacion: Int): String? =
-    if (calificacion !in 1..5) "Selecciona una calificación de 1 a 5." else null
+internal fun validarCalificacionResena(calificacion: Int): StringResource? =
+    if (calificacion !in 1..5) Res.string.detalle_exp_error_calificacion_invalida else null
 
 internal fun sanitizarComentarioResena(comentario: String): String = comentario.take(1000)
 
@@ -184,8 +186,10 @@ internal class DetalleExperienciaState(
         scope.launch {
             try {
                 UsuarioRepository.cambiarFavorito(comercioId, !esFavoritoActual)
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
             } catch (e: Exception) {
-                mensaje = e.message ?: "No se pudo actualizar favoritos."
+                mensaje = e.message ?: getString(Res.string.guia_error_actualizar_favorito)
             }
         }
     }
@@ -193,7 +197,9 @@ internal class DetalleExperienciaState(
     fun publicarResena(datosId: String) {
         val errorValidacion = validarCalificacionResena(calificacion)
         if (errorValidacion != null) {
-            mensaje = errorValidacion
+            scope.launch {
+                mensaje = getString(errorValidacion)
+            }
         } else {
             enviando = true
             mensaje = null
@@ -204,7 +210,7 @@ internal class DetalleExperienciaState(
                 } catch (cancelacion: CancellationException) {
                     throw cancelacion
                 } catch (ex: Exception) {
-                    mensaje = ex.message ?: "No se pudo guardar la reseña."
+                    mensaje = ex.message ?: getString(Res.string.detalle_exp_error_guardar_resena)
                 } finally {
                     enviando = false
                 }
@@ -229,7 +235,7 @@ internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleEx
         try {
             state.comercio = ComercioRepository.obtenerPorId(comercioId)
                 ?.takeIf { it.estado == "publicado" }
-                ?: throw IllegalStateException("Este comercio no está disponible.")
+                ?: throw IllegalStateException(getString(Res.string.detalle_exp_error_no_disponible))
             state.resenas = ComercioRepository.obtenerResenas(comercioId)
             val propia = state.resenas.firstOrNull {
                 it.usuarioUid == AutenticacionRepository.usuarioActual?.uid
@@ -239,7 +245,7 @@ internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleEx
         } catch (cancelacion: CancellationException) {
             throw cancelacion
         } catch (excepcion: Exception) {
-            state.error = excepcion.message ?: "No se pudo cargar el comercio."
+            state.error = excepcion.message ?: getString(Res.string.detalle_exp_error_cargar)
         } finally {
             state.cargando = false
         }
