@@ -38,10 +38,8 @@ import turismap.shared.generated.resources.perfil_negocios_descripcion
 import turismap.shared.generated.resources.perfil_negocios_titulo
 import turismap.shared.generated.resources.perfil_negocios_ver_planes
 import turismap.shared.generated.resources.perfil_negocios_ver_web
-import turismap.shared.generated.resources.perfil_opcion_idioma
 import turismap.shared.generated.resources.perfil_opcion_privacidad_subtitulo
 import turismap.shared.generated.resources.perfil_opcion_privacidad_titulo
-import turismap.shared.generated.resources.perfil_seccion_personalizacion
 import turismap.shared.generated.resources.perfil_seccion_privacidad
 
 @Composable
@@ -262,10 +260,8 @@ internal fun TarjetaTurisMapNegocios(
 
 @Composable
 internal fun SeccionConfiguracionPerfil(
-    idiomaSeleccionado: String,
     cerrandoSesion: Boolean,
     paleta: PerfilPaleta,
-    onIdiomaClick: () -> Unit,
     onPrivacidadClick: () -> Unit,
     onCerrarSesionClick: () -> Unit
 ) {
@@ -274,29 +270,11 @@ internal fun SeccionConfiguracionPerfil(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            stringResource(Res.string.perfil_seccion_personalizacion),
-            fontSize = 12.sp,
-            color = paleta.colorTextoSecundario,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 8.dp)
-        )
-        CardOpciones(paleta.fondoTarjeta) {
-            ItemMenuOpcion(
-                icono = Icons.Default.Public,
-                titulo = stringResource(Res.string.perfil_opcion_idioma),
-                subtitulo = idiomaSeleccionado,
-                colorTexto = paleta.colorTextoPrincipal,
-                colorIcono = paleta.colorTextoPrincipal,
-                onClick = onIdiomaClick
-            )
-        }
-
-        Text(
             stringResource(Res.string.perfil_seccion_privacidad),
             fontSize = 12.sp,
             color = paleta.colorTextoSecundario,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 8.dp, top = 8.dp)
+            modifier = Modifier.padding(start = 8.dp)
         )
         CardOpciones(paleta.fondoTarjeta) {
             ItemMenuOpcion(

@@ -95,12 +95,10 @@ internal class PerfilState(
     var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
     var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
-    var idiomaSeleccionado by mutableStateOf("Español")
     var perfilPublico by mutableStateOf(true)
     var compartirUbicacion by mutableStateOf(false)
 
     var mostrarDialogoEditar by mutableStateOf(false)
-    var mostrarDialogoIdioma by mutableStateOf(false)
     var mostrarDialogoPrivacidad by mutableStateOf(false)
     var cerrandoSesion by mutableStateOf(false)
     var tipoFotoSeleccionada by mutableStateOf("perfil")

@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.turismap.app.components.rememberSelectorImagen
 import com.turismap.app.screens.perfil.CabeceraPerfil
 import com.turismap.app.screens.perfil.DialogoEditarPerfil
-import com.turismap.app.screens.perfil.DialogoIdiomaPerfil
 import com.turismap.app.screens.perfil.DialogoPrivacidadPerfil
 import com.turismap.app.screens.perfil.EncabezadoDatosUsuario
 import com.turismap.app.screens.perfil.ModalFavoritosPerfil
@@ -112,10 +111,8 @@ fun PerfilScreen(
 
             // Configuración
             SeccionConfiguracionPerfil(
-                idiomaSeleccionado = state.idiomaSeleccionado,
                 cerrandoSesion = state.cerrandoSesion,
                 paleta = paleta,
-                onIdiomaClick = { state.mostrarDialogoIdioma = true },
                 onPrivacidadClick = { state.mostrarDialogoPrivacidad = true },
                 onCerrarSesionClick = { state.cerrarSesion(onCerrarSesionClick) }
             )
@@ -166,15 +163,6 @@ fun PerfilScreen(
             paleta = paleta,
             onGuardarClick = { nombre, telefono -> state.guardarPerfil(nombre, telefono) },
             onDismiss = { state.mostrarDialogoEditar = false }
-        )
-    }
-
-    if (state.mostrarDialogoIdioma) {
-        DialogoIdiomaPerfil(
-            idiomaSeleccionado = state.idiomaSeleccionado,
-            paleta = paleta,
-            onSeleccionarIdioma = { state.idiomaSeleccionado = it },
-            onDismiss = { state.mostrarDialogoIdioma = false }
         )
     }
 }

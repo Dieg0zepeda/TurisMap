@@ -92,8 +92,6 @@
     <string name="perfil_negocios_descripcion">Do you own a hotel, café, restaurant, or workshop along CA-8? Reach over 45,000 monthly travelers looking for authentic experiences.</string>
     <string name="perfil_negocios_ver_planes">View business plans</string>
     <string name="perfil_negocios_ver_web">View on the web</string>
-    <string name="perfil_seccion_personalizacion">PERSONALIZATION</string>
-    <string name="perfil_opcion_idioma">Language</string>
     <string name="perfil_seccion_privacidad">PRIVACY &amp; SECURITY</string>
     <string name="perfil_opcion_privacidad_titulo">Privacy Settings</string>
     <string name="perfil_opcion_privacidad_subtitulo">Password and visibility</string>

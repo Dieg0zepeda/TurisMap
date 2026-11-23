@@ -92,8 +92,6 @@
     <string name="perfil_negocios_descripcion">¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.</string>
     <string name="perfil_negocios_ver_planes">Ver planes para mi negocio</string>
     <string name="perfil_negocios_ver_web">Ver en la web</string>
-    <string name="perfil_seccion_personalizacion">PERSONALIZACIÓN</string>
-    <string name="perfil_opcion_idioma">Idioma</string>
     <string name="perfil_seccion_privacidad">PRIVACIDAD &amp; SEGURIDAD</string>
     <string name="perfil_opcion_privacidad_titulo">Ajustes de Privacidad</string>
     <string name="perfil_opcion_privacidad_subtitulo">Contraseña y visibilidad</string>

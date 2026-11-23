@@ -1,6 +1,5 @@
 package com.turismap.app.screens.perfil
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,8 +18,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -46,7 +43,6 @@ import turismap.shared.generated.resources.btn_guardar
 import turismap.shared.generated.resources.perfil_editar_nombre_label
 import turismap.shared.generated.resources.perfil_editar_telefono_label
 import turismap.shared.generated.resources.perfil_editar_titulo
-import turismap.shared.generated.resources.perfil_opcion_idioma
 import turismap.shared.generated.resources.perfil_privacidad_cambiar_contrasena
 import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_desc
 import turismap.shared.generated.resources.perfil_privacidad_perfil_publico_titulo
@@ -174,48 +170,6 @@ internal fun DialogoEditarPerfil(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.btn_cancelar), color = TerracotaTextoAdaptable)
-            }
-        }
-    )
-}
-
-@Composable
-internal fun DialogoIdiomaPerfil(
-    idiomaSeleccionado: String,
-    paleta: PerfilPaleta,
-    onSeleccionarIdioma: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val opcionesIdioma = listOf("Español", "English", "Français")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = paleta.fondoTarjeta,
-        title = { Text(stringResource(Res.string.perfil_opcion_idioma), fontWeight = FontWeight.Bold, color = paleta.colorTextoPrincipal) },
-        text = {
-            Column {
-                opcionesIdioma.forEach { idioma ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSeleccionarIdioma(idioma) }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (idioma == idiomaSeleccionado),
-                            onClick = { onSeleccionarIdioma(idioma) },
-                            colors = RadioButtonDefaults.colors(selectedColor = VerdeTextoAdaptable)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = idioma, fontSize = 16.sp, color = paleta.colorTextoPrincipal)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.btn_cerrar), color = TerracotaTextoAdaptable)
             }
         }
     )
