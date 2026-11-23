@@ -15,8 +15,19 @@ import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.guia_categoria_alojamientos
+import turismap.shared.generated.resources.guia_categoria_artesanias
+import turismap.shared.generated.resources.guia_categoria_experiencias
+import turismap.shared.generated.resources.guia_categoria_restaurantes
+import turismap.shared.generated.resources.guia_categoria_todo
+import turismap.shared.generated.resources.guia_error_actualizar_favorito
+import turismap.shared.generated.resources.guia_error_cargar_comercios
 
 internal data class GuiaPaleta(
     val esOscuro: Boolean,
@@ -52,18 +63,26 @@ internal fun normalizarTexto(txt: String?): String {
         .trim()
 }
 
-internal data class CategoriaFiltro(val id: String, val etiqueta: String, val icono: String)
+internal const val CATEGORIA_FILTRO_TODOS = "Todos"
 
-internal val categoriasFiltros = listOf(
-    CategoriaFiltro("Todos", "Todo", "🧭"),
-    CategoriaFiltro("restaurante", "Restaurantes", "☕"),
-    CategoriaFiltro("hotel", "Alojamientos", "🏨"),
-    CategoriaFiltro("artesania", "Artesanías", "🏺"),
-    CategoriaFiltro("atractivo", "Experiencias", "🎈")
+internal data class CategoriaFiltro(
+    val id: String,
+    val etiquetaRes: StringResource,
+    val icono: String
 )
 
-internal val municipiosRuta = listOf(
-    "Todos",
+internal val categoriasFiltros: List<CategoriaFiltro> by lazy {
+    listOf(
+        CategoriaFiltro(CATEGORIA_FILTRO_TODOS, Res.string.guia_categoria_todo, "🧭"),
+        CategoriaFiltro("restaurante", Res.string.guia_categoria_restaurantes, "☕"),
+        CategoriaFiltro("hotel", Res.string.guia_categoria_alojamientos, "🏨"),
+        CategoriaFiltro("artesania", Res.string.guia_categoria_artesanias, "🏺"),
+        CategoriaFiltro("atractivo", Res.string.guia_categoria_experiencias, "🎈")
+    )
+}
+
+internal val municipiosRuta: List<String?> = listOf(
+    null,
     "Nahuizalco",
     "Salcoatitán",
     "Juayúa",
@@ -73,7 +92,7 @@ internal val municipiosRuta = listOf(
 )
 
 internal fun coincideConCategoria(categoriaComercio: String?, filtroId: String): Boolean {
-    if (filtroId.equals("Todos", ignoreCase = true)) return true
+    if (filtroId.equals(CATEGORIA_FILTRO_TODOS, ignoreCase = true)) return true
     val cat = normalizarTexto(categoriaComercio)
     val f = normalizarTexto(filtroId)
 
@@ -92,8 +111,8 @@ internal class GuiaState(
     val snackbarHostState: SnackbarHostState
 ) {
     var searchQuery by mutableStateOf("")
-    var categoriaSeleccionada by mutableStateOf("Todos")
-    var municipioSeleccionado by mutableStateOf("Todos")
+    var categoriaSeleccionada by mutableStateOf(CATEGORIA_FILTRO_TODOS)
+    var municipioSeleccionado by mutableStateOf<String?>(null)
 
     var listaComercios by mutableStateOf<List<Comercio>>(emptyList())
     var mapaMunicipios by mutableStateOf<Map<String, String>>(emptyMap())
@@ -106,7 +125,7 @@ internal class GuiaState(
             val coincideCat = coincideConCategoria(item.categoria, categoriaSeleccionada)
 
             val nombreMuni = mapaMunicipios[item.lugarId] ?: item.direccion
-            val coincideMuni = if (municipioSeleccionado.equals("Todos", ignoreCase = true)) true
+            val coincideMuni = if (municipioSeleccionado == null) true
             else normalizarTexto(nombreMuni).contains(normalizarTexto(municipioSeleccionado))
 
             val q = normalizarTexto(searchQuery)
@@ -129,8 +148,12 @@ internal class GuiaState(
         scope.launch {
             try {
                 UsuarioRepository.cambiarFavorito(idComercio, guardar)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                snackbarHostState.showSnackbar(e.message ?: "No se pudo actualizar favoritos.")
+                snackbarHostState.showSnackbar(
+                    e.message ?: getString(Res.string.guia_error_actualizar_favorito)
+                )
             }
         }
     }
@@ -141,8 +164,10 @@ internal class GuiaState(
             errorCarga = null
             try {
                 listaComercios = ComercioRepository.obtenerPublicados()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                errorCarga = e.message
+                errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
             } finally {
                 cargando = false
             }
@@ -178,14 +203,18 @@ internal fun rememberGuiaState(comerciosExternos: List<Comercio>?): Pair<GuiaSta
                 val comerciosCargados = ComercioRepository.obtenerPublicados()
                 val municipiosCargados = try {
                     LugaresRepository.obtenerTodos().associate { it.id to it.nombre }
-                } catch (e: Exception) {
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
                     emptyMap()
                 }
 
                 state.listaComercios = comerciosCargados
                 state.mapaMunicipios = municipiosCargados
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                state.errorCarga = e.message ?: "No se pudieron obtener los comercios."
+                state.errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
             } finally {
                 state.cargando = false
             }

@@ -32,6 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.theme.FondoBlancoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_buscar
+import turismap.shared.generated.resources.guia_buscar_placeholder
+import turismap.shared.generated.resources.guia_filtro_todos_pueblos
 
 @Composable
 internal fun BarraBusquedaGuia(
@@ -62,7 +67,7 @@ internal fun BarraBusquedaGuia(
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Buscar",
+                contentDescription = stringResource(Res.string.btn_buscar),
                 tint = paleta.verdeTurisMap,
                 modifier = Modifier.size(22.dp)
             )
@@ -72,7 +77,7 @@ internal fun BarraBusquedaGuia(
                 onValueChange = onSearchQueryChange,
                 placeholder = {
                     Text(
-                        "Buscar en la Ruta de las Flores...",
+                        stringResource(Res.string.guia_buscar_placeholder),
                         color = paleta.airbnbGray,
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Medium
@@ -121,7 +126,7 @@ internal fun FilaFiltrosCategoria(
                 Text(text = cat.icono, fontSize = 13.sp)
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = cat.etiqueta,
+                    text = stringResource(cat.etiquetaRes),
                     color = if (activa) Color.White else paleta.airbnbBlack,
                     fontSize = 12.5.sp,
                     fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
@@ -133,8 +138,8 @@ internal fun FilaFiltrosCategoria(
 
 @Composable
 internal fun FilaFiltrosMunicipio(
-    municipioSeleccionado: String,
-    onMunicipioSeleccionado: (String) -> Unit,
+    municipioSeleccionado: String?,
+    onMunicipioSeleccionado: (String?) -> Unit,
     paleta: GuiaPaleta
 ) {
     LazyRow(
@@ -143,7 +148,11 @@ internal fun FilaFiltrosMunicipio(
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
     ) {
         items(municipiosRuta) { muni ->
-            val activo = muni.equals(municipioSeleccionado, ignoreCase = true)
+            val activo = if (muni == null) {
+                municipioSeleccionado == null
+            } else {
+                muni.equals(municipioSeleccionado, ignoreCase = true)
+            }
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
@@ -160,7 +169,7 @@ internal fun FilaFiltrosMunicipio(
                 Text("📍", fontSize = 11.sp)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (muni == "Todos") "Todos los Pueblos" else muni,
+                    text = muni ?: stringResource(Res.string.guia_filtro_todos_pueblos),
                     color = if (activo) paleta.verdeTurisMap else paleta.airbnbGray,
                     fontSize = 12.sp,
                     fontWeight = if (activo) FontWeight.Bold else FontWeight.Medium

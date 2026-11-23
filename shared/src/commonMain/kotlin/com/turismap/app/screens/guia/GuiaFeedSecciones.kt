@@ -49,6 +49,17 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.theme.FondoBlancoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.guia_badge_socio_premium
+import turismap.shared.generated.resources.guia_badge_socio_turismap
+import turismap.shared.generated.resources.guia_encabezado_municipio
+import turismap.shared.generated.resources.guia_encabezado_todos
+import turismap.shared.generated.resources.guia_error_conectar
+import turismap.shared.generated.resources.guia_estado_vacio
+import turismap.shared.generated.resources.guia_seccion_destacadas
+import turismap.shared.generated.resources.guia_total_lugares
 
 // Shimmer sin errores de sintaxis
 internal fun Modifier.shimmerEffect(): Modifier = composed {
@@ -94,7 +105,7 @@ internal fun SeccionExperienciasDestacadas(
             Text("👑", fontSize = 16.sp)
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "EXPERIENCIAS DESTACADAS",
+                text = stringResource(Res.string.guia_seccion_destacadas),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = paleta.verdeOscuroTurisMap,
@@ -123,7 +134,7 @@ internal fun SeccionExperienciasDestacadas(
 
 @Composable
 internal fun EncabezadoFeedGuia(
-    municipioSeleccionado: String,
+    municipioSeleccionado: String?,
     totalLugares: Int,
     paleta: GuiaPaleta
 ) {
@@ -135,13 +146,17 @@ internal fun EncabezadoFeedGuia(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = if (municipioSeleccionado == "Todos") "Guía de Comercios" else "Comercios en $municipioSeleccionado",
+            text = if (municipioSeleccionado == null) {
+                stringResource(Res.string.guia_encabezado_todos)
+            } else {
+                stringResource(Res.string.guia_encabezado_municipio, municipioSeleccionado)
+            },
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = paleta.airbnbBlack
         )
         Text(
-            text = "$totalLugares lugares",
+            text = stringResource(Res.string.guia_total_lugares, totalLugares),
             fontSize = 12.sp,
             color = paleta.airbnbGray,
             fontWeight = FontWeight.Medium
@@ -161,7 +176,7 @@ internal fun EstadoErrorGuia(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = errorCarga ?: "Error al conectar",
+            text = errorCarga ?: stringResource(Res.string.guia_error_conectar),
             color = paleta.airbnbGray,
             fontSize = 15.sp,
             textAlign = TextAlign.Center
@@ -171,7 +186,7 @@ internal fun EstadoErrorGuia(
             onClick = onReintentar,
             colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap)
         ) {
-            Text("Reintentar", color = Color.White)
+            Text(stringResource(Res.string.btn_reintentar), color = Color.White)
         }
     }
 }
@@ -183,7 +198,7 @@ internal fun EstadoVacioGuia(paleta: GuiaPaleta) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "No se encontraron negocios con los filtros seleccionados.",
+            text = stringResource(Res.string.guia_estado_vacio),
             color = paleta.airbnbGray,
             fontSize = 15.sp,
             textAlign = TextAlign.Center
@@ -230,7 +245,12 @@ internal fun TarjetaMiniDestacada(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        Text("👑 Socio Premium", color = paleta.verdeTurisMap, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "👑 ${stringResource(Res.string.guia_badge_socio_premium)}",
+                            color = paleta.verdeTurisMap,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 } else if (comercio.planInt == 2) {
                     Box(
@@ -240,7 +260,12 @@ internal fun TarjetaMiniDestacada(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        Text("✓ Socio TurisMap", color = paleta.verdeTurisMap, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "✓ ${stringResource(Res.string.guia_badge_socio_turismap)}",
+                            color = paleta.verdeTurisMap,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

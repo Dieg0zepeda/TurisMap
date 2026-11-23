@@ -162,4 +162,27 @@
     <string name="detalle_lugar_directorio_guias">%1$d Guías y Operadores</string>
     <string name="detalle_lugar_btn_ver_guia">Ver Guía de Comercio y Ocio →</string>
     <string name="detalle_lugar_btn_explorar_guia">Explorar Guía General →</string>
+
+    <!-- Pantalla Guía -->
+    <string name="guia_categoria_todo">Todo</string>
+    <string name="guia_categoria_restaurantes">Restaurantes</string>
+    <string name="guia_categoria_alojamientos">Alojamientos</string>
+    <string name="guia_categoria_artesanias">Artesanías</string>
+    <string name="guia_categoria_experiencias">Experiencias</string>
+    <string name="guia_error_actualizar_favorito">No se pudo actualizar favoritos.</string>
+    <string name="guia_error_cargar_comercios">No se pudieron obtener los comercios.</string>
+    <string name="guia_buscar_placeholder">Buscar en la Ruta de las Flores...</string>
+    <string name="guia_filtro_todos_pueblos">Todos los Pueblos</string>
+    <string name="guia_seccion_destacadas">EXPERIENCIAS DESTACADAS</string>
+    <string name="guia_encabezado_todos">Guía de Comercios</string>
+    <string name="guia_encabezado_municipio">Comercios en %1$s</string>
+    <string name="guia_total_lugares">%1$d lugares</string>
+    <string name="guia_error_conectar">Error al conectar</string>
+    <string name="guia_estado_vacio">No se encontraron negocios con los filtros seleccionados.</string>
+    <string name="guia_badge_socio_premium">Socio Premium</string>
+    <string name="guia_badge_socio_turismap">Socio TurisMap</string>
+    <string name="guia_precios_accesibles">Precios accesibles</string>
+    <string name="guia_calificacion_nuevo">Nuevo</string>
+    <string name="guia_cd_favorito">Favorito</string>
+    <string name="guia_cd_llamar">Llamar</string>
 </resources>

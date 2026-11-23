@@ -42,6 +42,14 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.theme.FondoBlancoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.guia_badge_socio_premium
+import turismap.shared.generated.resources.guia_badge_socio_turismap
+import turismap.shared.generated.resources.guia_calificacion_nuevo
+import turismap.shared.generated.resources.guia_cd_favorito
+import turismap.shared.generated.resources.guia_cd_llamar
+import turismap.shared.generated.resources.guia_precios_accesibles
 
 // ---------------------------------------------------------
 // TARJETA PRINCIPAL CON LÍMITE DE FOTOS (2 BÁSICO / 4 SOCIO / 8 PREMIUM)
@@ -65,13 +73,14 @@ internal fun TarjetaComercioInstagram(
     val esPremium = comercio.planInt == 3
     val esSocio = comercio.planInt == 2
 
-    val precioTexto = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" } ?: "Precios accesibles"
+    val precioTexto = comercio.precioDesde?.takeIf { it > 0.0 }?.let { "$$it USD" }
+        ?: stringResource(Res.string.guia_precios_accesibles)
 
     val calificacion = if (comercio.calificacionPromedio != null && comercio.calificacionPromedio > 0.0) {
         val entero = comercio.calificacionPromedio.toInt()
         val dec = ((comercio.calificacionPromedio - entero) * 10).toInt()
         "$entero.$dec"
-    } else "Nuevo"
+    } else stringResource(Res.string.guia_calificacion_nuevo)
 
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -173,7 +182,7 @@ internal fun TarjetaComercioInstagram(
                                 Text("👑", fontSize = 12.sp)
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    "Socio Premium",
+                                    stringResource(Res.string.guia_badge_socio_premium),
                                     color = Color.White,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.ExtraBold
@@ -191,7 +200,7 @@ internal fun TarjetaComercioInstagram(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             ) {
                                 Text(
-                                    "✓ Socio TurisMap",
+                                    "✓ ${stringResource(Res.string.guia_badge_socio_turismap)}",
                                     color = paleta.verdeTurisMap,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -211,7 +220,7 @@ internal fun TarjetaComercioInstagram(
                     ) {
                         Icon(
                             imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorito",
+                            contentDescription = stringResource(Res.string.guia_cd_favorito),
                             tint = if (esFavorito) paleta.airbnbPrimary else Color.White,
                             modifier = Modifier.size(19.dp)
                         )
@@ -316,7 +325,7 @@ internal fun TarjetaComercioInstagram(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Phone,
-                                    contentDescription = "Llamar",
+                                    contentDescription = stringResource(Res.string.guia_cd_llamar),
                                     tint = paleta.airbnbBlack,
                                     modifier = Modifier.padding(6.dp).size(14.dp)
                                 )

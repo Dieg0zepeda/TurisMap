@@ -162,4 +162,27 @@
     <string name="detalle_lugar_directorio_guias">%1$d Guides &amp; Tour Operators</string>
     <string name="detalle_lugar_btn_ver_guia">View Business &amp; Leisure Guide →</string>
     <string name="detalle_lugar_btn_explorar_guia">Explore General Guide →</string>
+
+    <!-- Guide Screen -->
+    <string name="guia_categoria_todo">All</string>
+    <string name="guia_categoria_restaurantes">Restaurants</string>
+    <string name="guia_categoria_alojamientos">Stays</string>
+    <string name="guia_categoria_artesanias">Handicrafts</string>
+    <string name="guia_categoria_experiencias">Experiences</string>
+    <string name="guia_error_actualizar_favorito">Could not update favorites.</string>
+    <string name="guia_error_cargar_comercios">Could not load businesses.</string>
+    <string name="guia_buscar_placeholder">Search along Ruta de las Flores...</string>
+    <string name="guia_filtro_todos_pueblos">All Towns</string>
+    <string name="guia_seccion_destacadas">FEATURED EXPERIENCES</string>
+    <string name="guia_encabezado_todos">Business Guide</string>
+    <string name="guia_encabezado_municipio">Businesses in %1$s</string>
+    <string name="guia_total_lugares">%1$d places</string>
+    <string name="guia_error_conectar">Connection error</string>
+    <string name="guia_estado_vacio">No businesses found matching the selected filters.</string>
+    <string name="guia_badge_socio_premium">Premium Partner</string>
+    <string name="guia_badge_socio_turismap">TurisMap Partner</string>
+    <string name="guia_precios_accesibles">Affordable prices</string>
+    <string name="guia_calificacion_nuevo">New</string>
+    <string name="guia_cd_favorito">Favorite</string>
+    <string name="guia_cd_llamar">Call</string>
 </resources>
