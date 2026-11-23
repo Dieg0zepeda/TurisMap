@@ -17,6 +17,7 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioBD
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.theme.GrisBorde
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -39,8 +40,6 @@ import turismap.shared.generated.resources.perfil_foto_actualizada
 import turismap.shared.generated.resources.perfil_privacidad_enlace_enviado
 import turismap.shared.generated.resources.perfil_privacidad_error_enviar_correo
 import turismap.shared.generated.resources.perfil_usuario_predeterminado
-
-internal const val TURISMAP_WEB_URL = "https://urldeprueba.com"
 
 internal enum class CategoriaFavorito {
     TODOS,
@@ -72,13 +71,14 @@ internal data class PerfilPaleta(
 @Composable
 internal fun rememberPerfilPaleta(): PerfilPaleta {
     val colorScheme = MaterialTheme.colorScheme
-    return remember(colorScheme) {
+    val colorDivisor = GrisBorde
+    return remember(colorScheme, colorDivisor) {
         PerfilPaleta(
             fondoApp = colorScheme.background,
             fondoTarjeta = colorScheme.surface,
             colorTextoPrincipal = colorScheme.onBackground,
             colorTextoSecundario = colorScheme.onSurfaceVariant,
-            colorDivisor = colorScheme.outlineVariant
+            colorDivisor = colorDivisor
         )
     }
 }
@@ -98,11 +98,7 @@ internal class PerfilState(
     var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
     var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
-    var perfilPublico by mutableStateOf(true)
-    var compartirUbicacion by mutableStateOf(false)
-
     var mostrarDialogoEditar by mutableStateOf(false)
-    var mostrarDialogoPrivacidad by mutableStateOf(false)
     var cerrandoSesion by mutableStateOf(false)
     var enviandoRecuperacion by mutableStateOf(false)
     var guardandoPerfil by mutableStateOf(false)
@@ -189,7 +185,6 @@ internal class PerfilState(
                     val emailDestino = usuarioBD?.email?.takeIf { it.isNotBlank() }
                         ?: AutenticacionRepository.usuarioActual?.email.orEmpty()
                     AutenticacionRepository.enviarRestablecimientoContrasena(emailDestino)
-                    mostrarDialogoPrivacidad = false
                     snackbarHostState.showSnackbar(
                         getString(Res.string.perfil_privacidad_enlace_enviado, emailDestino)
                     )

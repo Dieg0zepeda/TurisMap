@@ -9,6 +9,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -16,10 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.turismap.app.components.FigmaBottomBar
+import com.turismap.app.data.repository.AutenticacionRepository
+import com.turismap.app.data.repository.NotificacionesRepository
 import com.turismap.app.navegacion.Pantalla
 import com.turismap.app.navegacion.TurisMapNavHost
 import com.turismap.app.screens.LoginScreen
-import com.turismap.app.data.repository.AutenticacionRepository
+import kotlinx.coroutines.CancellationException
 
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF1B4934),
@@ -54,6 +57,24 @@ fun App(
     val esModoOscuro = isSystemInDarkTheme()
     val controladorNavegacion = rememberNavController()
     var usuarioAutenticado by remember { mutableStateOf(AutenticacionRepository.usuarioActual != null) }
+    val uidAutenticado = if (usuarioAutenticado) AutenticacionRepository.usuarioActual?.uid else null
+
+    val cantidadNotificacionesNoLeidas by produceState(
+        initialValue = 0,
+        key1 = uidAutenticado
+    ) {
+        value = 0
+        val uid = uidAutenticado?.takeIf(String::isNotBlank) ?: return@produceState
+        try {
+            NotificacionesRepository.observarCantidadNoLeidas(uid).collect { cantidad ->
+                value = cantidad
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            value = 0
+        }
+    }
 
     val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
@@ -121,6 +142,7 @@ fun App(
                     controladorNavegacion = controladorNavegacion,
                     modificador = Modifier.padding(paddingValues),
                     mostrarBarraInferior = mostrarBarraInferior,
+                    cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
                     onCerrarSesion = { usuarioAutenticado = false }
                 )
             }

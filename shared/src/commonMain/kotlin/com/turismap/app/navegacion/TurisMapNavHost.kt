@@ -46,10 +46,17 @@ fun TurisMapNavHost(
     controladorNavegacion: NavHostController = rememberNavController(),
     modificador: Modifier = Modifier,
     mostrarBarraInferior: Boolean = true,
+    cantidadNotificacionesNoLeidas: Int = 0,
     onCerrarSesion: () -> Unit = {},
     destinoInicial: String = Pantalla.Explorar.ruta,
     onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
 ) {
+    val abrirNotificaciones = {
+        controladorNavegacion.navigate(Pantalla.Notificaciones.ruta) {
+            launchSingleTop = true
+        }
+    }
+
     NavHost(
         navController = controladorNavegacion,
         startDestination = destinoInicial,
@@ -59,6 +66,8 @@ fun TurisMapNavHost(
         composable(Pantalla.Explorar.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 ExplorarScreen(
+                    cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
+                    onAbrirNotificaciones = abrirNotificaciones,
                     onLugarClick = { lugar ->
                         controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
                     },
@@ -127,6 +136,8 @@ fun TurisMapNavHost(
         // 4. Perfil
         composable(Pantalla.Perfil.ruta) {
             PerfilScreen(
+                cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
+                onAbrirNotificaciones = abrirNotificaciones,
                 onCerrarSesionClick = onCerrarSesion,
                 onVerPlanesClick = {
                     controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
@@ -136,6 +147,19 @@ fun TurisMapNavHost(
                 },
                 onLugarClick = { lugarId ->
                     controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugarId))
+                }
+            )
+        }
+
+        // Notificaciones in-app
+        composable(Pantalla.Notificaciones.ruta) {
+            NotificacionesScreen(
+                onVolver = { controladorNavegacion.popBackStack() },
+                onVerComercio = { comercioId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                },
+                onVerPlanes = {
+                    controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
                 }
             )
         }

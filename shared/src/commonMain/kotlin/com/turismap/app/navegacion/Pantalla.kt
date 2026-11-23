@@ -5,6 +5,7 @@ sealed class Pantalla(val ruta: String) {
     object Mapa : Pantalla("mapa")
     object Guia : Pantalla("guia")
     object Perfil : Pantalla("perfil")
+    object Notificaciones : Pantalla("notificaciones")
     object PlanesComercio : Pantalla("planes_comercio")
     object RegistroComercio : Pantalla("registro_comercio/{planId}") {
         fun crearRuta(planId: String) = "registro_comercio/$planId"

@@ -95,15 +95,9 @@
     <string name="perfil_negocios_descripcion">¿Tienes un hotel, café, restaurante o taller en la CA-8? Llega a más de 45,000 viajeros mensuales en busca de experiencias auténticas.</string>
     <string name="perfil_negocios_ver_planes">Ver planes para mi negocio</string>
     <string name="perfil_negocios_ver_web">Ver en la web</string>
-    <string name="perfil_seccion_privacidad">PRIVACIDAD &amp; SEGURIDAD</string>
-    <string name="perfil_opcion_privacidad_titulo">Ajustes de Privacidad</string>
-    <string name="perfil_opcion_privacidad_subtitulo">Contraseña y visibilidad</string>
+    <string name="perfil_seccion_cuenta_seguridad">CUENTA Y SEGURIDAD</string>
+    <string name="perfil_opcion_contrasena_subtitulo">Recibe un enlace de restablecimiento en tu correo</string>
     <string name="perfil_btn_cerrar_sesion">Cerrar Sesión</string>
-    <string name="perfil_privacidad_titulo">Privacidad</string>
-    <string name="perfil_privacidad_perfil_publico_titulo">Perfil Público</string>
-    <string name="perfil_privacidad_perfil_publico_desc">Permite que otros vean tus guardados.</string>
-    <string name="perfil_privacidad_ubicacion_titulo">Ubicación en Reseñas</string>
-    <string name="perfil_privacidad_ubicacion_desc">Comparte de dónde es tu reseña.</string>
     <string name="perfil_privacidad_cambiar_contrasena">Cambiar Contraseña</string>
     <string name="perfil_privacidad_enviando">Enviando...</string>
     <string name="perfil_privacidad_correo_enviado">Te enviaremos un correo.</string>
@@ -400,4 +394,35 @@
     <string name="repo_usuario_error_guardar_imagen">No se pudo guardar la imagen.</string>
     <string name="repo_usuario_error_actualizar_favoritos">No se pudo actualizar tus favoritos.</string>
     <string name="repo_usuario_error_registrar_visita">No se pudo registrar la visita.</string>
+
+    <!-- Notificaciones in-app -->
+    <string name="notificaciones_titulo">Notificaciones</string>
+    <string name="notificaciones_cd_abrir">Abrir notificaciones</string>
+    <string name="notificaciones_cd_abrir_con_pendientes">Abrir notificaciones (%1$d sin leer)</string>
+    <string name="notificaciones_cd_volver">Volver</string>
+    <string name="notificaciones_btn_marcar_todas">Marcar todas</string>
+    <string name="notificaciones_cd_no_leida">Notificación sin leer</string>
+    <string name="notificaciones_badge_aprobada">Aprobada</string>
+    <string name="notificaciones_badge_rechazada">Rechazada</string>
+    <string name="notificaciones_badge_aviso">Aviso</string>
+    <string name="notificaciones_titulo_aprobada_default">¡Solicitud aprobada!</string>
+    <string name="notificaciones_titulo_rechazada_default">Solicitud rechazada</string>
+    <string name="notificaciones_titulo_default">Nueva notificación</string>
+    <string name="notificaciones_mensaje_aprobada_default">Tu comercio %1$s ya está publicado en TurisMap.</string>
+    <string name="notificaciones_mensaje_rechazada_default">Tu solicitud para %1$s no fue aprobada. Revisa los detalles e intenta nuevamente.</string>
+    <string name="notificaciones_mensaje_default">Tienes una actualización relacionada con %1$s.</string>
+    <string name="notificaciones_btn_ver_comercio">Ver mi comercio</string>
+    <string name="notificaciones_btn_ver_planes">Ver planes</string>
+    <string name="notificaciones_vacio_titulo">Sin notificaciones</string>
+    <string name="notificaciones_vacio_descripcion">Aquí recibirás avisos cuando tu solicitud de comercio sea aprobada o rechazada.</string>
+    <string name="notificaciones_error_cargar">No se pudieron cargar tus notificaciones.</string>
+    <string name="notificaciones_error_marcar_leida">No se pudo marcar la notificación como leída.</string>
+    <string name="notificaciones_error_marcar_todas">No se pudieron marcar todas las notificaciones como leídas.</string>
+    <string name="notificaciones_error_sesion">Inicia sesión para ver tus notificaciones.</string>
+    <string name="notificaciones_todas_marcadas">Todas las notificaciones se marcaron como leídas.</string>
+    <string name="notificaciones_tiempo_ahora">Hace un momento</string>
+    <string name="notificaciones_tiempo_minutos">Hace %1$d min</string>
+    <string name="notificaciones_tiempo_horas">Hace %1$d h</string>
+    <string name="notificaciones_tiempo_dias">Hace %1$d d</string>
+    <string name="notificaciones_negocio_fallback">tu negocio</string>
 </resources>
