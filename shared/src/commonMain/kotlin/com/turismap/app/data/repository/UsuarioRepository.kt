@@ -4,10 +4,18 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.firestore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.perfil_error_sin_sesion
+import turismap.shared.generated.resources.repo_error_ruta_imagen_invalida
+import turismap.shared.generated.resources.repo_error_sesion_actualizar_fotos
+import turismap.shared.generated.resources.repo_error_sesion_favoritos
+import turismap.shared.generated.resources.repo_error_sesion_historial_visitas
 
 @Serializable
 data class UsuarioBD(
@@ -68,7 +76,7 @@ object UsuarioRepository {
         fotoUrl: String? = null
     ) {
         val usuario = Firebase.auth.currentUser
-            ?: throw IllegalStateException("No hay una sesión autenticada.")
+            ?: throw IllegalStateException(getString(Res.string.perfil_error_sin_sesion))
         val referencia = firestore.collection("usuarios").document(usuario.uid)
         val documento = referencia.get()
 
@@ -86,6 +94,8 @@ object UsuarioRepository {
         } else {
             val usuarioBD = try {
                 documento.data(UsuarioBD.serializer())
+            } catch (error: CancellationException) {
+                throw error
             } catch (_: Exception) {
                 null
             }
@@ -107,7 +117,7 @@ object UsuarioRepository {
 
     suspend fun actualizarPerfil(nombre: String, telefono: String = "") {
         val usuario = Firebase.auth.currentUser
-            ?: throw IllegalStateException("No hay una sesión autenticada.")
+            ?: throw IllegalStateException(getString(Res.string.perfil_error_sin_sesion))
 
         val docRef = firestore.collection("usuarios").document(usuario.uid)
         docRef.update("nombre" to nombre.trim())
@@ -119,7 +129,7 @@ object UsuarioRepository {
 
     suspend fun actualizarFoto(perfil: Boolean, url: String) {
         val uid = obtenerIdUsuarioActual()
-            ?: throw IllegalStateException("Inicia sesión para actualizar tus fotos.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_actualizar_fotos))
 
         val urlLimpia = url.trim()
         val esRutaValida = urlLimpia.isBlank() ||
@@ -129,7 +139,7 @@ object UsuarioRepository {
                 urlLimpia.startsWith("file://", ignoreCase = true)
 
         require(esRutaValida) {
-            "Formato de ruta de imagen no válido."
+            getString(Res.string.repo_error_ruta_imagen_invalida)
         }
 
         val campo = if (perfil) "fotoPerfil" else "fotoPortada"
@@ -142,7 +152,7 @@ object UsuarioRepository {
 
     suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {
         val uid = obtenerIdUsuarioActual()
-            ?: throw IllegalStateException("Inicia sesión para guardar lugares favoritos.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_favoritos))
         val referencia = firestore.collection("usuarios").document(uid)
         val documento = referencia.get()
 
@@ -165,7 +175,7 @@ object UsuarioRepository {
 
     suspend fun registrarVisita(lugarId: String, tipoInteraccion: String = "visita") {
         val uid = obtenerIdUsuarioActual()
-            ?: throw IllegalStateException("Inicia sesión para guardar el historial de visitas.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_historial_visitas))
         firestore.collection("usuarios").document(uid)
             .collection("historial_rutas")
             .add(
@@ -192,11 +202,15 @@ object UsuarioRepository {
             .mapNotNull { doc ->
                 try {
                     doc.get<String>("lugarId")
+                } catch (error: CancellationException) {
+                    throw error
                 } catch (_: Exception) {
                     null
                 }
             }
             .distinct()
+    } catch (error: CancellationException) {
+        throw error
     } catch (_: Exception) {
         emptyList()
     }

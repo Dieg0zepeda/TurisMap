@@ -343,4 +343,30 @@
     <string name="comercio_ubicacion_longitud">Longitud</string>
     <string name="comercio_ubicacion_error_rango">Selecciona un punto válido: latitud entre -90 y 90, longitud entre -180 y 180.</string>
     <string name="comercio_ubicacion_btn_guardar">Guardar ubicación y volver</string>
+
+    <!-- Repositorios (validaciones y errores visibles) -->
+    <string name="repo_error_sesion_registrar_comercio">Inicia sesión para registrar un comercio.</string>
+    <string name="repo_error_sesion_enviar_solicitud">Inicia sesión para enviar una solicitud.</string>
+    <string name="repo_error_sesion_sin_correo">La sesión actual no tiene un correo electrónico asociado.</string>
+    <string name="repo_error_correo_no_coincide">El correo debe coincidir con el de la sesión actual.</string>
+    <string name="repo_error_plan_requerido">Selecciona un plan disponible.</string>
+    <string name="repo_error_nombre_completo_longitud">El nombre completo debe tener entre 1 y 120 caracteres.</string>
+    <string name="repo_error_ubicacion_longitud">La ubicación debe tener entre 1 y 100 caracteres.</string>
+    <string name="repo_error_nombre_negocio_longitud">El nombre del negocio debe tener entre 1 y 120 caracteres.</string>
+    <string name="repo_error_categoria_requerida">Selecciona una categoría disponible.</string>
+    <string name="repo_error_descripcion_longitud">La descripción debe tener entre 1 y 2000 caracteres.</string>
+    <string name="repo_error_direccion_longitud">La dirección debe tener entre 1 y 300 caracteres.</string>
+    <string name="repo_error_telefono_longitud">El teléfono debe tener entre 1 y 40 caracteres.</string>
+    <string name="repo_error_latitud_rango">La latitud debe estar entre -90 y 90.</string>
+    <string name="repo_error_longitud_rango">La longitud debe estar entre -180 y 180.</string>
+    <string name="repo_error_sesion_publicar_resena">Inicia sesión para publicar una reseña.</string>
+    <string name="repo_error_calificacion_rango">La calificación debe estar entre 1 y 5.</string>
+    <string name="repo_error_sesion_actualizar_fotos">Inicia sesión para actualizar tus fotos.</string>
+    <string name="repo_error_ruta_imagen_invalida">Formato de ruta de imagen no válido.</string>
+    <string name="repo_error_sesion_favoritos">Inicia sesión para guardar lugares favoritos.</string>
+    <string name="repo_error_sesion_historial_visitas">Inicia sesión para guardar el historial de visitas.</string>
+    <string name="repo_error_auth_usuario_no_devuelto">Firebase no devolvió el usuario autenticado.</string>
+    <string name="repo_error_auth_usuario_creado_no_devuelto">Firebase no devolvió el usuario creado.</string>
+    <string name="repo_error_auth_usuario_google">No se pudo obtener el usuario de Google.</string>
+    <string name="repo_nombre_viajero_predeterminado">Viajero TurisMap</string>
 </resources>

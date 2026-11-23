@@ -5,6 +5,12 @@ import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.repo_error_auth_usuario_creado_no_devuelto
+import turismap.shared.generated.resources.repo_error_auth_usuario_google
+import turismap.shared.generated.resources.repo_error_auth_usuario_no_devuelto
+import turismap.shared.generated.resources.repo_nombre_viajero_predeterminado
 
 object AutenticacionRepository {
     private val auth by lazy { Firebase.auth }
@@ -15,7 +21,7 @@ object AutenticacionRepository {
     suspend fun iniciarSesion(email: String, contrasena: String) {
         val resultado = auth.signInWithEmailAndPassword(email.trim(), contrasena)
         val usuario = resultado.user
-            ?: throw IllegalStateException("Firebase no devolvió el usuario autenticado.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_no_devuelto))
         try {
             UsuarioRepository.asegurarPerfil(
                 email = usuario.email ?: email.trim(),
@@ -38,7 +44,7 @@ object AutenticacionRepository {
     ) {
         val resultado = auth.createUserWithEmailAndPassword(email.trim(), contrasena)
         val usuario = resultado.user
-            ?: throw IllegalStateException("Firebase no devolvió el usuario creado.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_creado_no_devuelto))
         try {
             usuario.updateProfile(displayName = nombre.trim())
             UsuarioRepository.asegurarPerfil(
@@ -63,12 +69,13 @@ object AutenticacionRepository {
         val credencial = GoogleAuthProvider.credential(idToken = idToken, accessToken = null)
         val resultado = auth.signInWithCredential(credencial)
         val usuario = resultado.user
-            ?: throw IllegalStateException("No se pudo obtener el usuario de Google.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_google))
 
         try {
+            val nombrePredeterminado = getString(Res.string.repo_nombre_viajero_predeterminado)
             UsuarioRepository.asegurarPerfil(
                 email = usuario.email.orEmpty(),
-                nombre = usuario.displayName.orEmpty().ifBlank { "Viajero TurisMap" },
+                nombre = usuario.displayName.orEmpty().ifBlank { nombrePredeterminado },
                 fotoUrl = usuario.photoURL
             )
         } catch (error: CancellationException) {

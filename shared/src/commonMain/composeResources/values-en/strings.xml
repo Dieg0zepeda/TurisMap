@@ -343,4 +343,30 @@
     <string name="comercio_ubicacion_longitud">Longitude</string>
     <string name="comercio_ubicacion_error_rango">Select a valid point: latitude between -90 and 90, longitude between -180 and 180.</string>
     <string name="comercio_ubicacion_btn_guardar">Save location and return</string>
+
+    <!-- Repositories (visible validations and errors) -->
+    <string name="repo_error_sesion_registrar_comercio">Sign in to register a business.</string>
+    <string name="repo_error_sesion_enviar_solicitud">Sign in to submit a request.</string>
+    <string name="repo_error_sesion_sin_correo">The current session does not have an associated email address.</string>
+    <string name="repo_error_correo_no_coincide">The email must match the current session.</string>
+    <string name="repo_error_plan_requerido">Select an available plan.</string>
+    <string name="repo_error_nombre_completo_longitud">Full name must be between 1 and 120 characters.</string>
+    <string name="repo_error_ubicacion_longitud">Location must be between 1 and 100 characters.</string>
+    <string name="repo_error_nombre_negocio_longitud">Business name must be between 1 and 120 characters.</string>
+    <string name="repo_error_categoria_requerida">Select an available category.</string>
+    <string name="repo_error_descripcion_longitud">Description must be between 1 and 2000 characters.</string>
+    <string name="repo_error_direccion_longitud">Address must be between 1 and 300 characters.</string>
+    <string name="repo_error_telefono_longitud">Phone number must be between 1 and 40 characters.</string>
+    <string name="repo_error_latitud_rango">Latitude must be between -90 and 90.</string>
+    <string name="repo_error_longitud_rango">Longitude must be between -180 and 180.</string>
+    <string name="repo_error_sesion_publicar_resena">Sign in to post a review.</string>
+    <string name="repo_error_calificacion_rango">Rating must be between 1 and 5.</string>
+    <string name="repo_error_sesion_actualizar_fotos">Sign in to update your photos.</string>
+    <string name="repo_error_ruta_imagen_invalida">Invalid image path format.</string>
+    <string name="repo_error_sesion_favoritos">Sign in to save favorite places.</string>
+    <string name="repo_error_sesion_historial_visitas">Sign in to save your visit history.</string>
+    <string name="repo_error_auth_usuario_no_devuelto">Firebase did not return the authenticated user.</string>
+    <string name="repo_error_auth_usuario_creado_no_devuelto">Firebase did not return the created user.</string>
+    <string name="repo_error_auth_usuario_google">Could not retrieve the Google user.</string>
+    <string name="repo_nombre_viajero_predeterminado">TurisMap Traveler</string>
 </resources>

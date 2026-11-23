@@ -16,6 +16,24 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.repo_error_calificacion_rango
+import turismap.shared.generated.resources.repo_error_categoria_requerida
+import turismap.shared.generated.resources.repo_error_correo_no_coincide
+import turismap.shared.generated.resources.repo_error_descripcion_longitud
+import turismap.shared.generated.resources.repo_error_direccion_longitud
+import turismap.shared.generated.resources.repo_error_latitud_rango
+import turismap.shared.generated.resources.repo_error_longitud_rango
+import turismap.shared.generated.resources.repo_error_nombre_completo_longitud
+import turismap.shared.generated.resources.repo_error_nombre_negocio_longitud
+import turismap.shared.generated.resources.repo_error_plan_requerido
+import turismap.shared.generated.resources.repo_error_sesion_enviar_solicitud
+import turismap.shared.generated.resources.repo_error_sesion_publicar_resena
+import turismap.shared.generated.resources.repo_error_sesion_registrar_comercio
+import turismap.shared.generated.resources.repo_error_sesion_sin_correo
+import turismap.shared.generated.resources.repo_error_telefono_longitud
+import turismap.shared.generated.resources.repo_error_ubicacion_longitud
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
@@ -310,7 +328,7 @@ object ComercioRepository {
         imagenUrls: List<String>
     ) {
         val uid = Firebase.auth.currentUser?.uid
-            ?: throw IllegalStateException("Inicia sesión para registrar un comercio.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_registrar_comercio))
         val ahoraServidor = FieldValue.serverTimestamp
         firestore.collection("comercios").add(
             mapOf(
@@ -351,26 +369,38 @@ object ComercioRepository {
         coordenadas: Coordenada
     ) {
         val usuario = Firebase.auth.currentUser
-            ?: throw IllegalStateException("Inicia sesión para enviar una solicitud.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_enviar_solicitud))
         val correoAutenticado = usuario.email?.trim()
             ?.takeIf(String::isNotBlank)
-            ?: throw IllegalStateException("La sesión actual no tiene un correo electrónico asociado.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_sin_correo))
         require(email.trim().equals(correoAutenticado, ignoreCase = true)) {
-            "El correo debe coincidir con el de la sesión actual."
+            getString(Res.string.repo_error_correo_no_coincide)
         }
-        require(planId.isNotBlank()) { "Selecciona un plan disponible." }
-        require(nombreCompleto.trim().length in 1..120) { "El nombre completo debe tener entre 1 y 120 caracteres." }
-        require(municipio.trim().length in 1..100) { "La ubicación debe tener entre 1 y 100 caracteres." }
-        require(nombreNegocio.trim().length in 1..120) { "El nombre del negocio debe tener entre 1 y 120 caracteres." }
-        require(categoria.isNotBlank()) { "Selecciona una categoría disponible." }
-        require(descripcion.trim().length in 1..2000) { "La descripción debe tener entre 1 y 2000 caracteres." }
-        require(direccion.trim().length in 1..300) { "La dirección debe tener entre 1 y 300 caracteres." }
-        require(telefono.trim().length in 1..40) { "El teléfono debe tener entre 1 y 40 caracteres." }
+        require(planId.isNotBlank()) { getString(Res.string.repo_error_plan_requerido) }
+        require(nombreCompleto.trim().length in 1..120) {
+            getString(Res.string.repo_error_nombre_completo_longitud)
+        }
+        require(municipio.trim().length in 1..100) {
+            getString(Res.string.repo_error_ubicacion_longitud)
+        }
+        require(nombreNegocio.trim().length in 1..120) {
+            getString(Res.string.repo_error_nombre_negocio_longitud)
+        }
+        require(categoria.isNotBlank()) { getString(Res.string.repo_error_categoria_requerida) }
+        require(descripcion.trim().length in 1..2000) {
+            getString(Res.string.repo_error_descripcion_longitud)
+        }
+        require(direccion.trim().length in 1..300) {
+            getString(Res.string.repo_error_direccion_longitud)
+        }
+        require(telefono.trim().length in 1..40) {
+            getString(Res.string.repo_error_telefono_longitud)
+        }
         require(coordenadas.latitud.isFinite() && coordenadas.latitud in -90.0..90.0) {
-            "La latitud debe estar entre -90 y 90."
+            getString(Res.string.repo_error_latitud_rango)
         }
         require(coordenadas.longitud.isFinite() && coordenadas.longitud in -180.0..180.0) {
-            "La longitud debe estar entre -180 y 180."
+            getString(Res.string.repo_error_longitud_rango)
         }
 
         val referencia = firestore.collection("solicitudes_comercio").document(Uuid.random().toString())
@@ -411,8 +441,8 @@ object ComercioRepository {
 
     suspend fun enviarResena(comercioId: String, calificacion: Int, comentario: String) {
         val uid = Firebase.auth.currentUser?.uid
-            ?: throw IllegalStateException("Inicia sesión para publicar una reseña.")
-        require(calificacion in 1..5) { "La calificación debe estar entre 1 y 5." }
+            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_publicar_resena))
+        require(calificacion in 1..5) { getString(Res.string.repo_error_calificacion_rango) }
         val referencia = firestore.collection("resenas").document("comercio_${comercioId}_$uid")
         val existente = referencia.get()
         val ahoraServidor = FieldValue.serverTimestamp
