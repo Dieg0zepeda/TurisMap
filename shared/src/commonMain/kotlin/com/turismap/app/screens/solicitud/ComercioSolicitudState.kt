@@ -20,6 +20,13 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.comercio_dia_domingo
+import turismap.shared.generated.resources.comercio_dia_inicial_domingo
+import turismap.shared.generated.resources.comercio_dia_inicial_jueves
+import turismap.shared.generated.resources.comercio_dia_inicial_lunes
+import turismap.shared.generated.resources.comercio_dia_inicial_martes
+import turismap.shared.generated.resources.comercio_dia_inicial_miercoles
+import turismap.shared.generated.resources.comercio_dia_inicial_sabado
+import turismap.shared.generated.resources.comercio_dia_inicial_viernes
 import turismap.shared.generated.resources.comercio_dia_jueves
 import turismap.shared.generated.resources.comercio_dia_lunes
 import turismap.shared.generated.resources.comercio_dia_martes
@@ -38,21 +45,16 @@ import turismap.shared.generated.resources.comercio_error_sin_categorias
 import turismap.shared.generated.resources.comercio_error_sin_ubicaciones
 import turismap.shared.generated.resources.comercio_error_sitio_web_https
 
-internal data class HorarioDia(
-    val apertura: String = "",
-    val cierre: String = ""
-)
-
 internal enum class DiaSemanaSolicitud(
-    val nombrePersistencia: String
+    val abreviaturaPersistencia: String
 ) {
-    LUNES("Lunes"),
-    MARTES("Martes"),
-    MIERCOLES("Miércoles"),
-    JUEVES("Jueves"),
-    VIERNES("Viernes"),
-    SABADO("Sábado"),
-    DOMINGO("Domingo");
+    LUNES("Lun"),
+    MARTES("Mar"),
+    MIERCOLES("Mié"),
+    JUEVES("Jue"),
+    VIERNES("Vie"),
+    SABADO("Sáb"),
+    DOMINGO("Dom");
 
     val etiquetaRes: StringResource
         get() = when (this) {
@@ -64,7 +66,84 @@ internal enum class DiaSemanaSolicitud(
             SABADO -> Res.string.comercio_dia_sabado
             DOMINGO -> Res.string.comercio_dia_domingo
         }
+
+    val inicialRes: StringResource
+        get() = when (this) {
+            LUNES -> Res.string.comercio_dia_inicial_lunes
+            MARTES -> Res.string.comercio_dia_inicial_martes
+            MIERCOLES -> Res.string.comercio_dia_inicial_miercoles
+            JUEVES -> Res.string.comercio_dia_inicial_jueves
+            VIERNES -> Res.string.comercio_dia_inicial_viernes
+            SABADO -> Res.string.comercio_dia_inicial_sabado
+            DOMINGO -> Res.string.comercio_dia_inicial_domingo
+        }
 }
+
+internal data class BloqueHorario(
+    val id: Int,
+    val dias: Set<DiaSemanaSolicitud>,
+    val horaAbre: Int = 8,
+    val minutoAbre: Int = 0,
+    val horaCierra: Int = 17,
+    val minutoCierra: Int = 0
+) {
+    val horasIguales: Boolean
+        get() = horaAbre == horaCierra && minutoAbre == minutoCierra
+
+    val esValido: Boolean
+        get() = dias.isNotEmpty() && !horasIguales
+}
+
+internal fun formatearHora12h(hora24: Int, minuto: Int): String {
+    val horaNormalizada = hora24.coerceIn(0, 23)
+    val minutoNormalizado = minuto.coerceIn(0, 59)
+    val sufijo = if (horaNormalizada < 12) "AM" else "PM"
+    val hora12 = when (val mod = horaNormalizada % 12) {
+        0 -> 12
+        else -> mod
+    }
+    val minutoTexto = minutoNormalizado.toString().padStart(2, '0')
+    return "$hora12:$minutoTexto $sufijo"
+}
+
+internal fun formatearDiasBloque(dias: Set<DiaSemanaSolicitud>): String {
+    if (dias.isEmpty()) return ""
+    val diasOrdenados = DiaSemanaSolicitud.entries.filter { it in dias }
+    if (diasOrdenados.size == DiaSemanaSolicitud.entries.size) {
+        return "Todos los días"
+    }
+
+    val grupos = mutableListOf<MutableList<DiaSemanaSolicitud>>()
+    for (dia in diasOrdenados) {
+        val ultimoGrupo = grupos.lastOrNull()
+        if (ultimoGrupo != null && dia.ordinal == ultimoGrupo.last().ordinal + 1) {
+            ultimoGrupo.add(dia)
+        } else {
+            grupos.add(mutableListOf(dia))
+        }
+    }
+
+    return grupos.mapIndexed { indice, grupo ->
+        val esUltimo = indice == grupos.lastIndex
+        when {
+            grupo.size >= 3 -> "${grupo.first().abreviaturaPersistencia} a ${grupo.last().abreviaturaPersistencia}"
+            grupo.size == 2 && esUltimo -> "${grupo.first().abreviaturaPersistencia} y ${grupo.last().abreviaturaPersistencia}"
+            grupo.size == 2 -> "${grupo.first().abreviaturaPersistencia}, ${grupo.last().abreviaturaPersistencia}"
+            else -> grupo.first().abreviaturaPersistencia
+        }
+    }.joinToString(", ")
+}
+
+internal fun formatearBloquesHorario(bloques: List<BloqueHorario>): String =
+    bloques
+        .filter { it.esValido }
+        .sortedBy { bloque -> bloque.dias.minOf(DiaSemanaSolicitud::ordinal) }
+        .joinToString(" · ") { bloque ->
+            val diasTexto = formatearDiasBloque(bloque.dias)
+            val abreTexto = formatearHora12h(bloque.horaAbre, bloque.minutoAbre)
+            val cierraTexto = formatearHora12h(bloque.horaCierra, bloque.minutoCierra)
+            "$diasTexto: $abreTexto - $cierraTexto"
+        }
 
 internal class ComercioSolicitudState(
     nombreCompletoInicial: String,
@@ -108,9 +187,8 @@ internal class ComercioSolicitudState(
     var planError by mutableStateOf<String?>(null)
     var intentoCarga by mutableIntStateOf(0)
 
-    var mostrarHorarioDetallado by mutableStateOf(false)
-    var diasSeleccionados by mutableStateOf<Set<DiaSemanaSolicitud>>(emptySet())
-    var horariosPorDia by mutableStateOf<Map<DiaSemanaSolicitud, HorarioDia>>(emptyMap())
+    var selectorHorarioAbierto by mutableStateOf(false)
+    var bloquesHorario by mutableStateOf<List<BloqueHorario>>(emptyList())
     var solicitudEnviada by mutableStateOf(false)
 
     val digitosTelefono: Int
@@ -146,15 +224,19 @@ internal class ComercioSolicitudState(
         intentoCarga++
     }
 
-    fun aplicarHorarioPorDias() {
-        val diasOrdenados = DiaSemanaSolicitud.entries.filter { it in diasSeleccionados }
-        horario = diasOrdenados.joinToString(", ") { dia ->
-            val horarioDia = horariosPorDia[dia] ?: HorarioDia()
-            val abre = horarioDia.apertura.trim().ifBlank { "8:00 AM" }
-            val cierra = horarioDia.cierre.trim().ifBlank { "5:00 PM" }
-            "${dia.nombrePersistencia}: $abre a $cierra"
-        }
-        mostrarHorarioDetallado = false
+    fun guardarHorarioBloques(nuevosBloques: List<BloqueHorario>) {
+        val bloquesOrdenados = nuevosBloques
+            .filter { it.esValido }
+            .sortedBy { bloque -> bloque.dias.minOf(DiaSemanaSolicitud::ordinal) }
+        bloquesHorario = bloquesOrdenados
+        horario = formatearBloquesHorario(bloquesOrdenados)
+        selectorHorarioAbierto = false
+    }
+
+    fun limpiarHorario() {
+        bloquesHorario = emptyList()
+        horario = ""
+        selectorHorarioAbierto = false
     }
 
     fun enviarSolicitud() {

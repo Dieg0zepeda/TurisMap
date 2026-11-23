@@ -1,39 +1,46 @@
 package com.turismap.app.screens.solicitud
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.turismap.app.data.models.Coordenada
+import com.turismap.app.theme.FondoBlancoAdaptable
 import com.turismap.app.theme.GrisBorde
+import com.turismap.app.theme.GrisFondo
 import com.turismap.app.theme.GrisTextoSecundario
 import com.turismap.app.theme.TerracotaTextoAdaptable
 import com.turismap.app.theme.TextoPrincipalOscuro
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
-import turismap.shared.generated.resources.comercio_btn_aplicar_horario
+import turismap.shared.generated.resources.btn_cancelar
 import turismap.shared.generated.resources.comercio_btn_cambiar_ubicacion_mapa
-import turismap.shared.generated.resources.comercio_btn_horario_manual
-import turismap.shared.generated.resources.comercio_btn_horario_por_dias
 import turismap.shared.generated.resources.comercio_btn_ubicar_mapa
+import turismap.shared.generated.resources.comercio_cd_configurar_horario
 import turismap.shared.generated.resources.comercio_coordenadas_guardadas
-import turismap.shared.generated.resources.comercio_horario_abre
-import turismap.shared.generated.resources.comercio_horario_cierra
-import turismap.shared.generated.resources.comercio_horario_conector_a
+import turismap.shared.generated.resources.comercio_horario_btn_aceptar
+import turismap.shared.generated.resources.comercio_horario_placeholder
 import turismap.shared.generated.resources.comercio_label_horario_atencion
-import turismap.shared.generated.resources.comercio_label_horario_manual
 import turismap.shared.generated.resources.comercio_ubicacion_guardada_badge
 
 private val VerdeMapaOscuro = Color(0xFF6FCF97)
@@ -117,123 +124,170 @@ internal fun BloqueUbicacionMapa(
 }
 
 @Composable
-internal fun SeccionHorarioSolicitud(
+internal fun CampoSelectorHorarioSolicitud(
     horario: String,
-    mostrarHorarioDetallado: Boolean,
-    diasSeleccionados: Set<DiaSemanaSolicitud>,
-    horariosPorDia: Map<DiaSemanaSolicitud, HorarioDia>,
-    onToggleModo: () -> Unit,
-    onHorarioManualChange: (String) -> Unit,
-    onToggleDia: (DiaSemanaSolicitud, Boolean) -> Unit,
-    onActualizarHorarioDia: (DiaSemanaSolicitud, HorarioDia) -> Unit,
-    onAplicarHorario: () -> Unit
+    habilitado: Boolean,
+    onAbrir: () -> Unit
 ) {
     val esModoOscuro = isSystemInDarkTheme()
     val colorVerde = if (esModoOscuro) VerdeMapaOscuro else VerdeMapaClaro
+    val configurado = horario.isNotBlank()
+    val placeholder = stringResource(Res.string.comercio_horario_placeholder)
+    val descripcionBoton = stringResource(Res.string.comercio_cd_configurar_horario)
+    val valorVisible = if (configurado) horario.replace(" · ", "\n") else placeholder
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                enabled = habilitado,
+                role = Role.Button,
+                onClickLabel = descripcionBoton,
+                onClick = onAbrir
+            )
+    ) {
+        OutlinedTextField(
+            value = valorVisible,
+            onValueChange = {},
+            readOnly = true,
+            enabled = false,
+            singleLine = false,
+            maxLines = 4,
+            label = { Text(stringResource(Res.string.comercio_label_horario_atencion)) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                Icon(
+                    imageVector = if (configurado) Icons.Default.Edit else Icons.Default.KeyboardArrowDown,
+                    contentDescription = descripcionBoton,
+                    modifier = Modifier.size(if (configurado) 18.dp else 22.dp)
+                )
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = if (configurado && habilitado) TextoPrincipalOscuro else GrisTextoSecundario,
+                disabledBorderColor = GrisBorde,
+                disabledLabelColor = GrisTextoSecundario,
+                disabledLeadingIconColor = if (configurado) colorVerde else GrisTextoSecundario,
+                disabledTrailingIconColor = when {
+                    !habilitado -> GrisTextoSecundario
+                    configurado -> colorVerde
+                    else -> TextoPrincipalOscuro
+                },
+                disabledContainerColor = Color.Transparent
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+internal fun PillHoraBloque(
+    etiqueta: String,
+    horaTexto: String,
+    esError: Boolean,
+    colorAcento: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = FondoBlancoAdaptable,
+        border = BorderStroke(1.dp, if (esError) MaterialTheme.colorScheme.error else GrisBorde),
+        modifier = modifier.heightIn(min = 58.dp)
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(Res.string.comercio_label_horario_atencion),
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextoPrincipalOscuro
-            )
-            TextButton(onClick = onToggleModo) {
-                Text(
-                    text = stringResource(
-                        if (mostrarHorarioDetallado) {
-                            Res.string.comercio_btn_horario_manual
-                        } else {
-                            Res.string.comercio_btn_horario_por_dias
-                        }
-                    ),
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorVerde
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = etiqueta, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = GrisTextoSecundario)
+                Text(text = horaTexto, fontSize = 15.5.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
             }
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = null,
+                tint = if (esError) MaterialTheme.colorScheme.error else colorAcento,
+                modifier = Modifier.size(18.dp)
+            )
         }
+    }
+}
 
-        if (mostrarHorarioDetallado) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DiaSemanaSolicitud.entries.forEach { dia ->
-                    val seleccionado = diasSeleccionados.contains(dia)
-                    val horarioDia = horariosPorDia[dia] ?: HorarioDia()
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = seleccionado,
-                                onCheckedChange = { checked -> onToggleDia(dia, checked) },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = if (esModoOscuro) Color(0xFF2E7D57) else VerdeMapaClaro,
-                                    checkmarkColor = Color.White
-                                )
-                            )
-                            Text(stringResource(dia.etiquetaRes), fontSize = 13.5.sp, color = TextoPrincipalOscuro)
-                        }
-                        if (seleccionado) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = horarioDia.apertura,
-                                    onValueChange = { nuevo ->
-                                        onActualizarHorarioDia(dia, horarioDia.copy(apertura = nuevo.take(12)))
-                                    },
-                                    label = { Text(stringResource(Res.string.comercio_horario_abre), fontSize = 11.sp) },
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.width(88.dp),
-                                    singleLine = true
-                                )
-                                Text(
-                                    text = stringResource(Res.string.comercio_horario_conector_a),
-                                    fontSize = 12.sp,
-                                    color = GrisTextoSecundario
-                                )
-                                OutlinedTextField(
-                                    value = horarioDia.cierre,
-                                    onValueChange = { nuevo ->
-                                        onActualizarHorarioDia(dia, horarioDia.copy(cierre = nuevo.take(12)))
-                                    },
-                                    label = { Text(stringResource(Res.string.comercio_horario_cierra), fontSize = 11.sp) },
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.width(88.dp),
-                                    singleLine = true
-                                )
-                            }
-                        }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DialogoSelectorHora(
+    titulo: String,
+    horaInicial: Int,
+    minutoInicial: Int,
+    colorAcento: Color,
+    esModoOscuro: Boolean,
+    onDismiss: () -> Unit,
+    onConfirmar: (Int, Int) -> Unit
+) {
+    val pickerState = rememberTimePickerState(
+        initialHour = horaInicial,
+        initialMinute = minutoInicial,
+        is24Hour = false
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(24.dp), color = FondoBlancoAdaptable, tonalElevation = 6.dp) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = titulo,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoPrincipalOscuro,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TimePicker(
+                    state = pickerState,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = GrisFondo,
+                        selectorColor = colorAcento,
+                        clockDialSelectedContentColor = if (esModoOscuro) Color(0xFF0B251B) else Color.White,
+                        clockDialUnselectedContentColor = TextoPrincipalOscuro,
+                        periodSelectorBorderColor = GrisBorde,
+                        periodSelectorSelectedContainerColor = colorAcento.copy(alpha = if (esModoOscuro) 0.22f else 0.14f),
+                        periodSelectorUnselectedContainerColor = Color.Transparent,
+                        periodSelectorSelectedContentColor = colorAcento,
+                        periodSelectorUnselectedContentColor = GrisTextoSecundario,
+                        timeSelectorSelectedContainerColor = colorAcento.copy(alpha = if (esModoOscuro) 0.22f else 0.14f),
+                        timeSelectorUnselectedContainerColor = GrisFondo,
+                        timeSelectorSelectedContentColor = colorAcento,
+                        timeSelectorUnselectedContentColor = TextoPrincipalOscuro
+                    )
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(Res.string.btn_cancelar), color = GrisTextoSecundario)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { onConfirmar(pickerState.hour, pickerState.minute) }) {
+                        Text(
+                            text = stringResource(Res.string.comercio_horario_btn_aceptar),
+                            fontWeight = FontWeight.Bold,
+                            color = colorAcento
+                        )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = onAplicarHorario,
-                enabled = diasSeleccionados.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth().height(46.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (esModoOscuro) Color(0xFF2E7D57) else VerdeMapaClaro,
-                    contentColor = Color.White
-                )
-            ) { Text(stringResource(Res.string.comercio_btn_aplicar_horario), fontWeight = FontWeight.SemiBold) }
-        } else {
-            CampoSolicitud(
-                etiqueta = stringResource(Res.string.comercio_label_horario_manual),
-                valor = horario,
-                alCambiar = onHorarioManualChange,
-                iconoInicio = Icons.Default.Schedule
-            )
         }
     }
 }
