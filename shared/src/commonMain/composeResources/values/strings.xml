@@ -177,6 +177,7 @@
     <string name="guia_error_cargar_comercios">No se pudieron obtener los comercios.</string>
     <string name="guia_buscar_placeholder">Buscar en la Ruta de las Flores...</string>
     <string name="guia_filtro_todos_pueblos">Todos los Pueblos</string>
+    <string name="guia_selector_pueblo_titulo">Seleccionar pueblo</string>
     <string name="guia_seccion_destacadas">EXPERIENCIAS DESTACADAS</string>
     <string name="guia_encabezado_todos">Guía de Comercios</string>
     <string name="guia_encabezado_municipio">Comercios en %1$s</string>

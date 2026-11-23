@@ -177,6 +177,7 @@
     <string name="guia_error_cargar_comercios">Could not load businesses.</string>
     <string name="guia_buscar_placeholder">Search along Ruta de las Flores...</string>
     <string name="guia_filtro_todos_pueblos">All Towns</string>
+    <string name="guia_selector_pueblo_titulo">Select town</string>
     <string name="guia_seccion_destacadas">FEATURED EXPERIENCES</string>
     <string name="guia_encabezado_todos">Business Guide</string>
     <string name="guia_encabezado_municipio">Businesses in %1$s</string>

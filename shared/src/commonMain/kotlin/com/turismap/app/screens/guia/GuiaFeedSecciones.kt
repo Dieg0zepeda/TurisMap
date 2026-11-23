@@ -18,14 +18,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,17 +47,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.repository.Comercio
-import com.turismap.app.theme.FondoBlancoAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.auth_ruta_flores
 import turismap.shared.generated.resources.btn_reintentar
-import turismap.shared.generated.resources.guia_badge_socio_premium
-import turismap.shared.generated.resources.guia_badge_socio_turismap
 import turismap.shared.generated.resources.guia_encabezado_municipio
 import turismap.shared.generated.resources.guia_encabezado_todos
 import turismap.shared.generated.resources.guia_error_conectar
@@ -61,8 +64,7 @@ import turismap.shared.generated.resources.guia_estado_vacio
 import turismap.shared.generated.resources.guia_seccion_destacadas
 import turismap.shared.generated.resources.guia_total_lugares
 
-// Shimmer sin errores de sintaxis
-internal fun Modifier.shimmerEffect(): Modifier = composed {
+internal fun Modifier.shimmerEffect(esOscuro: Boolean = false): Modifier = composed {
     var size by remember { mutableStateOf(IntSize.Zero) }
     val transition = rememberInfiniteTransition(label = "shimmer")
     val widthPx = if (size.width > 0) size.width.toFloat() else 300f
@@ -74,14 +76,12 @@ internal fun Modifier.shimmerEffect(): Modifier = composed {
         ),
         label = "shimmer_x"
     )
+    val base = if (esOscuro) Color(0xFF2A2E2C) else Color(0xFFE5E7EB)
+    val brillo = if (esOscuro) Color(0xFF383E3B) else Color(0xFFF3F4F6)
 
     background(
         brush = Brush.linearGradient(
-            colors = listOf(
-                Color(0xFFE0E0E0),
-                Color(0xFFF5F5F5),
-                Color(0xFFE0E0E0)
-            ),
+            colors = listOf(base, brillo, base),
             start = Offset(startOffsetX, 0f),
             end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
         )
@@ -95,32 +95,42 @@ internal fun SeccionExperienciasDestacadas(
     paleta: GuiaPaleta,
     onComercioClick: (String) -> Unit
 ) {
+    val municipioPredeterminado = stringResource(Res.string.auth_ruta_flores)
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("👑", fontSize = 16.sp)
-            Spacer(Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = paleta.ambarAcento,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = stringResource(Res.string.guia_seccion_destacadas),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = paleta.verdeOscuroTurisMap,
-                letterSpacing = 0.5.sp
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = paleta.airbnbGray,
+                letterSpacing = 0.7.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(comerciosDestacados, key = { "dest_${it.id}" }) { destacado ->
-                val muniNombre = mapaMunicipios[destacado.lugarId] ?: "Ruta de las Flores"
+                val muniNombre = mapaMunicipios[destacado.lugarId] ?: municipioPredeterminado
                 TarjetaMiniDestacada(
                     comercio = destacado,
                     municipio = muniNombre,
@@ -141,7 +151,7 @@ internal fun EncabezadoFeedGuia(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -151,13 +161,17 @@ internal fun EncabezadoFeedGuia(
             } else {
                 stringResource(Res.string.guia_encabezado_municipio, municipioSeleccionado)
             },
-            fontSize = 18.sp,
+            fontSize = 16.5.sp,
             fontWeight = FontWeight.Bold,
-            color = paleta.airbnbBlack
+            color = paleta.airbnbBlack,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = stringResource(Res.string.guia_total_lugares, totalLugares),
-            fontSize = 12.sp,
+            fontSize = 12.5.sp,
             color = paleta.airbnbGray,
             fontWeight = FontWeight.Medium
         )
@@ -184,7 +198,7 @@ internal fun EstadoErrorGuia(
         Spacer(modifier = Modifier.height(12.dp))
         Button(
             onClick = onReintentar,
-            colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap)
+            colors = ButtonDefaults.buttonColors(containerColor = paleta.filtroActivoFondo)
         ) {
             Text(stringResource(Res.string.btn_reintentar), color = Color.White)
         }
@@ -192,23 +206,25 @@ internal fun EstadoErrorGuia(
 }
 
 @Composable
-internal fun EstadoVacioGuia(paleta: GuiaPaleta) {
+internal fun EstadoVacioGuia(
+    paleta: GuiaPaleta,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 48.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = stringResource(Res.string.guia_estado_vacio),
             color = paleta.airbnbGray,
-            fontSize = 15.sp,
+            fontSize = 14.5.sp,
             textAlign = TextAlign.Center
         )
     }
 }
 
-// ---------------------------------------------------------
-// TARJETA DEL CARRUSEL SUPERIOR DESTACADO
-// ---------------------------------------------------------
 @Composable
 internal fun TarjetaMiniDestacada(
     comercio: Comercio,
@@ -216,109 +232,121 @@ internal fun TarjetaMiniDestacada(
     paleta: GuiaPaleta,
     onClick: () -> Unit
 ) {
+    val urlPortada = comercio.imagenUrls.firstOrNull {
+        it.startsWith("http://") || it.startsWith("https://")
+    }
+    val subtitulo = formatearSubtituloComercio(municipio, comercio.categoria)
+
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-        border = BorderStroke(1.dp, paleta.verdeTurisMap.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = paleta.superficieTarjeta),
+        border = BorderStroke(0.8.dp, paleta.airbnbBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
-            .width(200.dp)
+            .width(248.dp)
+            .height(148.dp)
             .clickable(onClick = onClick)
     ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-            ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (urlPortada != null) {
                 RemoteImage(
-                    url = comercio.imagenUrls.firstOrNull() ?: "",
+                    url = urlPortada,
                     contentDescription = comercio.nombre,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                if (comercio.planInt == 3) {
-                    Box(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                            .align(Alignment.TopStart)
-                    ) {
-                        Text(
-                            "👑 ${stringResource(Res.string.guia_badge_socio_premium)}",
-                            color = paleta.verdeTurisMap,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else if (comercio.planInt == 2) {
-                    Box(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                            .align(Alignment.TopStart)
-                    ) {
-                        Text(
-                            "✓ ${stringResource(Res.string.guia_badge_socio_turismap)}",
-                            color = paleta.verdeTurisMap,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            } else {
+                PlaceholderImagenCategoria(
+                    categoria = comercio.categoria,
+                    paleta = paleta,
+                    modifier = Modifier.fillMaxSize(),
+                    iconoSize = 30.dp,
+                    desplazamientoInferior = 26.dp
+                )
             }
-            Column(modifier = Modifier.padding(10.dp)) {
+
+            // Gradiente inferior oscuro para legibilidad consistente sobre imagen o placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color.Black.copy(alpha = 0.08f),
+                                0.42f to Color.Transparent,
+                                1.0f to Color.Black.copy(alpha = if (urlPortada != null) 0.80f else 0.68f)
+                            )
+                        )
+                    )
+            )
+
+            BadgePlanComercio(
+                planInt = comercio.planInt,
+                paleta = paleta,
+                compacto = true,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(10.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            ) {
                 Text(
                     text = comercio.nombre,
-                    color = paleta.airbnbBlack,
-                    fontSize = 13.5.sp,
+                    color = Color.White,
+                    fontSize = 14.5.sp,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = "$municipio · ${comercio.categoria}",
-                    color = paleta.airbnbGray,
-                    fontSize = 11.5.sp,
-                    maxLines = 1
-                )
+                if (subtitulo.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitulo,
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// ESQUELETO DE CARGA
-// ---------------------------------------------------------
 @Composable
-internal fun TarjetaEsqueletoFeed() {
+internal fun TarjetaEsqueletoFeed(esOscuro: Boolean = false) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
-                .shimmerEffect()
+                .height(144.dp)
+                .shimmerEffect(esOscuro)
         )
         Spacer(modifier = Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(20.dp)
+                .fillMaxWidth(0.58f)
+                .height(16.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .shimmerEffect()
+                .shimmerEffect(esOscuro)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.4f)
-                .height(16.dp)
+                .fillMaxWidth(0.38f)
+                .height(13.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .shimmerEffect()
+                .shimmerEffect(esOscuro)
         )
     }
 }

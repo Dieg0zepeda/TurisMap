@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -19,19 +18,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.turismap.app.data.repository.Comercio
-import com.turismap.app.screens.guia.BarraBusquedaGuia
+import com.turismap.app.screens.guia.CabeceraBusquedaYPueblo
 import com.turismap.app.screens.guia.EncabezadoFeedGuia
 import com.turismap.app.screens.guia.EstadoErrorGuia
 import com.turismap.app.screens.guia.EstadoVacioGuia
 import com.turismap.app.screens.guia.FilaFiltrosCategoria
-import com.turismap.app.screens.guia.FilaFiltrosMunicipio
 import com.turismap.app.screens.guia.SeccionExperienciasDestacadas
-import com.turismap.app.screens.guia.TarjetaComercioInstagram
+import com.turismap.app.screens.guia.SelectorPuebloBottomSheet
+import com.turismap.app.screens.guia.TarjetaComercioGuia
 import com.turismap.app.screens.guia.TarjetaEsqueletoFeed
 import com.turismap.app.screens.guia.rememberGuiaPaleta
 import com.turismap.app.screens.guia.rememberGuiaState
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.auth_ruta_flores
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuiaScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
@@ -40,8 +41,10 @@ fun GuiaScreen(
     onComercioClick: (String) -> Unit = {},
     onIniciarRuta: (Comercio) -> Unit = {}
 ) {
-    val paleta = rememberGuiaPaleta(isSystemInDarkTheme())
+    val esOscuro = isSystemInDarkTheme()
+    val paleta = rememberGuiaPaleta(esOscuro)
     val (state, favoritosUsuario) = rememberGuiaState(comerciosExternos)
+    val municipioPredeterminado = stringResource(Res.string.auth_ruta_flores)
 
     Column(
         modifier = Modifier
@@ -49,38 +52,29 @@ fun GuiaScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
-        // 1. Buscador superior
-        BarraBusquedaGuia(
+        // 1. Única fila fija superior: búsqueda compacta + selector compacto de pueblo
+        CabeceraBusquedaYPueblo(
             searchQuery = state.searchQuery,
             onSearchQueryChange = { state.searchQuery = it },
-            paleta = paleta
-        )
-
-        // 2. Fila 1: Filtros de Categoría
-        FilaFiltrosCategoria(
-            categoriaSeleccionada = state.categoriaSeleccionada,
-            onCategoriaSeleccionada = { state.categoriaSeleccionada = it },
-            paleta = paleta
-        )
-
-        // 3. Fila 2: Filtros de Pueblos / Municipios
-        FilaFiltrosMunicipio(
             municipioSeleccionado = state.municipioSeleccionado,
-            onMunicipioSeleccionado = { state.municipioSeleccionado = it },
+            onAbrirSelectorPueblo = { state.mostrarSelectorPueblo = true },
             paleta = paleta
         )
 
-        HorizontalDivider(color = paleta.airbnbBorder, thickness = 0.8.dp)
+        HorizontalDivider(
+            color = paleta.airbnbBorder.copy(alpha = 0.7f),
+            thickness = 0.6.dp
+        )
 
-        // 4. Feed de Comercios
+        // 2. Contenido desplazable: filtros de categoría + destacados + listado principal
         Box(modifier = Modifier.fillMaxSize()) {
             if (state.cargando) {
                 LazyColumn(
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(3) { TarjetaEsqueletoFeed() }
+                    items(4) { TarjetaEsqueletoFeed(esOscuro = esOscuro) }
                 }
             } else if (state.errorCarga != null) {
                 EstadoErrorGuia(
@@ -89,62 +83,66 @@ fun GuiaScreen(
                     onReintentar = state::reintentarCarga,
                     modifier = Modifier.align(Alignment.Center)
                 )
-            } else if (state.comerciosFiltrados.isEmpty()) {
-                EstadoVacioGuia(paleta = paleta)
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 28.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Carrusel superior de Destacados
-                    if (state.comerciosDestacados.isNotEmpty() && state.searchQuery.isBlank()) {
-                        item {
-                            SeccionExperienciasDestacadas(
-                                comerciosDestacados = state.comerciosDestacados,
-                                mapaMunicipios = state.mapaMunicipios,
-                                paleta = paleta,
-                                onComercioClick = onComercioClick
-                            )
-                        }
-
-                        item {
-                            HorizontalDivider(
-                                color = paleta.airbnbBorder.copy(alpha = 0.5f),
-                                thickness = 0.8.dp,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
-                    // Encabezado del feed con total
-                    item {
-                        EncabezadoFeedGuia(
-                            municipioSeleccionado = state.municipioSeleccionado,
-                            totalLugares = state.comerciosFiltrados.size,
+                    // Fila única de chips de categorías dentro del scroll
+                    item(key = "filtros_categoria") {
+                        FilaFiltrosCategoria(
+                            categoriaSeleccionada = state.categoriaSeleccionada,
+                            onCategoriaSeleccionada = { state.categoriaSeleccionada = it },
                             paleta = paleta
                         )
                     }
 
-                    // Feed vertical continuo
-                    items(state.comerciosFiltrados, key = { it.id }) { comercio ->
-                        val muniNombre = state.mapaMunicipios[comercio.lugarId] ?: "Ruta de las Flores"
-                        val esFavorito = favoritosUsuario.contains(comercio.id) ||
-                            favoritosUsuario.contains("comercio:${comercio.id}")
-
-                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                            TarjetaComercioInstagram(
-                                comercio = comercio,
-                                municipio = muniNombre,
-                                esFavorito = esFavorito,
+                    if (state.comerciosFiltrados.isEmpty()) {
+                        item(key = "estado_vacio") {
+                            EstadoVacioGuia(
                                 paleta = paleta,
-                                onToggleFavorito = { state.toggleFavorito(comercio.id, !esFavorito) },
-                                onClick = { onComercioClick(comercio.id) },
-                                onAccionContacto = {
-                                    val tel = comercio.telefono.filter { it.isDigit() }
-                                    if (tel.isNotBlank()) onLlamarComercio(comercio.telefono)
-                                }
+                                modifier = Modifier.fillParentMaxHeight(0.65f)
                             )
+                        }
+                    } else {
+                        // Carrusel panorámico de destacados
+                        if (state.comerciosDestacados.isNotEmpty() && state.searchQuery.isBlank()) {
+                            item(key = "destacados") {
+                                SeccionExperienciasDestacadas(
+                                    comerciosDestacados = state.comerciosDestacados,
+                                    mapaMunicipios = state.mapaMunicipios,
+                                    paleta = paleta,
+                                    onComercioClick = onComercioClick
+                                )
+                            }
+                        }
+
+                        // Encabezado del listado con total
+                        item(key = "encabezado_feed") {
+                            EncabezadoFeedGuia(
+                                municipioSeleccionado = state.municipioSeleccionado,
+                                totalLugares = state.comerciosFiltrados.size,
+                                paleta = paleta
+                            )
+                        }
+
+                        // Listado principal de comercios
+                        items(state.comerciosFiltrados, key = { it.id }) { comercio ->
+                            val muniNombre = state.mapaMunicipios[comercio.lugarId] ?: municipioPredeterminado
+                            val esFavorito = favoritosUsuario.contains(comercio.id) ||
+                                favoritosUsuario.contains("comercio:${comercio.id}")
+
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                TarjetaComercioGuia(
+                                    comercio = comercio,
+                                    municipio = muniNombre,
+                                    esFavorito = esFavorito,
+                                    paleta = paleta,
+                                    onToggleFavorito = { state.toggleFavorito(comercio.id, !esFavorito) },
+                                    onClick = { onComercioClick(comercio.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -152,8 +150,22 @@ fun GuiaScreen(
 
             SnackbarHost(
                 hostState = state.snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
             )
         }
+    }
+
+    if (state.mostrarSelectorPueblo) {
+        SelectorPuebloBottomSheet(
+            municipioSeleccionado = state.municipioSeleccionado,
+            paleta = paleta,
+            onMunicipioSeleccionado = { muni ->
+                state.municipioSeleccionado = muni
+                state.mostrarSelectorPueblo = false
+            },
+            onDismiss = { state.mostrarSelectorPueblo = false }
+        )
     }
 }

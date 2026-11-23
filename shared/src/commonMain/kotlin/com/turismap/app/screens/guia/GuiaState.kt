@@ -15,6 +15,8 @@ import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.theme.TerracotaAcento
+import com.turismap.app.theme.VerdePrimario
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -35,9 +37,20 @@ internal data class GuiaPaleta(
     val airbnbGray: Color,
     val airbnbLightGray: Color,
     val airbnbBorder: Color,
+    val superficieTarjeta: Color,
     val airbnbPrimary: Color = Color(0xFFFF385C),
-    val verdeTurisMap: Color = Color(0xFF10B981),
-    val verdeOscuroTurisMap: Color = Color(0xFF047857)
+    val verdeTurisMap: Color = VerdePrimario,
+    val filtroActivoFondo: Color,
+    val filtroActivoContenido: Color,
+    val ambarFondo: Color,
+    val ambarTexto: Color,
+    val ambarAcento: Color,
+    val socioFondo: Color,
+    val socioTexto: Color,
+    val socioAcento: Color,
+    val placeholderInicio: Color,
+    val placeholderFin: Color,
+    val placeholderIcono: Color
 )
 
 @Composable
@@ -45,10 +58,22 @@ internal fun rememberGuiaPaleta(esOscuro: Boolean): GuiaPaleta =
     remember(esOscuro) {
         GuiaPaleta(
             esOscuro = esOscuro,
-            airbnbBlack = if (esOscuro) Color(0xFFF7F7F7) else Color(0xFF222222),
-            airbnbGray = if (esOscuro) Color(0xFFA0A0A0) else Color(0xFF717171),
-            airbnbLightGray = if (esOscuro) Color(0xFF2C2C2C) else Color(0xFFF7F7F7),
-            airbnbBorder = if (esOscuro) Color(0xFF404040) else Color(0xFFEBEBEB)
+            airbnbBlack = if (esOscuro) Color(0xFFF5F6F5) else Color(0xFF1E2220),
+            airbnbGray = if (esOscuro) Color(0xFFA0A7A3) else Color(0xFF6B7280),
+            airbnbLightGray = if (esOscuro) Color(0xFF262A28) else Color(0xFFF3F5F4),
+            airbnbBorder = if (esOscuro) Color(0xFF353B38) else Color(0xFFE5E7EB),
+            superficieTarjeta = if (esOscuro) Color(0xFF1E2120) else Color.White,
+            filtroActivoFondo = if (esOscuro) Color(0xFF2A7D5E) else VerdePrimario,
+            filtroActivoContenido = if (esOscuro) Color(0xFF6EE7B7) else VerdePrimario,
+            ambarFondo = if (esOscuro) Color(0xFF3B2C12).copy(alpha = 0.92f) else Color(0xFFFEF3C7).copy(alpha = 0.95f),
+            ambarTexto = if (esOscuro) Color(0xFFFDE68A) else Color(0xFF92400E),
+            ambarAcento = if (esOscuro) Color(0xFFFBBF24) else Color(0xFFD97706),
+            socioFondo = if (esOscuro) Color(0xFF2B2725).copy(alpha = 0.92f) else Color(0xFFF7F4F1).copy(alpha = 0.95f),
+            socioTexto = if (esOscuro) Color(0xFFE5E7EB) else Color(0xFF374151),
+            socioAcento = if (esOscuro) Color(0xFFE28B73) else TerracotaAcento,
+            placeholderInicio = if (esOscuro) Color(0xFF28302C) else Color(0xFFEDEAE4),
+            placeholderFin = if (esOscuro) Color(0xFF1B221F) else Color(0xFFDCE4DF),
+            placeholderIcono = if (esOscuro) Color(0xFF8FA399) else Color(0xFF64746C)
         )
     }
 
@@ -67,17 +92,16 @@ internal const val CATEGORIA_FILTRO_TODOS = "Todos"
 
 internal data class CategoriaFiltro(
     val id: String,
-    val etiquetaRes: StringResource,
-    val icono: String
+    val etiquetaRes: StringResource
 )
 
 internal val categoriasFiltros: List<CategoriaFiltro> by lazy {
     listOf(
-        CategoriaFiltro(CATEGORIA_FILTRO_TODOS, Res.string.guia_categoria_todo, "🧭"),
-        CategoriaFiltro("restaurante", Res.string.guia_categoria_restaurantes, "☕"),
-        CategoriaFiltro("hotel", Res.string.guia_categoria_alojamientos, "🏨"),
-        CategoriaFiltro("artesania", Res.string.guia_categoria_artesanias, "🏺"),
-        CategoriaFiltro("atractivo", Res.string.guia_categoria_experiencias, "🎈")
+        CategoriaFiltro(CATEGORIA_FILTRO_TODOS, Res.string.guia_categoria_todo),
+        CategoriaFiltro("restaurante", Res.string.guia_categoria_restaurantes),
+        CategoriaFiltro("hotel", Res.string.guia_categoria_alojamientos),
+        CategoriaFiltro("artesania", Res.string.guia_categoria_artesanias),
+        CategoriaFiltro("atractivo", Res.string.guia_categoria_experiencias)
     )
 }
 
@@ -113,6 +137,7 @@ internal class GuiaState(
     var searchQuery by mutableStateOf("")
     var categoriaSeleccionada by mutableStateOf(CATEGORIA_FILTRO_TODOS)
     var municipioSeleccionado by mutableStateOf<String?>(null)
+    var mostrarSelectorPueblo by mutableStateOf(false)
 
     var listaComercios by mutableStateOf<List<Comercio>>(emptyList())
     var mapaMunicipios by mutableStateOf<Map<String, String>>(emptyMap())
