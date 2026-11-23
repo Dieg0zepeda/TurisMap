@@ -24,6 +24,12 @@ import com.turismap.app.screens.mapa.ModalCapasMapa
 import com.turismap.app.screens.mapa.TarjetaMarcadorMapa
 import com.turismap.app.screens.mapa.rememberMapaPaleta
 import com.turismap.app.screens.mapa.rememberMapaState
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.mapa_error_abrir_google_maps
+import turismap.shared.generated.resources.mapa_sin_datos_publicados
+import turismap.shared.generated.resources.mapa_sin_ubicaciones
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +104,7 @@ fun MapaScreen(
                 try {
                     uriHandler.openUri(url)
                 } catch (error: Exception) {
-                    state.mostrarMensajeError(error.message ?: "No se pudo abrir Google Maps.")
+                    state.mostrarMensajeError(error.message, Res.string.mapa_error_abrir_google_maps)
                 }
             },
             onAbrirDetalle = onAbrirDetalle,
@@ -112,18 +118,24 @@ fun MapaScreen(
                 color = paleta.turismapPrimario
             )
         } else if (state.lugaresParaElMapa.isEmpty() && state.textoBusqueda.isBlank()) {
+            val mensajeEstado = state.errorCargaDetalle
+                ?: if (state.sinDatosPublicados) {
+                    stringResource(Res.string.mapa_sin_datos_publicados)
+                } else {
+                    stringResource(Res.string.mapa_sin_ubicaciones)
+                }
             Column(
                 modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = state.errorCarga ?: "No hay destinos ni comercios con ubicación para mostrar.",
+                    text = mensajeEstado,
                     color = paleta.airbnbOscuro
                 )
-                if (state.errorCarga != null) {
+                if (state.hayErrorOEstadoVacioCarga) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(onClick = state::reintentarCarga) {
-                        Text("Reintentar")
+                        Text(stringResource(Res.string.btn_reintentar))
                     }
                 }
             }

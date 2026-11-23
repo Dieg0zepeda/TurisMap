@@ -20,6 +20,48 @@ import com.turismap.app.data.repository.esCoordenadaValida
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_capa_comercios_subtitulo
+import turismap.shared.generated.resources.mapa_capa_comercios_titulo
+import turismap.shared.generated.resources.mapa_capa_destinos_subtitulo
+import turismap.shared.generated.resources.mapa_capa_destinos_titulo
+import turismap.shared.generated.resources.mapa_capa_todos_subtitulo
+import turismap.shared.generated.resources.mapa_capa_todos_titulo
+import turismap.shared.generated.resources.mapa_error_cargar_comercios
+import turismap.shared.generated.resources.mapa_error_cargar_destinos
+import turismap.shared.generated.resources.mapa_filtro_comercios
+import turismap.shared.generated.resources.mapa_filtro_destinos
+import turismap.shared.generated.resources.mapa_filtro_todos
+import turismap.shared.generated.resources.mapa_sin_datos_publicados
+
+internal enum class FiltroMarcadoresMapa {
+    TODOS,
+    DESTINOS,
+    COMERCIOS;
+
+    val etiquetaRes: StringResource
+        get() = when (this) {
+            TODOS -> Res.string.mapa_filtro_todos
+            DESTINOS -> Res.string.mapa_filtro_destinos
+            COMERCIOS -> Res.string.mapa_filtro_comercios
+        }
+
+    val tituloCapaRes: StringResource
+        get() = when (this) {
+            TODOS -> Res.string.mapa_capa_todos_titulo
+            DESTINOS -> Res.string.mapa_capa_destinos_titulo
+            COMERCIOS -> Res.string.mapa_capa_comercios_titulo
+        }
+
+    val subtituloCapaRes: StringResource
+        get() = when (this) {
+            TODOS -> Res.string.mapa_capa_todos_subtitulo
+            DESTINOS -> Res.string.mapa_capa_destinos_subtitulo
+            COMERCIOS -> Res.string.mapa_capa_comercios_subtitulo
+        }
+}
 
 // Paleta corporativa TurisMap
 internal data class MapaPaleta(
@@ -57,7 +99,7 @@ internal class MapaState(
 ) {
     var textoBusqueda: String by mutableStateOf("")
     var mostrarSugerencias: Boolean by mutableStateOf(false)
-    var filtroTipoMarcadores: String by mutableStateOf("Todos") // "Todos", "Destinos", "Comercios"
+    var filtroTipoMarcadores: FiltroMarcadoresMapa by mutableStateOf(FiltroMarcadoresMapa.TODOS)
     var mostrarMenuWaze: Boolean by mutableStateOf(false)
 
     var lugaresTuristicos: List<Lugar> by mutableStateOf(emptyList())
@@ -79,15 +121,21 @@ internal class MapaState(
         !lugaresCargados || !comerciosCargados
     }
 
-    val errorCarga: String? by derivedStateOf {
-        val errores = listOfNotNull(errorLugares, errorComercios)
-        when {
-            errores.isNotEmpty() -> errores.joinToString("\n")
-            !cargando && lugaresTuristicos.isEmpty() && todosLosComercios.isEmpty() ->
-                "No hay destinos turísticos ni comercios publicados para mostrar."
-            else -> null
-        }
+    val errorCargaDetalle: String? by derivedStateOf {
+        listOfNotNull(errorLugares, errorComercios)
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString("\n")
     }
+
+    val sinDatosPublicados: Boolean by derivedStateOf {
+        !cargando &&
+            errorCargaDetalle == null &&
+            lugaresTuristicos.isEmpty() &&
+            todosLosComercios.isEmpty()
+    }
+
+    val hayErrorOEstadoVacioCarga: Boolean
+        get() = errorCargaDetalle != null || sinDatosPublicados
 
     private fun comercioALugar(comercio: Comercio): Lugar {
         val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
@@ -185,8 +233,12 @@ internal class MapaState(
     }
 
     val lugaresParaElMapa: List<Lugar> by derivedStateOf {
-        val lugaresDestino = if (filtroTipoMarcadores != "Comercios") lugaresFiltrados else emptyList()
-        val lugaresComerciales = if (filtroTipoMarcadores != "Destinos") {
+        val lugaresDestino = if (filtroTipoMarcadores != FiltroMarcadoresMapa.COMERCIOS) {
+            lugaresFiltrados
+        } else {
+            emptyList()
+        }
+        val lugaresComerciales = if (filtroTipoMarcadores != FiltroMarcadoresMapa.DESTINOS) {
             comerciosFiltrados.map(::comercioALugar)
         } else {
             emptyList()
@@ -222,10 +274,10 @@ internal class MapaState(
     }
 
     fun seleccionarResultadoBusqueda(lugar: Lugar) {
-        if (esMarcadorComercio(lugar) && filtroTipoMarcadores == "Destinos") {
-            filtroTipoMarcadores = "Todos"
-        } else if (!esMarcadorComercio(lugar) && filtroTipoMarcadores == "Comercios") {
-            filtroTipoMarcadores = "Todos"
+        if (esMarcadorComercio(lugar) && filtroTipoMarcadores == FiltroMarcadoresMapa.DESTINOS) {
+            filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
+        } else if (!esMarcadorComercio(lugar) && filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS) {
+            filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
         }
 
         textoBusqueda = lugar.nombre
@@ -265,7 +317,7 @@ internal class MapaState(
         camaraZoomObjetivo = null
     }
 
-    fun seleccionarFiltro(filtro: String) {
+    fun seleccionarFiltro(filtro: FiltroMarcadoresMapa) {
         filtroTipoMarcadores = filtro
         lugarSeleccionado = null
         mostrarSugerencias = false
@@ -276,9 +328,11 @@ internal class MapaState(
         intentoCarga++
     }
 
-    fun mostrarMensajeError(mensaje: String) {
+    fun mostrarMensajeError(mensaje: String?, fallbackRes: StringResource) {
         scope.launch {
-            snackbarHostState.showSnackbar(mensaje)
+            snackbarHostState.showSnackbar(
+                mensaje?.takeIf { it.isNotBlank() } ?: getString(fallbackRes)
+            )
         }
     }
 }
@@ -317,7 +371,7 @@ internal fun rememberMapaState(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            state.errorLugares = error.message ?: "No se pudieron cargar los destinos turísticos."
+            state.errorLugares = error.message ?: getString(Res.string.mapa_error_cargar_destinos)
         } finally {
             state.lugaresCargados = true
         }
@@ -343,7 +397,7 @@ internal fun rememberMapaState(
             } catch (fallbackError: Exception) {
                 state.errorComercios = fallbackError.message
                     ?: error.message
-                    ?: "No se pudieron cargar los comercios publicados."
+                    ?: getString(Res.string.mapa_error_cargar_comercios)
             } finally {
                 state.comerciosCargados = true
             }
@@ -364,10 +418,10 @@ internal fun rememberMapaState(
         }
     }
 
-    LaunchedEffect(state.errorCarga) {
-        state.errorCarga?.let { mensaje ->
-            state.snackbarHostState.showSnackbar(mensaje)
-        }
+    LaunchedEffect(state.errorCargaDetalle, state.sinDatosPublicados) {
+        val mensaje = state.errorCargaDetalle
+            ?: if (state.sinDatosPublicados) getString(Res.string.mapa_sin_datos_publicados) else null
+        mensaje?.let { state.snackbarHostState.showSnackbar(it) }
     }
 
     return state

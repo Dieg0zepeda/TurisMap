@@ -49,13 +49,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.FondoBlancoAdaptable
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_buscar
+import turismap.shared.generated.resources.mapa_buscar_placeholder
+import turismap.shared.generated.resources.mapa_busqueda_sin_resultados
+import turismap.shared.generated.resources.mapa_busqueda_sin_resultados_ayuda
+import turismap.shared.generated.resources.mapa_cd_limpiar_busqueda
+import turismap.shared.generated.resources.mapa_cd_opciones_capas
+import turismap.shared.generated.resources.mapa_tipo_comercio
+import turismap.shared.generated.resources.mapa_tipo_destino
+import turismap.shared.generated.resources.mapa_tipo_destino_turistico
 
 @Composable
 internal fun CabeceraMapa(
     textoBusqueda: String,
     resultadosBusqueda: List<Lugar>,
     mostrarSugerencias: Boolean,
-    filtroTipoMarcadores: String,
+    filtroTipoMarcadores: FiltroMarcadoresMapa,
     cantidadLugaresEnMapa: Int,
     paleta: MapaPaleta,
     onBusquedaChange: (String) -> Unit,
@@ -94,7 +105,7 @@ internal fun CabeceraMapa(
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Buscar",
+                    contentDescription = stringResource(Res.string.btn_buscar),
                     tint = paleta.airbnbOscuro,
                     modifier = Modifier.size(20.dp)
                 )
@@ -131,7 +142,7 @@ internal fun CabeceraMapa(
                         decorationBox = { innerTextField ->
                             if (textoBusqueda.isEmpty()) {
                                 Text(
-                                    text = "Buscar destinos y comercios...",
+                                    text = stringResource(Res.string.mapa_buscar_placeholder),
                                     color = paleta.airbnbGris,
                                     fontSize = 14.sp,
                                     maxLines = 1,
@@ -154,7 +165,7 @@ internal fun CabeceraMapa(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Limpiar búsqueda",
+                            contentDescription = stringResource(Res.string.mapa_cd_limpiar_busqueda),
                             tint = paleta.airbnbGris,
                             modifier = Modifier.size(18.dp)
                         )
@@ -186,7 +197,7 @@ internal fun CabeceraMapa(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (filtroTipoMarcadores != "Todos") {
+                if (filtroTipoMarcadores != FiltroMarcadoresMapa.TODOS) {
                     Surface(
                         onClick = onAbrirMenuCapas,
                         shape = RoundedCornerShape(20.dp),
@@ -194,7 +205,7 @@ internal fun CabeceraMapa(
                         shadowElevation = 3.dp
                     ) {
                         Text(
-                            text = "$filtroTipoMarcadores ($cantidadLugaresEnMapa) ▾",
+                            text = "${stringResource(filtroTipoMarcadores.etiquetaRes)} ($cantidadLugaresEnMapa) ▾",
                             color = Color.White,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
@@ -221,7 +232,7 @@ internal fun CabeceraMapa(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "Opciones y Capas del Mapa",
+                            contentDescription = stringResource(Res.string.mapa_cd_opciones_capas),
                             tint = paleta.airbnbOscuro,
                             modifier = Modifier.size(24.dp)
                         )
@@ -255,14 +266,14 @@ private fun ListaSugerenciasMapa(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = "Sin resultados para «${textoBusqueda.trim()}»",
+                    text = stringResource(Res.string.mapa_busqueda_sin_resultados, textoBusqueda.trim()),
                     color = paleta.airbnbOscuro,
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Prueba con el nombre del comercio, categoría o municipio.",
+                    text = stringResource(Res.string.mapa_busqueda_sin_resultados_ayuda),
                     color = paleta.airbnbGris,
                     fontSize = 12.sp
                 )
@@ -278,13 +289,15 @@ private fun ListaSugerenciasMapa(
                     key = { _, lugar -> lugar.id }
                 ) { indice, lugar ->
                     val esComercio = esMarcadorComercio(lugar)
+                    val etiquetaComercio = stringResource(Res.string.mapa_tipo_comercio)
+                    val etiquetaDestinoTuristico = stringResource(Res.string.mapa_tipo_destino_turistico)
                     val detalleSecundario = if (esComercio) {
                         listOf(
-                            lugar.subtitulo.ifBlank { "Comercio" },
+                            lugar.subtitulo.ifBlank { etiquetaComercio },
                             lugar.ubicacionLarga.ifBlank { lugar.ubicacionCorta }
                         ).filter(String::isNotBlank).joinToString(" · ")
                     } else {
-                        listOf("Destino turístico", lugar.ubicacionCorta)
+                        listOf(etiquetaDestinoTuristico, lugar.ubicacionCorta)
                             .filter(String::isNotBlank)
                             .joinToString(" · ")
                     }
@@ -311,7 +324,9 @@ private fun ListaSugerenciasMapa(
                         ) {
                             Icon(
                                 imageVector = if (esComercio) Icons.Default.Store else Icons.Default.Place,
-                                contentDescription = if (esComercio) "Comercio" else "Destino",
+                                contentDescription = stringResource(
+                                    if (esComercio) Res.string.mapa_tipo_comercio else Res.string.mapa_tipo_destino
+                                ),
                                 tint = if (esComercio) paleta.turismapAcento else paleta.turismapPrimario,
                                 modifier = Modifier.size(18.dp)
                             )

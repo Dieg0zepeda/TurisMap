@@ -51,6 +51,12 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.theme.FondoBlancoAdaptable
 import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_btn_como_llegar
+import turismap.shared.generated.resources.mapa_btn_ver_comercio
+import turismap.shared.generated.resources.mapa_btn_ver_destino
+import turismap.shared.generated.resources.mapa_calificacion_resenas
+import turismap.shared.generated.resources.mapa_cd_cerrar_detalles
 
 @Composable
 internal fun TarjetaMarcadorMapa(
@@ -136,7 +142,7 @@ internal fun TarjetaMarcadorMapa(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cerrar detalles",
+                                contentDescription = stringResource(Res.string.mapa_cd_cerrar_detalles),
                                 tint = paleta.airbnbGris
                             )
                         }
@@ -161,7 +167,11 @@ internal fun TarjetaMarcadorMapa(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${comercio.calificacionPromedio} · ${comercio.cantidadResenas ?: 0} reseñas",
+                                text = stringResource(
+                                    Res.string.mapa_calificacion_resenas,
+                                    comercio.calificacionPromedio.toString(),
+                                    comercio.cantidadResenas ?: 0
+                                ),
                                 fontSize = 13.sp,
                                 color = paleta.airbnbGris
                             )
@@ -195,7 +205,7 @@ internal fun TarjetaMarcadorMapa(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Cómo llegar con Google Maps", color = Color.White)
+                            Text(stringResource(Res.string.mapa_btn_como_llegar), color = Color.White)
                         }
 
                         if (comercio != null) {
@@ -205,7 +215,7 @@ internal fun TarjetaMarcadorMapa(
                                 border = BorderStroke(1.dp, paleta.airbnbBorde),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Ver detalles del comercio")
+                                Text(stringResource(Res.string.mapa_btn_ver_comercio))
                             }
                         } else {
                             Button(
@@ -214,7 +224,7 @@ internal fun TarjetaMarcadorMapa(
                                 colors = ButtonDefaults.buttonColors(containerColor = paleta.airbnbOscuro),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Ver detalles del destino", color = FondoBlancoAdaptable)
+                                Text(stringResource(Res.string.mapa_btn_ver_destino), color = FondoBlancoAdaptable)
                             }
                         }
                     }

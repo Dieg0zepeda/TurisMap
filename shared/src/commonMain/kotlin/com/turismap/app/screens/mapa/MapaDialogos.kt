@@ -32,15 +32,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_capas_encabezado
+import turismap.shared.generated.resources.mapa_cd_mascota
+import turismap.shared.generated.resources.mapa_saludo_viajero
+import turismap.shared.generated.resources.mapa_subtitulo_gps
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ModalCapasMapa(
-    filtroTipoMarcadores: String,
+    filtroTipoMarcadores: FiltroMarcadoresMapa,
     cantidadLugares: Int,
     cantidadComercios: Int,
     paleta: MapaPaleta,
-    onSeleccionarFiltro: (String) -> Unit,
+    onSeleccionarFiltro: (FiltroMarcadoresMapa) -> Unit,
     onDismiss: () -> Unit
 ) {
     val totalPuntos = cantidadLugares + cantidadComercios
@@ -74,7 +80,7 @@ internal fun ModalCapasMapa(
                 ) {
                     RemoteImage(
                         url = "https://i.pinimg.com/1200x/8b/44/31/8b44315342377795f91d4d37b8493635.jpg",
-                        contentDescription = "Mascota Café TurisMap",
+                        contentDescription = stringResource(Res.string.mapa_cd_mascota),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -84,7 +90,7 @@ internal fun ModalCapasMapa(
 
                 Column {
                     Text(
-                        text = "¡Hola, Viajero!",
+                        text = stringResource(Res.string.mapa_saludo_viajero),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = paleta.airbnbOscuro
@@ -96,7 +102,7 @@ internal fun ModalCapasMapa(
                         border = BorderStroke(1.dp, paleta.turismapPrimario.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            text = "Ruta de las Flores · GPS",
+                            text = stringResource(Res.string.mapa_subtitulo_gps),
                             color = paleta.turismapPrimario,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
@@ -111,7 +117,7 @@ internal fun ModalCapasMapa(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "CAPAS Y PUNTOS EN EL MAPA",
+                text = stringResource(Res.string.mapa_capas_encabezado),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = paleta.airbnbGris,
@@ -122,32 +128,32 @@ internal fun ModalCapasMapa(
 
             ItemFiltroWaze(
                 icono = "🧭",
-                titulo = "Todos los puntos",
-                subtitulo = "Pueblos y comercios registrados",
+                titulo = stringResource(FiltroMarcadoresMapa.TODOS.tituloCapaRes),
+                subtitulo = stringResource(FiltroMarcadoresMapa.TODOS.subtituloCapaRes),
                 cantidad = totalPuntos,
-                seleccionado = filtroTipoMarcadores == "Todos",
+                seleccionado = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS,
                 paleta = paleta,
-                onClick = { onSeleccionarFiltro("Todos") }
+                onClick = { onSeleccionarFiltro(FiltroMarcadoresMapa.TODOS) }
             )
 
             ItemFiltroWaze(
                 icono = "📍",
-                titulo = "Pueblos y Atractivos",
-                subtitulo = "Ataco, Apaneca, Juayúa y miradores",
+                titulo = stringResource(FiltroMarcadoresMapa.DESTINOS.tituloCapaRes),
+                subtitulo = stringResource(FiltroMarcadoresMapa.DESTINOS.subtituloCapaRes),
                 cantidad = cantidadLugares,
-                seleccionado = filtroTipoMarcadores == "Destinos",
+                seleccionado = filtroTipoMarcadores == FiltroMarcadoresMapa.DESTINOS,
                 paleta = paleta,
-                onClick = { onSeleccionarFiltro("Destinos") }
+                onClick = { onSeleccionarFiltro(FiltroMarcadoresMapa.DESTINOS) }
             )
 
             ItemFiltroWaze(
                 icono = "🏪",
-                titulo = "Comercios y Servicios",
-                subtitulo = "Restaurantes, hoteles, cafés y tiendas",
+                titulo = stringResource(FiltroMarcadoresMapa.COMERCIOS.tituloCapaRes),
+                subtitulo = stringResource(FiltroMarcadoresMapa.COMERCIOS.subtituloCapaRes),
                 cantidad = cantidadComercios,
-                seleccionado = filtroTipoMarcadores == "Comercios",
+                seleccionado = filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS,
                 paleta = paleta,
-                onClick = { onSeleccionarFiltro("Comercios") }
+                onClick = { onSeleccionarFiltro(FiltroMarcadoresMapa.COMERCIOS) }
             )
         }
     }
