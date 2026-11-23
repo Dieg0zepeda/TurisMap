@@ -49,7 +49,8 @@ internal enum class CategoriaFavorito {
 internal data class ItemFavoritoUi(
     val id: String,
     val nombre: String,
-    val categoria: String,
+    val categoria: String = "",
+    val categoriaRes: StringResource? = null,
     val imagenUrl: String,
     val calificacion: Double,
     val esComercio: Boolean
@@ -288,7 +289,7 @@ internal fun rememberPerfilState(): PerfilState {
                             ItemFavoritoUi(
                                 id = lugar.id,
                                 nombre = lugar.nombre,
-                                categoria = lugar.categoria.etiqueta,
+                                categoriaRes = lugar.categoria.etiquetaRes,
                                 imagenUrl = lugar.imagenPortadaUrl,
                                 calificacion = lugar.calificacion,
                                 esComercio = false

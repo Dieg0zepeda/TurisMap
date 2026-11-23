@@ -50,6 +50,7 @@ import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.theme.FondoBlancoAdaptable
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun TarjetaMarcadorMapa(
@@ -117,7 +118,7 @@ internal fun TarjetaMarcadorMapa(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = comercio?.categoria?.replaceFirstChar { it.uppercase() }
-                                    ?: lugar.categoria.etiqueta,
+                                    ?: stringResource(lugar.categoria.etiquetaRes),
                                 color = paleta.turismapPrimario,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold

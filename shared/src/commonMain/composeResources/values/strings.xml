@@ -6,6 +6,20 @@
     <string name="btn_guardar">Guardar</string>
     <string name="btn_cerrar">Cerrar</string>
     <string name="btn_reintentar">Reintentar</string>
+    <string name="btn_buscar">Buscar</string>
+
+    <!-- Categorías de lugar -->
+    <string name="categoria_lugar_todos">Todos</string>
+    <string name="categoria_lugar_cafeterias">Cafeterías</string>
+    <string name="categoria_lugar_miradores">Miradores</string>
+    <string name="categoria_lugar_artesanias">Artesanías</string>
+    <string name="categoria_lugar_restaurantes">Restaurantes</string>
+
+    <!-- Componentes compartidos -->
+    <string name="componente_cd_notificaciones">Notificaciones</string>
+    <string name="componente_buscar_corredor_placeholder">Buscar en el corredor CA-8...</string>
+    <string name="componente_explorar_destino">Explorar destino</string>
+    <string name="componente_explorar_punto">Explorar este punto</string>
 
     <!-- Navegación y barra inferior -->
     <string name="nav_tab_explorar">Explorar</string>

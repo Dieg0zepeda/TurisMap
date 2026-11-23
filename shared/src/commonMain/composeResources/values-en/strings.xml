@@ -6,6 +6,20 @@
     <string name="btn_guardar">Save</string>
     <string name="btn_cerrar">Close</string>
     <string name="btn_reintentar">Retry</string>
+    <string name="btn_buscar">Search</string>
+
+    <!-- Place categories -->
+    <string name="categoria_lugar_todos">All</string>
+    <string name="categoria_lugar_cafeterias">Cafés</string>
+    <string name="categoria_lugar_miradores">Viewpoints</string>
+    <string name="categoria_lugar_artesanias">Handicrafts</string>
+    <string name="categoria_lugar_restaurantes">Restaurants</string>
+
+    <!-- Shared components -->
+    <string name="componente_cd_notificaciones">Notifications</string>
+    <string name="componente_buscar_corredor_placeholder">Search along the CA-8 corridor...</string>
+    <string name="componente_explorar_destino">Explore destination</string>
+    <string name="componente_explorar_punto">Explore this spot</string>
 
     <!-- Navigation & bottom bar -->
     <string name="nav_tab_explorar">Explore</string>

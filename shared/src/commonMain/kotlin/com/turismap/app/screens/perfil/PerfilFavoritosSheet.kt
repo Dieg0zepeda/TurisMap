@@ -270,9 +270,10 @@ private fun TarjetaItemFavorito(
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
+                val categoriaTexto = item.categoriaRes?.let { stringResource(it) } ?: item.categoria
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = item.categoria.uppercase(),
+                        text = categoriaTexto.uppercase(),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = if (item.esComercio) VerdeTextoAdaptable else TerracotaTextoAdaptable

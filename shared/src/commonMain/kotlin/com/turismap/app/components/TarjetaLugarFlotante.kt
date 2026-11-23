@@ -12,6 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.turismap.app.SitioPublico
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.componente_explorar_punto
 
 @Composable
 fun TarjetaLugarFlotante(
@@ -58,7 +62,7 @@ fun TarjetaLugarFlotante(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(Res.string.btn_cerrar),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -99,7 +103,7 @@ fun TarjetaLugarFlotante(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Explorar este punto")
+                Text(text = stringResource(Res.string.componente_explorar_punto))
             }
         }
     }
