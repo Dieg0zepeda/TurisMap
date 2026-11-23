@@ -29,6 +29,7 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.data.repository.esCoordenadaValida
 import com.turismap.app.screens.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -45,11 +46,16 @@ import turismap.shared.generated.resources.nav_lugar_no_encontrado
 fun TurisMapNavHost(
     controladorNavegacion: NavHostController = rememberNavController(),
     modificador: Modifier = Modifier,
-    mostrarBarraInferior: Boolean = true,
+    cantidadNotificacionesNoLeidas: Int = 0,
     onCerrarSesion: () -> Unit = {},
-    destinoInicial: String = Pantalla.Explorar.ruta,
-    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
+    destinoInicial: String = Pantalla.Explorar.ruta
 ) {
+    val abrirNotificaciones = {
+        controladorNavegacion.navigate(Pantalla.Notificaciones.ruta) {
+            launchSingleTop = true
+        }
+    }
+
     NavHost(
         navController = controladorNavegacion,
         startDestination = destinoInicial,
@@ -59,6 +65,8 @@ fun TurisMapNavHost(
         composable(Pantalla.Explorar.ruta) {
             Box(modifier = Modifier.fillMaxSize()) {
                 ExplorarScreen(
+                    cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
+                    onAbrirNotificaciones = abrirNotificaciones,
                     onLugarClick = { lugar ->
                         controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugar.id))
                     },
@@ -71,7 +79,7 @@ fun TurisMapNavHost(
 
         // 2. Mapa con soporte de centrado en destino
         composable(
-            route = "${Pantalla.Mapa.ruta}?lat={lat}&lng={lng}&zoom={zoom}",
+            route = Pantalla.Mapa.rutaPatron,
             arguments = listOf(
                 navArgument("lat") {
                     type = NavType.StringType
@@ -114,12 +122,6 @@ fun TurisMapNavHost(
             GuiaScreen(
                 onComercioClick = { comercioId ->
                     controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
-                },
-                onIniciarRuta = { _ ->
-                    controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
-                        popUpTo(Pantalla.Guia.ruta) { inclusive = true }
-                        launchSingleTop = true
-                    }
                 }
             )
         }
@@ -127,6 +129,8 @@ fun TurisMapNavHost(
         // 4. Perfil
         composable(Pantalla.Perfil.ruta) {
             PerfilScreen(
+                cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
+                onAbrirNotificaciones = abrirNotificaciones,
                 onCerrarSesionClick = onCerrarSesion,
                 onVerPlanesClick = {
                     controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
@@ -136,6 +140,19 @@ fun TurisMapNavHost(
                 },
                 onLugarClick = { lugarId ->
                     controladorNavegacion.navigate(Pantalla.DetalleLugar.crearRuta(lugarId))
+                }
+            )
+        }
+
+        // Notificaciones in-app
+        composable(Pantalla.Notificaciones.ruta) {
+            NotificacionesScreen(
+                onVolver = { controladorNavegacion.popBackStack() },
+                onVerComercio = { comercioId ->
+                    controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
+                },
+                onVerPlanes = {
+                    controladorNavegacion.navigate(Pantalla.PlanesComercio.ruta)
                 }
             )
         }
@@ -182,7 +199,7 @@ fun TurisMapNavHost(
             var mensajeAccion by remember { mutableStateOf<String?>(null) }
             val scope = rememberCoroutineScope()
 
-            val usuarioActual by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
+            val usuarioActual by UsuarioRepository.usuarioActualFlow.collectAsState()
             val favoritoGuardado = remember(usuarioActual?.favoritos, lugarId) {
                 usuarioActual?.favoritos?.contains(lugarId) == true
             }
@@ -221,11 +238,16 @@ fun TurisMapNavHost(
                         favoritoGuardado = favoritoGuardado,
                         favoritoCargando = favoritoCargando,
                         onIrAGuia = { controladorNavegacion.navigate(Pantalla.Guia.ruta) },
-                        onVerAtractivoEnMapa = { _ ->
+                        onVerAtractivoEnMapa = { atractivo ->
                             lugarCompleto?.let { lugar ->
-                                val coords = CoordenadasRuta.obtener(lugar.id)
+                                val coordsAtractivo = atractivo.ubicacionCoordenadas?.takeIf(::esCoordenadaValida)
+                                val coordsLugar = lugar.ubicacionCoordenadas.takeIf(::esCoordenadaValida)
+                                val coordsFallback = CoordenadasRuta.obtener(lugar.id)
+                                val lat = coordsAtractivo?.latitud ?: coordsLugar?.latitud ?: coordsFallback.latitud
+                                val lng = coordsAtractivo?.longitud ?: coordsLugar?.longitud ?: coordsFallback.longitud
+                                val zoom = if (coordsAtractivo != null) 16.5f else coordsFallback.zoom
                                 controladorNavegacion.navigate(
-                                    "${Pantalla.Mapa.ruta}?lat=${coords.latitud}&lng=${coords.longitud}&zoom=${coords.zoom}"
+                                    "${Pantalla.Mapa.ruta}?lat=$lat&lng=$lng&zoom=$zoom"
                                 )
                             }
                         },
@@ -275,20 +297,6 @@ fun TurisMapNavHost(
                 DetalleExperienciaScreen(
                     comercioId = comercioId,
                     onVolver = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-
-        // 7. Inicio de Sesión
-        composable(Pantalla.InicioSesion.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                LoginScreen(
-                    onLoginExitoso = {
-                        controladorNavegacion.navigate(Pantalla.Explorar.ruta) {
-                            popUpTo(Pantalla.InicioSesion.ruta) { inclusive = true }
-                        }
-                    },
-                    onSolicitarGoogleSignIn = onSolicitarGoogleSignIn
                 )
             }
         }

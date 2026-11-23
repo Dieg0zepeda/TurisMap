@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.turismap.app.components.MapSelector
 import com.turismap.app.data.models.Coordenada
+import com.turismap.app.data.repository.esCoordenadaValida
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.comercio_ubicacion_btn_guardar
@@ -56,11 +57,8 @@ fun SeleccionarUbicacionComercioScreen(
     val coordenadaSeleccionada = remember(latitudTexto, longitudTexto) {
         val latitud = latitudTexto.trim().replace(',', '.').toDoubleOrNull()
         val longitud = longitudTexto.trim().replace(',', '.').toDoubleOrNull()
-        if (
-            latitud != null && latitud.isFinite() && latitud in -90.0..90.0 &&
-            longitud != null && longitud.isFinite() && longitud in -180.0..180.0
-        ) {
-            Coordenada(latitud = latitud, longitud = longitud)
+        if (latitud != null && longitud != null) {
+            Coordenada(latitud = latitud, longitud = longitud).takeIf(::esCoordenadaValida)
         } else {
             null
         }
@@ -111,7 +109,7 @@ fun SeleccionarUbicacionComercioScreen(
                     label = { Text(stringResource(Res.string.comercio_ubicacion_latitud)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     isError = camposConTexto && coordenadaSeleccionada == null
                 )
                 OutlinedTextField(
@@ -120,7 +118,7 @@ fun SeleccionarUbicacionComercioScreen(
                     label = { Text(stringResource(Res.string.comercio_ubicacion_longitud)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     isError = camposConTexto && coordenadaSeleccionada == null
                 )
             }

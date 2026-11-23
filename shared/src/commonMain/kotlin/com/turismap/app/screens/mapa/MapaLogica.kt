@@ -1,5 +1,6 @@
 package com.turismap.app.screens.mapa
 
+import com.turismap.app.data.CoordenadasRuta
 import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
@@ -130,17 +131,9 @@ internal fun resolverCoordenadasComercio(
         listOf(municipio?.nombre.orEmpty(), comercio.municipio, comercio.lugarId, comercio.direccion)
             .joinToString(" ")
     )
-    return when {
-        ref.contains("refugio") -> Coordenada(13.9744, -89.7719)
-        ref.contains("apaneca") -> Coordenada(13.8569, -89.8028)
-        ref.contains("ataco") -> Coordenada(13.8703, -89.8486)
-        ref.contains("juayua") -> Coordenada(13.8417, -89.7456)
-        ref.contains("salcoatitan") -> Coordenada(13.8306, -89.7547)
-        ref.contains("nahuizalco") -> Coordenada(13.7778, -89.7361)
-        ref.contains("ahuachapan") -> Coordenada(13.9214, -89.8450)
-        ref.contains("tacuba") -> Coordenada(13.9000, -89.9333)
-        else -> Coordenada(0.0, 0.0)
-    }
+    return CoordenadasRuta.buscar(ref)
+        ?.let { Coordenada(latitud = it.latitud, longitud = it.longitud) }
+        ?: Coordenada(0.0, 0.0)
 }
 
 private fun desplazarEnAnillo(
@@ -233,6 +226,12 @@ internal fun codificarParametroMaps(valor: String): String =
     }
 
 internal fun urlGoogleMaps(comercio: Comercio?, lugar: Lugar, municipio: String?): String {
+    val coordenadaValida = comercio?.coordenadaPropiaValida()
+        ?: lugar.ubicacionCoordenadas.takeIf(::esCoordenadaValida)
+    if (coordenadaValida != null) {
+        return "https://www.google.com/maps/dir/?api=1&destination=${coordenadaValida.latitud},${coordenadaValida.longitud}"
+    }
+
     val destino = if (comercio == null) {
         listOf(lugar.nombre, lugar.ubicacionCorta, "El Salvador")
     } else {

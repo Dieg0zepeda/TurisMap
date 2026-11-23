@@ -75,11 +75,12 @@ internal fun ModalFavoritosPerfil(
     categoriaSeleccionada: CategoriaFavorito,
     cargandoFavoritos: Boolean,
     favoritosFiltrados: List<ItemFavoritoUi>,
+    favoritosEnProceso: Set<String>,
     paleta: PerfilPaleta,
     onDismiss: () -> Unit,
     onSeleccionarCategoria: (CategoriaFavorito) -> Unit,
     onItemClick: (ItemFavoritoUi) -> Unit,
-    onQuitarFavoritoClick: (String) -> Unit
+    onQuitarFavoritoClick: (ItemFavoritoUi) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -217,8 +218,9 @@ internal fun ModalFavoritosPerfil(
                             TarjetaItemFavorito(
                                 item = item,
                                 paleta = paleta,
+                                quitando = item.idFavoritoOriginal in favoritosEnProceso,
                                 onClick = { onItemClick(item) },
-                                onQuitarClick = { onQuitarFavoritoClick(item.idFavoritoOriginal) }
+                                onQuitarClick = { onQuitarFavoritoClick(item) }
                             )
                         }
                     }
@@ -232,6 +234,7 @@ internal fun ModalFavoritosPerfil(
 private fun TarjetaItemFavorito(
     item: ItemFavoritoUi,
     paleta: PerfilPaleta,
+    quitando: Boolean,
     onClick: () -> Unit,
     onQuitarClick: () -> Unit
 ) {
@@ -278,13 +281,15 @@ private fun TarjetaItemFavorito(
                         fontWeight = FontWeight.ExtraBold,
                         color = if (item.esComercio) VerdeTextoAdaptable else TerracotaTextoAdaptable
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "★ ${item.calificacion}",
-                        fontSize = 11.sp,
-                        color = Color(0xFFF59E0B),
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (item.calificacion != null) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "★ ${item.calificacion}",
+                            fontSize = 11.sp,
+                            color = Color(0xFFF59E0B),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 Text(
                     text = item.nombre,
@@ -305,7 +310,10 @@ private fun TarjetaItemFavorito(
                 )
             }
 
-            IconButton(onClick = onQuitarClick) {
+            IconButton(
+                onClick = onQuitarClick,
+                enabled = !quitando
+            ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = stringResource(Res.string.perfil_favoritos_cd_quitar),

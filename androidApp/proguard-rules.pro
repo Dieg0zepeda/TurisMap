@@ -1,21 +1,57 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# =====================================================================
+# Reglas R8 / ProGuard para TurisMap (Release)
+# =====================================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Atributos necesarios para reflexión, anotaciones, kotlinx.serialization y stack traces legibles
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod, SourceFile, LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ---------------------------------------------------------------------
+# kotlinx.serialization
+# ---------------------------------------------------------------------
+-keep,includedescriptorclasses class com.turismap.app.**$$serializer { *; }
+-keepclassmembers class com.turismap.app.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.turismap.app.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep @kotlinx.serialization.Serializable class ** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+    @kotlinx.serialization.Transient <fields>;
+}
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+}
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1>$Companion {
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ---------------------------------------------------------------------
+# Modelos y DTOs de TurisMap (Firestore + GitLive + reflexión)
+# ---------------------------------------------------------------------
+-keep class com.turismap.app.data.models.** { *; }
+-keep class com.turismap.app.data.repository.** { *; }
+-keepclassmembers class com.turismap.app.data.models.** { *; }
+-keepclassmembers class com.turismap.app.data.repository.** { *; }
+
+# ---------------------------------------------------------------------
+# GitLive Firebase KMP y Firebase Android SDK
+# ---------------------------------------------------------------------
+-keep class dev.gitlive.firebase.** { *; }
+-keepclassmembers class dev.gitlive.firebase.** { *; }
+-dontwarn dev.gitlive.firebase.**
+-keepclassmembers class * {
+    @com.google.firebase.firestore.PropertyName <fields>;
+    @com.google.firebase.firestore.PropertyName <methods>;
+}
+
+# ---------------------------------------------------------------------
+# Google Play Services (Maps, Location, Auth) y Coroutines
+# ---------------------------------------------------------------------
+-keep class com.google.android.gms.maps.** { *; }
+-keep class com.google.maps.android.** { *; }
+-dontwarn com.google.android.gms.**
+-dontwarn kotlinx.coroutines.**

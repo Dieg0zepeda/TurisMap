@@ -144,7 +144,20 @@ object AutenticacionRepository {
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            auth.signOut()
+            try {
+                usuario.delete()
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
+            } catch (_: Exception) {
+                // Si falla el borrado (p. ej. sin red), continuamos cerrando sesión
+            }
+            try {
+                auth.signOut()
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
+            } catch (_: Exception) {
+                // Evitar enmascarar el error original de registro
+            }
             throw traducirErrorAuth(error, Res.string.repo_auth_error_guardar_perfil)
         }
     }

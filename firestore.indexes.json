@@ -7,6 +7,30 @@
         { "fieldPath": "tipoDestino", "order": "ASCENDING" },
         { "fieldPath": "destinoId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "comercios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "destacado", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comercios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "lugarId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comercios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "municipio", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

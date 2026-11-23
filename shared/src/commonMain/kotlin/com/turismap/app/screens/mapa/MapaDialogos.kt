@@ -1,6 +1,7 @@
 package com.turismap.app.screens.mapa
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -31,9 +32,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.components.RemoteImage
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.logo_turismap
 import turismap.shared.generated.resources.mapa_capas_encabezado
 import turismap.shared.generated.resources.mapa_cd_mascota
 import turismap.shared.generated.resources.mapa_saludo_viajero
@@ -78,11 +80,13 @@ internal fun ModalCapasMapa(
                         .border(2.dp, paleta.turismapAcento, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    RemoteImage(
-                        url = "https://i.pinimg.com/1200x/8b/44/31/8b44315342377795f91d4d37b8493635.jpg",
+                    Image(
+                        painter = painterResource(Res.drawable.logo_turismap),
                         contentDescription = stringResource(Res.string.mapa_cd_mascota),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        contentScale = ContentScale.Fit
                     )
                 }
 

@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -17,6 +18,7 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioBD
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.theme.GrisBorde
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -40,8 +42,6 @@ import turismap.shared.generated.resources.perfil_privacidad_enlace_enviado
 import turismap.shared.generated.resources.perfil_privacidad_error_enviar_correo
 import turismap.shared.generated.resources.perfil_usuario_predeterminado
 
-internal const val TURISMAP_WEB_URL = "https://urldeprueba.com"
-
 internal enum class CategoriaFavorito {
     TODOS,
     DESTINOS,
@@ -55,7 +55,7 @@ internal data class ItemFavoritoUi(
     val categoria: String = "",
     val categoriaRes: StringResource? = null,
     val imagenUrl: String,
-    val calificacion: Double,
+    val calificacion: Double?,
     val esComercio: Boolean
 )
 
@@ -72,22 +72,25 @@ internal data class PerfilPaleta(
 @Composable
 internal fun rememberPerfilPaleta(): PerfilPaleta {
     val colorScheme = MaterialTheme.colorScheme
-    return remember(colorScheme) {
+    val colorDivisor = GrisBorde
+    return remember(colorScheme, colorDivisor) {
         PerfilPaleta(
             fondoApp = colorScheme.background,
             fondoTarjeta = colorScheme.surface,
             colorTextoPrincipal = colorScheme.onBackground,
             colorTextoSecundario = colorScheme.onSurfaceVariant,
-            colorDivisor = colorScheme.outlineVariant
+            colorDivisor = colorDivisor
         )
     }
 }
 
 internal class PerfilState(
     private val coroutineScope: CoroutineScope,
-    val snackbarHostState: SnackbarHostState
+    val snackbarHostState: SnackbarHostState,
+    private val usuarioBDState: State<UsuarioBD?>
 ) {
-    var usuarioBD by mutableStateOf<UsuarioBD?>(null)
+    val usuarioBD: UsuarioBD?
+        get() = usuarioBDState.value
     var estaCargando by mutableStateOf(true)
     var visitas by mutableStateOf(0)
     var errorPerfil by mutableStateOf<String?>(null)
@@ -95,17 +98,16 @@ internal class PerfilState(
     // Control del modal de favoritos y filtro por categoría
     var mostrarVentanaFavoritos by mutableStateOf(false)
     var cargandoFavoritos by mutableStateOf(false)
+    var favoritosSincronizados by mutableStateOf(false)
     var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
+    var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
-    var perfilPublico by mutableStateOf(true)
-    var compartirUbicacion by mutableStateOf(false)
-
     var mostrarDialogoEditar by mutableStateOf(false)
-    var mostrarDialogoPrivacidad by mutableStateOf(false)
     var cerrandoSesion by mutableStateOf(false)
     var enviandoRecuperacion by mutableStateOf(false)
     var guardandoPerfil by mutableStateOf(false)
+    var subiendoFoto by mutableStateOf(false)
     var tipoFotoSeleccionada by mutableStateOf("perfil")
 
     val cantDestinos: Int by derivedStateOf {
@@ -144,12 +146,19 @@ internal class PerfilState(
             }
 
     val cantidadFavoritos: String
-        get() = (usuarioBD?.favoritos?.size ?: 0).toString()
+        get() = (if (favoritosSincronizados) {
+            listaFavoritosDetallados.size
+        } else {
+            usuarioBD?.favoritos?.size ?: 0
+        }).toString()
 
     fun actualizarFoto(uriLocal: String) {
+        if (subiendoFoto || uriLocal.isBlank()) return
+        val esPerfil = tipoFotoSeleccionada == "perfil"
+        subiendoFoto = true
         coroutineScope.launch {
             try {
-                UsuarioRepository.actualizarFoto(tipoFotoSeleccionada == "perfil", uriLocal)
+                UsuarioRepository.subirYActualizarFoto(perfil = esPerfil, uriLocal = uriLocal)
                 snackbarHostState.showSnackbar(getString(Res.string.perfil_foto_actualizada))
             } catch (error: CancellationException) {
                 throw error
@@ -161,22 +170,33 @@ internal class PerfilState(
                     getString(Res.string.perfil_error_generico)
                 }
                 snackbarHostState.showSnackbar(mensaje)
+            } finally {
+                subiendoFoto = false
             }
         }
     }
 
-    fun quitarFavorito(idFavoritoOriginal: String) {
+    fun quitarFavorito(item: ItemFavoritoUi) {
+        val clave = item.idFavoritoOriginal
+        if (clave in favoritosEnProceso) return
+        favoritosEnProceso = favoritosEnProceso + clave
         coroutineScope.launch {
             try {
-                UsuarioRepository.cambiarFavorito(idFavoritoOriginal, false)
+                UsuarioRepository.cambiarFavorito(
+                    lugarId = item.id,
+                    guardar = false,
+                    esComercio = item.esComercio
+                )
                 listaFavoritosDetallados = listaFavoritosDetallados.filterNot {
-                    it.idFavoritoOriginal == idFavoritoOriginal
+                    it.esComercio == item.esComercio && it.id == item.id
                 }
                 snackbarHostState.showSnackbar(getString(Res.string.perfil_favorito_eliminado))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar(e.message ?: getString(Res.string.perfil_error_actualizar))
+            } finally {
+                favoritosEnProceso = favoritosEnProceso - clave
             }
         }
     }
@@ -189,7 +209,6 @@ internal class PerfilState(
                     val emailDestino = usuarioBD?.email?.takeIf { it.isNotBlank() }
                         ?: AutenticacionRepository.usuarioActual?.email.orEmpty()
                     AutenticacionRepository.enviarRestablecimientoContrasena(emailDestino)
-                    mostrarDialogoPrivacidad = false
                     snackbarHostState.showSnackbar(
                         getString(Res.string.perfil_privacidad_enlace_enviado, emailDestino)
                     )
@@ -206,12 +225,12 @@ internal class PerfilState(
         }
     }
 
-    fun guardarPerfil(nombre: String, telefono: String = "") {
+    fun guardarPerfil(nombre: String) {
         if (!guardandoPerfil) {
             guardandoPerfil = true
             coroutineScope.launch {
                 try {
-                    UsuarioRepository.actualizarPerfil(nombre.trim(), telefono.trim())
+                    UsuarioRepository.actualizarPerfil(nombre.trim())
                     mostrarDialogoEditar = false
                     snackbarHostState.showSnackbar(getString(Res.string.perfil_actualizado))
                 } catch (error: CancellationException) {
@@ -242,39 +261,25 @@ internal class PerfilState(
             }
         }
     }
-
-    fun mostrarMensaje(mensaje: String) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(mensaje)
-        }
-    }
-
-    fun mostrarMensaje(recurso: StringResource) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(getString(recurso))
-        }
-    }
-
-    fun mostrarMensajeOError(mensaje: String?, fallback: StringResource) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(mensaje ?: getString(fallback))
-        }
-    }
 }
 
 @Composable
 internal fun rememberPerfilState(): PerfilState {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val state = remember(coroutineScope, snackbarHostState) {
-        PerfilState(coroutineScope = coroutineScope, snackbarHostState = snackbarHostState)
+
+    // 1. Observación reactiva centralizada del usuario desde Firestore (sin mutaciones en composición)
+    val usuarioBDState = UsuarioRepository.usuarioActualFlow.collectAsState()
+    val state = remember(coroutineScope, snackbarHostState, usuarioBDState) {
+        PerfilState(
+            coroutineScope = coroutineScope,
+            snackbarHostState = snackbarHostState,
+            usuarioBDState = usuarioBDState
+        )
     }
 
     val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
-
-    // 1. Observación reactiva en tiempo real del usuario desde Firestore
-    val usuarioBD by UsuarioRepository.observarUsuarioActual().collectAsState(initial = null)
-    state.usuarioBD = usuarioBD
+    val usuarioBD = state.usuarioBD
 
     LaunchedEffect(idUsuarioActual) {
         state.estaCargando = true
@@ -299,63 +304,89 @@ internal fun rememberPerfilState(): PerfilState {
     }
 
     // Carga y mapeo reactivo de favoritos distinguiendo Lugares (Destinos) y Comercios
-    LaunchedEffect(state.mostrarVentanaFavoritos, usuarioBD?.favoritos) {
-        if (state.mostrarVentanaFavoritos) {
-            state.cargandoFavoritos = true
-            try {
-                val favoritosIds = usuarioBD?.favoritos ?: emptyList()
-                if (favoritosIds.isEmpty()) {
-                    state.listaFavoritosDetallados = emptyList()
-                } else {
-                    val todosLugares = try {
-                        LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                        emptyMap()
-                    }
-                    val todosComercios = try {
-                        ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                        emptyMap()
-                    }
+    LaunchedEffect(usuarioBD?.favoritos) {
+        val favoritosIds = usuarioBD?.favoritos ?: run {
+            state.listaFavoritosDetallados = emptyList()
+            state.favoritosSincronizados = false
+            return@LaunchedEffect
+        }
+        if (favoritosIds.isEmpty()) {
+            state.listaFavoritosDetallados = emptyList()
+            state.favoritosSincronizados = true
+            state.cargandoFavoritos = false
+            return@LaunchedEffect
+        }
 
-                    val resueltos = favoritosIds.mapNotNull { idOriginal ->
-                        val idLimpio = idOriginal.trim()
-                        val lugar = todosLugares[idLimpio]
-                        if (lugar != null) {
-                            ItemFavoritoUi(
-                                id = lugar.id,
-                                idFavoritoOriginal = idOriginal,
-                                nombre = lugar.nombre,
-                                categoriaRes = lugar.categoria.etiquetaRes,
-                                imagenUrl = lugar.imagenPortadaUrl,
-                                calificacion = lugar.calificacion,
-                                esComercio = false
-                            )
-                        } else {
-                            val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
-                            val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
-                            if (comercio != null) {
-                                ItemFavoritoUi(
-                                    id = comercio.id,
-                                    idFavoritoOriginal = idOriginal,
-                                    nombre = comercio.nombre,
-                                    categoria = comercio.categoria,
-                                    imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
-                                    calificacion = comercio.calificacionPromedio ?: 4.9,
-                                    esComercio = true
-                                )
-                            } else null
-                        }
-                    }
-                    state.listaFavoritosDetallados = resueltos
-                }
+        state.cargandoFavoritos = true
+        try {
+            var lugaresOk = true
+            val todosLugares = try {
+                LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
+            } catch (_: Exception) {
+                lugaresOk = false
+                emptyMap()
+            }
+            var comerciosOk = true
+            val todosComercios = try {
+                ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                comerciosOk = false
+                emptyMap()
+            }
+            val categoriasMap = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                emptyMap()
+            }
+
+            val clavesVistas = mutableSetOf<Pair<Boolean, String>>()
+            val resueltos = favoritosIds.mapNotNull { idOriginal ->
+                val idLimpio = idOriginal.trim()
+                val lugar = todosLugares[idLimpio]
+                if (lugar != null) {
+                    if (!clavesVistas.add(false to lugar.id)) return@mapNotNull null
+                    ItemFavoritoUi(
+                        id = lugar.id,
+                        idFavoritoOriginal = idOriginal,
+                        nombre = lugar.nombre,
+                        categoriaRes = lugar.categoriaResuelta.etiquetaRes,
+                        imagenUrl = lugar.imagenPortadaUrl,
+                        calificacion = lugar.calificacion.takeIf { it > 0.0 },
+                        esComercio = false
+                    )
+                } else {
+                    val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
+                    val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
+                    if (comercio != null) {
+                        if (!clavesVistas.add(true to comercio.id)) return@mapNotNull null
+                        val etiquetaCategoria = categoriasMap[comercio.categoria.trim()]
+                            ?: comercio.categoria
+                        ItemFavoritoUi(
+                            id = comercio.id,
+                            idFavoritoOriginal = idOriginal,
+                            nombre = comercio.nombre,
+                            categoria = etiquetaCategoria,
+                            imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
+                            calificacion = comercio.calificacionPromedio?.takeIf { it > 0.0 },
+                            esComercio = true
+                        )
+                    } else null
+                }
+            }
+            if (lugaresOk || comerciosOk) {
+                state.listaFavoritosDetallados = resueltos
+                state.favoritosSincronizados = lugaresOk && comerciosOk
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (state.mostrarVentanaFavoritos) {
                 val detalle = error.message?.takeIf { it.isNotBlank() }
                 val mensaje = if (detalle != null) {
                     getString(Res.string.perfil_error_cargar_favoritos, detalle)
@@ -363,9 +394,9 @@ internal fun rememberPerfilState(): PerfilState {
                     getString(Res.string.perfil_error_cargar_favoritos_generico)
                 }
                 state.snackbarHostState.showSnackbar(mensaje)
-            } finally {
-                state.cargandoFavoritos = false
             }
+        } finally {
+            state.cargandoFavoritos = false
         }
     }
 

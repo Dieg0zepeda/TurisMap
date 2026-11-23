@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.components.BotonNotificaciones
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
@@ -42,6 +43,8 @@ import turismap.shared.generated.resources.explorar_titulo
 
 @Composable
 fun ExplorarScreen(
+    cantidadNotificacionesNoLeidas: Int = 0,
+    onAbrirNotificaciones: () -> Unit = {},
     onLugarClick: (Lugar) -> Unit = {},
     onComercioClick: (String) -> Unit = {}
 ) {
@@ -97,24 +100,33 @@ fun ExplorarScreen(
                 .background(GrisFondo)
                 .padding(bottom = 24.dp)
         ) {
-            // Cabecera limpia sin icono de notificaciones
-            Column(
+            // Cabecera con título y acceso a notificaciones
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(Res.string.app_name).uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = VerdeTextoAdaptable,
-                    letterSpacing = 1.2.sp
-                )
-                Text(
-                    text = stringResource(Res.string.explorar_titulo),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoPrincipalOscuro
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.app_name).uppercase(),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = VerdeTextoAdaptable,
+                        letterSpacing = 1.2.sp
+                    )
+                    Text(
+                        text = stringResource(Res.string.explorar_titulo),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoPrincipalOscuro
+                    )
+                }
+
+                BotonNotificaciones(
+                    cantidadNoLeidas = cantidadNotificacionesNoLeidas,
+                    onClick = onAbrirNotificaciones
                 )
             }
 
@@ -133,7 +145,9 @@ fun ExplorarScreen(
                     colors = CardDefaults.cardColors(containerColor = VerdePrimario)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        val urlImagenDestacado = lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
+                        val urlImagenDestacado = lugarDestacado!!.imagenPortadaUrl.ifBlank {
+                            lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
+                        }
                         if (urlImagenDestacado.isNotEmpty()) {
                             RemoteImage(
                                 url = urlImagenDestacado,
@@ -175,8 +189,13 @@ fun ExplorarScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
+                            val nombreCortoDestacado = lugarDestacado!!.nombre
+                                .trim()
+                                .split(" ")
+                                .lastOrNull { it.isNotBlank() }
+                                ?: lugarDestacado!!.nombre.trim()
                             Text(
-                                text = stringResource(Res.string.explorar_descubre_lugar, lugarDestacado!!.nombre.split(" ").last()),
+                                text = stringResource(Res.string.explorar_descubre_lugar, nombreCortoDestacado),
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White

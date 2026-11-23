@@ -25,4 +25,18 @@ enum class CategoriaLugar {
             ARTESANIA -> Res.string.categoria_lugar_artesanias
             RESTAURANTE -> Res.string.categoria_lugar_restaurantes
         }
+
+    companion object {
+        fun desdeTexto(valor: String?): CategoriaLugar {
+            val limpio = valor?.trim()?.lowercase().orEmpty()
+            if (limpio.isEmpty() || limpio == "todos") return TODOS
+            return when {
+                limpio.contains("cafe") || limpio.contains("café") -> CAFE
+                limpio.contains("mirador") -> MIRADOR
+                limpio.contains("artesan") -> ARTESANIA
+                limpio.contains("restauran") -> RESTAURANTE
+                else -> entries.firstOrNull { it.name.equals(limpio, ignoreCase = true) } ?: TODOS
+            }
+        }
+    }
 }

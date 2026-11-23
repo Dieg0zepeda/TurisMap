@@ -7,19 +7,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.turismap.app.components.FigmaBottomBar
+import com.turismap.app.data.repository.AutenticacionRepository
+import com.turismap.app.data.repository.NotificacionesRepository
 import com.turismap.app.navegacion.Pantalla
 import com.turismap.app.navegacion.TurisMapNavHost
 import com.turismap.app.screens.LoginScreen
-import com.turismap.app.data.repository.AutenticacionRepository
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF1B4934),
@@ -49,80 +52,92 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun App(
-    onSolicitarGoogleSignIn: (((String) -> Unit) -> Unit)? = null
+    onSolicitarGoogleSignIn: (((String?) -> Unit) -> Unit)? = null
 ) {
     val esModoOscuro = isSystemInDarkTheme()
-    val controladorNavegacion = rememberNavController()
-    var usuarioAutenticado by remember { mutableStateOf(AutenticacionRepository.usuarioActual != null) }
-
-    val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
-    val rutaActual = navBackStackEntry?.destination?.route
-
-    // Comprueba si la ruta actual coincide o inicia con alguna de las pantallas principales
-    val mostrarBarraInferior = rutaActual == null || listOf(
-        Pantalla.Explorar.ruta,
-        Pantalla.Mapa.ruta,
-        Pantalla.Guia.ruta,
-        Pantalla.Perfil.ruta
-    ).any { rutaBase -> rutaActual.startsWith(rutaBase) }
-
-    // Sincronización del índice activo reconociendo rutas con argumentos
-    val indiceSeleccionado = when {
-        rutaActual?.startsWith(Pantalla.Explorar.ruta) == true -> 0
-        rutaActual?.startsWith(Pantalla.Mapa.ruta) == true -> 1
-        rutaActual?.startsWith(Pantalla.Guia.ruta) == true -> 2
-        rutaActual?.startsWith(Pantalla.Perfil.ruta) == true -> 3
-        else -> 0
-    }
+    val usuarioAuth by remember {
+        Firebase.auth.authStateChanged
+    }.collectAsState(initial = AutenticacionRepository.usuarioActual)
+    val uidAutenticado = usuarioAuth?.uid
+    val usuarioAutenticado = uidAutenticado != null
+    val cantidadNotificacionesNoLeidas by NotificacionesRepository.cantidadNoLeidasFlow.collectAsState()
 
     MaterialTheme(
         colorScheme = if (esModoOscuro) DarkColorScheme else LightColorScheme
     ) {
         if (!usuarioAutenticado) {
             LoginScreen(
-                onLoginExitoso = { usuarioAutenticado = true },
+                onLoginExitoso = { /* authStateChanged actualiza el estado reactivamente */ },
                 onSolicitarGoogleSignIn = onSolicitarGoogleSignIn
             )
         } else {
-            Scaffold(
-                bottomBar = {
-                    if (mostrarBarraInferior) {
-                        FigmaBottomBar(
-                            selectedIndex = indiceSeleccionado,
-                            onTabSelected = { indice ->
-                                val destino = when (indice) {
-                                    0 -> Pantalla.Explorar.ruta
-                                    1 -> Pantalla.Mapa.ruta
-                                    2 -> Pantalla.Guia.ruta
-                                    3 -> Pantalla.Perfil.ruta
-                                    else -> Pantalla.Explorar.ruta
-                                }
+            key(uidAutenticado) {
+                val controladorNavegacion = rememberNavController()
+                val navBackStackEntry by controladorNavegacion.currentBackStackEntryAsState()
+                val rutaActual = navBackStackEntry?.destination?.route
 
-                                if (controladorNavegacion.currentDestination?.route != destino) {
-                                    val volvioAUnaPestanaExistente =
-                                        controladorNavegacion.popBackStack(destino, inclusive = false)
+                // Comprueba si la ruta actual coincide o inicia con alguna de las pantallas principales
+                val mostrarBarraInferior = rutaActual == null || listOf(
+                    Pantalla.Explorar.ruta,
+                    Pantalla.Mapa.ruta,
+                    Pantalla.Guia.ruta,
+                    Pantalla.Perfil.ruta
+                ).any { rutaBase -> rutaActual.startsWith(rutaBase) }
 
-                                    if (!volvioAUnaPestanaExistente) {
-                                        controladorNavegacion.navigate(destino) {
-                                            popUpTo(Pantalla.Explorar.ruta) {
-                                                saveState = true
+                // Sincronización del índice activo reconociendo rutas con argumentos
+                val indiceSeleccionado = when {
+                    rutaActual?.startsWith(Pantalla.Explorar.ruta) == true -> 0
+                    rutaActual?.startsWith(Pantalla.Mapa.ruta) == true -> 1
+                    rutaActual?.startsWith(Pantalla.Guia.ruta) == true -> 2
+                    rutaActual?.startsWith(Pantalla.Perfil.ruta) == true -> 3
+                    else -> 0
+                }
+
+                Scaffold(
+                    bottomBar = {
+                        if (mostrarBarraInferior) {
+                            FigmaBottomBar(
+                                selectedIndex = indiceSeleccionado,
+                                onTabSelected = { indice ->
+                                    val destino = when (indice) {
+                                        0 -> Pantalla.Explorar.ruta
+                                        1 -> Pantalla.Mapa.ruta
+                                        2 -> Pantalla.Guia.ruta
+                                        3 -> Pantalla.Perfil.ruta
+                                        else -> Pantalla.Explorar.ruta
+                                    }
+                                    val rutaPatronDestino = if (indice == 1) {
+                                        Pantalla.Mapa.rutaPatron
+                                    } else {
+                                        destino
+                                    }
+
+                                    if (controladorNavegacion.currentDestination?.route?.startsWith(destino) != true) {
+                                        val volvioAUnaPestanaExistente =
+                                            controladorNavegacion.popBackStack(rutaPatronDestino, inclusive = false)
+
+                                        if (!volvioAUnaPestanaExistente) {
+                                            controladorNavegacion.navigate(destino) {
+                                                popUpTo(Pantalla.Explorar.ruta) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
                                         }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
+                ) { paddingValues ->
+                    TurisMapNavHost(
+                        controladorNavegacion = controladorNavegacion,
+                        modificador = Modifier.padding(paddingValues),
+                        cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
+                        onCerrarSesion = { /* authStateChanged cierra la sesión reactivamente */ }
+                    )
                 }
-            ) { paddingValues ->
-                TurisMapNavHost(
-                    controladorNavegacion = controladorNavegacion,
-                    modificador = Modifier.padding(paddingValues),
-                    mostrarBarraInferior = mostrarBarraInferior,
-                    onCerrarSesion = { usuarioAutenticado = false }
-                )
             }
         }
     }

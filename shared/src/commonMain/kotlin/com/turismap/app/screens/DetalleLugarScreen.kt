@@ -22,11 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
+import com.turismap.app.components.rememberCompartirTexto
 import com.turismap.app.data.models.Atractivo
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
+import com.turismap.app.screens.mapa.normalizarTextoMapa
 import com.turismap.app.theme.*
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.detalle_lugar_atractivos_destacados
@@ -38,10 +41,12 @@ import turismap.shared.generated.resources.detalle_lugar_cd_compartir
 import turismap.shared.generated.resources.detalle_lugar_cd_fondo
 import turismap.shared.generated.resources.detalle_lugar_cd_guardar_favorito
 import turismap.shared.generated.resources.detalle_lugar_cd_quitar_favorito
+import turismap.shared.generated.resources.detalle_lugar_compartir_texto
 import turismap.shared.generated.resources.detalle_lugar_directorio_alojamientos
 import turismap.shared.generated.resources.detalle_lugar_directorio_artesanias
 import turismap.shared.generated.resources.detalle_lugar_directorio_badge
 import turismap.shared.generated.resources.detalle_lugar_directorio_cafeterias
+import turismap.shared.generated.resources.detalle_lugar_directorio_cargando
 import turismap.shared.generated.resources.detalle_lugar_directorio_desc_con_comercios
 import turismap.shared.generated.resources.detalle_lugar_directorio_desc_sin_comercios
 import turismap.shared.generated.resources.detalle_lugar_directorio_guias
@@ -61,23 +66,30 @@ fun DetalleLugarScreen(
     // 1. Carga reactiva protegida contra nulos desde Firestore
     var comerciosDelLugar by remember(lugar.id) { mutableStateOf<List<Comercio>>(emptyList()) }
     var cargandoComercios by remember(lugar.id) { mutableStateOf(true) }
+    val compartirTexto = rememberCompartirTexto()
+    val textoCompartirBase = stringResource(Res.string.detalle_lugar_compartir_texto, lugar.nombre)
 
-    LaunchedEffect(lugar.id) {
+    LaunchedEffect(lugar.id, lugar.nombre) {
         cargandoComercios = true
         try {
-            val todos = ComercioRepository.obtenerPublicados()
-            val idLimpio = lugar.id.orEmpty().trim().lowercase()
-            val nombreLimpio = lugar.nombre.orEmpty().trim().lowercase()
+            val candidatos = ComercioRepository.obtenerPublicadosPorLugar(
+                lugarId = lugar.id,
+                nombreLugar = lugar.nombre
+            )
+            val idNorm = normalizarTextoMapa(lugar.id)
+            val nombreNorm = normalizarTextoMapa(lugar.nombre)
 
-            comerciosDelLugar = todos.filter { comercio ->
-                val comLugar = (comercio.lugarId ?: "").trim().lowercase()
-                comLugar.isNotBlank() && (
-                        comLugar == idLimpio ||
-                                comLugar == nombreLimpio ||
-                                nombreLimpio.contains(comLugar) ||
-                                idLimpio.contains(comLugar)
-                        )
+            comerciosDelLugar = candidatos.filter { comercio ->
+                val refsComercio = listOf(comercio.lugarId, comercio.municipio)
+                    .map(::normalizarTextoMapa)
+                    .filter(String::isNotEmpty)
+                refsComercio.any { ref ->
+                    (idNorm.isNotEmpty() && (ref == idNorm || ref.contains(idNorm) || idNorm.contains(ref))) ||
+                        (nombreNorm.isNotEmpty() && (ref == nombreNorm || ref.contains(nombreNorm) || nombreNorm.contains(ref)))
+                }
             }
+        } catch (cancelacion: CancellationException) {
+            throw cancelacion
         } catch (_: Exception) {
             comerciosDelLugar = emptyList()
         } finally {
@@ -85,23 +97,23 @@ fun DetalleLugarScreen(
         }
     }
 
-    // 2. Conteo seguro: (it.categoria ?: "") previene NullPointerException si Firestore trae campos vacíos
+    // 2. Conteo seguro normalizado (incluye tildes y ñ -> n)
     val totalComercios = comerciosDelLugar.size
     val cantCafes = comerciosDelLugar.count {
-        val cat = (it.categoria ?: "").lowercase()
-        cat.contains("restaurante") || cat.contains("cafe") || cat.contains("café")
+        val cat = normalizarTextoMapa(it.categoria)
+        cat.contains("restaurante") || cat.contains("cafe") || cat.contains("comida") || cat.contains("gastronom")
     }
     val cantAlojamientos = comerciosDelLugar.count {
-        val cat = (it.categoria ?: "").lowercase()
-        cat.contains("hotel") || cat.contains("alojamiento") || cat.contains("hostal") || cat.contains("cabaña")
+        val cat = normalizarTextoMapa(it.categoria)
+        cat.contains("hotel") || cat.contains("alojamiento") || cat.contains("hostal") || cat.contains("cabana") || cat.contains("hosped")
     }
     val cantArtesanias = comerciosDelLugar.count {
-        val cat = (it.categoria ?: "").lowercase()
-        cat.contains("artesania") || cat.contains("artesanía") || cat.contains("tienda")
+        val cat = normalizarTextoMapa(it.categoria)
+        cat.contains("artesania") || cat.contains("tienda") || cat.contains("souvenir")
     }
     val cantExperiencias = comerciosDelLugar.count {
-        val cat = (it.categoria ?: "").lowercase()
-        cat.contains("atractivo") || cat.contains("experiencia") || cat.contains("tour")
+        val cat = normalizarTextoMapa(it.categoria)
+        cat.contains("atractivo") || cat.contains("experiencia") || cat.contains("tour") || cat.contains("aventura")
     }
 
     val listaAtractivos = remember(lugar.atractivos) { lugar.atractivos ?: emptyList() }
@@ -144,7 +156,18 @@ fun DetalleLugarScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(shape = CircleShape, color = FondoBlancoAdaptable.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
+                    Surface(
+                        onClick = {
+                            val textoCompleto = listOf(
+                                textoCompartirBase,
+                                lugar.subtitulo.trim()
+                            ).filter(String::isNotBlank).joinToString(" — ")
+                            compartirTexto(textoCompleto, lugar.nombre)
+                        },
+                        shape = CircleShape,
+                        color = FondoBlancoAdaptable.copy(alpha = 0.9f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             Icons.Default.Share,
                             contentDescription = stringResource(Res.string.detalle_lugar_cd_compartir),
@@ -321,50 +344,69 @@ fun DetalleLugarScreen(
                         color = Color.White
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (totalComercios > 0) {
-                            stringResource(
-                                Res.string.detalle_lugar_directorio_desc_con_comercios,
-                                totalComercios,
-                                lugar.nombre
+                    if (cargandoComercios) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
                             )
-                        } else {
-                            stringResource(
-                                Res.string.detalle_lugar_directorio_desc_sin_comercios,
-                                lugar.nombre
+                            Text(
+                                text = stringResource(Res.string.detalle_lugar_directorio_cargando, lugar.nombre),
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.85f)
                             )
-                        },
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f),
-                        lineHeight = 18.sp
-                    )
+                        }
+                    } else {
+                        Text(
+                            text = if (totalComercios > 0) {
+                                stringResource(
+                                    Res.string.detalle_lugar_directorio_desc_con_comercios,
+                                    totalComercios,
+                                    lugar.nombre
+                                )
+                            } else {
+                                stringResource(
+                                    Res.string.detalle_lugar_directorio_desc_sin_comercios,
+                                    lugar.nombre
+                                )
+                            },
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.8f),
+                            lineHeight = 18.sp
+                        )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        DirectorioIconoGen(
-                            icono = Icons.Default.LocalCafe,
-                            texto = stringResource(Res.string.detalle_lugar_directorio_cafeterias, cantCafes),
-                            modifier = Modifier.weight(1f)
-                        )
-                        DirectorioIconoGen(
-                            icono = Icons.Default.Home,
-                            texto = stringResource(Res.string.detalle_lugar_directorio_alojamientos, cantAlojamientos),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        DirectorioIconoGen(
-                            icono = Icons.Default.Palette,
-                            texto = stringResource(Res.string.detalle_lugar_directorio_artesanias, cantArtesanias),
-                            modifier = Modifier.weight(1f)
-                        )
-                        DirectorioIconoGen(
-                            icono = Icons.Default.DirectionsWalk,
-                            texto = stringResource(Res.string.detalle_lugar_directorio_guias, cantExperiencias),
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DirectorioIconoGen(
+                                icono = Icons.Default.LocalCafe,
+                                texto = stringResource(Res.string.detalle_lugar_directorio_cafeterias, cantCafes),
+                                modifier = Modifier.weight(1f)
+                            )
+                            DirectorioIconoGen(
+                                icono = Icons.Default.Home,
+                                texto = stringResource(Res.string.detalle_lugar_directorio_alojamientos, cantAlojamientos),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DirectorioIconoGen(
+                                icono = Icons.Default.Palette,
+                                texto = stringResource(Res.string.detalle_lugar_directorio_artesanias, cantArtesanias),
+                                modifier = Modifier.weight(1f)
+                            )
+                            DirectorioIconoGen(
+                                icono = Icons.Default.DirectionsWalk,
+                                texto = stringResource(Res.string.detalle_lugar_directorio_guias, cantExperiencias),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -400,10 +442,16 @@ fun AtractivoCardBase(
     onVerEnMapa: () -> Unit = {}
 ) {
     val colorEtiqueta = remember(atractivo.etiquetaColorHex) {
-        try {
-            Color(atractivo.etiquetaColorHex)
-        } catch (_: Exception) {
+        val hex = atractivo.etiquetaColorHex
+        if (hex == 0L) {
             Color(0xFF1B4934)
+        } else {
+            try {
+                val hexConAlpha = if ((hex and 0xFF000000L) == 0L) hex or 0xFF000000L else hex
+                Color(hexConAlpha)
+            } catch (_: Exception) {
+                Color(0xFF1B4934)
+            }
         }
     }
 

@@ -70,6 +70,52 @@ service cloud.firestore {
           && request.resource.data.fechaVisita is timestamp
           && request.resource.data.tipoInteraccion is string;
       }
+
+      match /notificaciones/{notifId} {
+        allow read: if ownsUser(userId) || isAdmin();
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasAll([
+            'tipo',
+            'titulo',
+            'mensaje',
+            'solicitudId',
+            'comercioId',
+            'nombreNegocio',
+            'leida',
+            'creadaEn'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'tipo',
+            'titulo',
+            'mensaje',
+            'solicitudId',
+            'comercioId',
+            'nombreNegocio',
+            'leida',
+            'creadaEn'
+          ])
+          && request.resource.data.tipo in ['solicitud_aprobada', 'solicitud_rechazada']
+          && request.resource.data.titulo is string
+          && request.resource.data.titulo.size() <= 120
+          && request.resource.data.mensaje is string
+          && request.resource.data.mensaje.size() <= 500
+          && request.resource.data.solicitudId is string
+          && request.resource.data.solicitudId.size() > 0
+          && request.resource.data.solicitudId.size() <= 100
+          && request.resource.data.comercioId is string
+          && request.resource.data.comercioId.size() <= 100
+          && request.resource.data.nombreNegocio is string
+          && request.resource.data.nombreNegocio.size() > 0
+          && request.resource.data.nombreNegocio.size() <= 120
+          && request.resource.data.leida == false
+          && request.resource.data.creadaEn == request.time;
+        allow update: if isAdmin() || (
+          ownsUser(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leida'])
+          && request.resource.data.leida == true
+        );
+        allow delete: if ownsUser(userId) || isAdmin();
+      }
     }
 
     match /comercios/{comercioId} {

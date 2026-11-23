@@ -6,12 +6,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Looper
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -20,7 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +30,7 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,6 +49,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -140,33 +137,59 @@ actual fun MapaTuristico(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val view = LocalView.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val esOscuro = isSystemInDarkTheme()
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
-    var hasPermission by remember { mutableStateOf(false) }
-    var shouldRequestPermission by remember { mutableStateOf(false) }
+    var hasPermission by remember(context) { mutableStateOf(tienePermisoUbicacion(context)) }
+    var permisoSolicitado by remember { mutableStateOf(false) }
     var mapaCargado by remember { mutableStateOf(false) }
     var centradoInicialRealizado by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        hasPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+    val launcherPermisoUbicacion = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { resultados ->
+        hasPermission = resultados[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            resultados[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
+            tienePermisoUbicacion(context)
+    }
 
-        if (hasPermission) {
-            obtenerUbicacionActual(context) { location ->
-                userLocation = location
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasPermission = tienePermisoUbicacion(context)
             }
-        } else {
-            shouldRequestPermission = true
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    if (shouldRequestPermission) {
-        userLocation = centroRuta
-        hasPermission = false
-        shouldRequestPermission = false
+    LaunchedEffect(hasPermission, permisoSolicitado) {
+        if (!hasPermission && !permisoSolicitado) {
+            permisoSolicitado = true
+            launcherPermisoUbicacion.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+
+    DisposableEffect(context, hasPermission) {
+        if (!hasPermission) {
+            userLocation = null
+            onDispose { }
+        } else {
+            val detenerUbicacion = iniciarActualizacionUbicacion(context) { location ->
+                userLocation = location
+            }
+            onDispose {
+                detenerUbicacion()
+            }
+        }
     }
 
     // Posición inicial: si vienen coordenadas específicas se fija en ellas
@@ -381,93 +404,38 @@ actual fun MapaTuristico(
                     "Destino turístico: ${item.lugar.nombre}. Toca para explorar."
                 }
 
-                val infiniteTransition = rememberInfiniteTransition(label = "animacion_pin")
-
-                val ondaScale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.8f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1500),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "scale"
-                )
-                val ondaAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.5f,
-                    targetValue = 0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1500),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "alpha"
-                )
-
-                val levitacionY by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = -10f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "levitacion"
-                )
-
-                val sombraScale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 0.6f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "sombra"
-                )
-
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.semantics { contentDescription = descripcionAccesible }
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .padding(vertical = 12.dp)
-                            .offset(y = levitacionY.dp)
+                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (esComercio) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .scale(ondaScale)
-                                        .alpha(ondaAlpha)
-                                        .background(estiloComercio?.color ?: Color(0xFF1B4934), CircleShape)
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .shadow(6.dp, CircleShape)
+                                .border(3.dp, Color.White, CircleShape)
+                                .background(
+                                    estiloComercio?.color ?: Color(0xFF1B4934),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (estiloComercio != null) {
+                                Icon(
+                                    imageVector = estiloComercio.icono,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .shadow(6.dp, CircleShape)
-                                    .border(3.dp, Color.White, CircleShape)
-                                    .background(
-                                        estiloComercio?.color ?: Color(0xFF1B4934),
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (estiloComercio != null) {
-                                    Icon(
-                                        imageVector = estiloComercio.icono,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                } else {
-                                    Text(
-                                        text = "D",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                            } else {
+                                Text(
+                                    text = "D",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
 
@@ -482,9 +450,8 @@ actual fun MapaTuristico(
                     Box(
                         modifier = Modifier
                             .size(width = 16.dp, height = 6.dp)
-                            .scale(sombraScale)
                             .background(
-                                Color.Black.copy(alpha = 0.6f),
+                                Color.Black.copy(alpha = 0.45f),
                                 RoundedCornerShape(50)
                             )
                     )
@@ -494,43 +461,66 @@ actual fun MapaTuristico(
     }
 }
 
+private fun tienePermisoUbicacion(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
 @SuppressLint("MissingPermission")
-private fun obtenerUbicacionActual(context: Context, callback: (LatLng) -> Unit) {
+private fun iniciarActualizacionUbicacion(
+    context: Context,
+    callback: (LatLng) -> Unit
+): () -> Unit {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    var activo = true
+    var locationCallback: LocationCallback? = null
 
     try {
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (!activo) return@addOnSuccessListener
             if (location != null) {
                 callback(LatLng(location.latitude, location.longitude))
-            } else {
+            } else if (tienePermisoUbicacion(context)) {
                 val locationRequest = LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY,
-                    10000
+                    10_000L
                 ).build()
 
-                val locationCallback = object : LocationCallback() {
+                val activeCallback = object : LocationCallback() {
                     override fun onLocationResult(locationResult: LocationResult) {
+                        if (!activo) return
                         locationResult.lastLocation?.let {
                             callback(LatLng(it.latitude, it.longitude))
                         }
                         fusedLocationClient.removeLocationUpdates(this)
                     }
                 }
+                locationCallback = activeCallback
 
-                if (ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
+                try {
                     fusedLocationClient.requestLocationUpdates(
                         locationRequest,
-                        locationCallback,
+                        activeCallback,
                         Looper.getMainLooper()
                     )
+                } catch (_: SecurityException) {
+                    // Manejo silencioso ante revocación de permiso
                 }
             }
         }
-    } catch (e: SecurityException) {
-        // Manejo silencioso
+    } catch (_: SecurityException) {
+        // Manejo silencioso ante revocación de permiso
+    }
+
+    return {
+        activo = false
+        locationCallback?.let { activeCallback ->
+            fusedLocationClient.removeLocationUpdates(activeCallback)
+        }
     }
 }

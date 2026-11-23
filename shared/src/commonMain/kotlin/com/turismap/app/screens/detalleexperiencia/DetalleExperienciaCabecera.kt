@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -36,7 +35,6 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
-import turismap.shared.generated.resources.btn_cerrar
 import turismap.shared.generated.resources.detalle_exp_badge_contador_fotos
 import turismap.shared.generated.resources.detalle_exp_badge_foto_principal
 import turismap.shared.generated.resources.detalle_exp_badge_galeria_fotos
@@ -53,6 +51,7 @@ import turismap.shared.generated.resources.guia_calificacion_nuevo
 internal fun CabeceraMultimediaExperiencia(
     datosUi: DetalleExperienciaDatosUi,
     esFavorito: Boolean,
+    favoritoEnProceso: Boolean,
     paleta: DetalleExperienciaPaleta,
     onVolver: () -> Unit,
     onToggleFavorito: () -> Unit
@@ -193,7 +192,7 @@ internal fun CabeceraMultimediaExperiencia(
                     .background(if (paleta.esOscuro) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(datos.categoria, color = paleta.verdeTurisMap, fontWeight = FontWeight.Bold)
+                Text(datosUi.categoriaEtiqueta, color = paleta.verdeTurisMap, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -255,28 +254,15 @@ internal fun CabeceraMultimediaExperiencia(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (!datosUi.esBasico) {
-                    IconButton(
-                        onClick = onToggleFavorito,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                    ) {
-                        Text(if (esFavorito) "❤️" else "🤍", fontSize = 16.sp)
-                    }
-                }
+            if (!datosUi.esBasico) {
                 IconButton(
-                    onClick = onVolver,
+                    onClick = onToggleFavorito,
+                    enabled = !favoritoEnProceso,
                     modifier = Modifier
                         .size(36.dp)
                         .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                 ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = stringResource(Res.string.btn_cerrar),
-                        tint = Color.White
-                    )
+                    Text(if (esFavorito) "❤️" else "🤍", fontSize = 16.sp)
                 }
             }
         }
@@ -305,7 +291,7 @@ internal fun EncabezadoComercio(
             Text("★", color = paleta.verdeTurisMap, fontSize = 15.sp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "$promedioTexto · $resenasTexto · ${datos.categoria}",
+                "$promedioTexto · $resenasTexto · ${datosUi.categoriaEtiqueta}",
                 color = paleta.colorTextoSecundario,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold

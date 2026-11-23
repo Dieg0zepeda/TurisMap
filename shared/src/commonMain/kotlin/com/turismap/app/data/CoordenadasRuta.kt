@@ -16,13 +16,41 @@ object CoordenadasRuta {
         "concepcion_de_ataco" to CoordenadaMunicipio(13.8703, -89.8483),
         "ahuachapan" to CoordenadaMunicipio(13.9214, -89.8450),
         "el_refugio" to CoordenadaMunicipio(13.9744, -89.7214),
+        "refugio" to CoordenadaMunicipio(13.9744, -89.7214),
         "tacuba" to CoordenadaMunicipio(13.9000, -89.9333)
     )
 
-    fun obtener(idMunicipio: String): CoordenadaMunicipio {
-        val clave = idMunicipio.trim().lowercase().replace(" ", "_")
-        return coordenadas[clave]
-            ?: coordenadas.entries.firstOrNull { clave.contains(it.key) }?.value
-            ?: CoordenadaMunicipio(13.8569, -89.8031) // Apaneca por defecto (centro de la cordillera)
+    private fun normalizarClave(texto: String): String {
+        val limpio = texto.trim().lowercase()
+        if (limpio.isEmpty()) return ""
+        val sb = StringBuilder(limpio.length)
+        for (caracter in limpio) {
+            sb.append(
+                when (caracter) {
+                    'á', 'à', 'ä', 'â' -> 'a'
+                    'é', 'è', 'ë', 'ê' -> 'e'
+                    'í', 'ì', 'ï', 'î' -> 'i'
+                    'ó', 'ò', 'ö', 'ô' -> 'o'
+                    'ú', 'ù', 'ü', 'û' -> 'u'
+                    'ñ' -> 'n'
+                    else -> caracter
+                }
+            )
+        }
+        return sb.toString()
     }
+
+    fun buscar(referencia: String): CoordenadaMunicipio? {
+        val normalizado = normalizarClave(referencia)
+        if (normalizado.isEmpty()) return null
+        val clave = normalizado.replace(Regex("\\s+"), "_")
+        return coordenadas[clave]
+            ?: coordenadas.entries.firstOrNull { (k, _) ->
+                clave.contains(k) || normalizado.contains(k.replace("_", " "))
+            }?.value
+    }
+
+    fun obtener(idMunicipio: String): CoordenadaMunicipio =
+        buscar(idMunicipio)
+            ?: CoordenadaMunicipio(13.8569, -89.8031) // Apaneca por defecto (centro de la cordillera)
 }

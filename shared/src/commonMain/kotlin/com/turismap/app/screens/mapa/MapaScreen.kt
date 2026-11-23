@@ -97,6 +97,7 @@ fun MapaScreen(
             lugarSeleccionado = state.lugarSeleccionado,
             comercioSeleccionado = state.comercioSeleccionado,
             municipiosMap = state.municipiosMap,
+            categoriasMap = state.categoriasMap,
             alturaMaximaTarjeta = alturaMaximaTarjeta,
             paleta = paleta,
             onCerrar = { state.lugarSeleccionado = null },

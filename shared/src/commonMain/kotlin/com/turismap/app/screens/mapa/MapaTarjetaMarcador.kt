@@ -63,6 +63,7 @@ internal fun TarjetaMarcadorMapa(
     lugarSeleccionado: Lugar?,
     comercioSeleccionado: Comercio?,
     municipiosMap: Map<String, Lugar>,
+    categoriasMap: Map<String, String> = emptyMap(),
     alturaMaximaTarjeta: Dp,
     paleta: MapaPaleta,
     onCerrar: () -> Unit,
@@ -81,8 +82,10 @@ internal fun TarjetaMarcadorMapa(
     ) {
         lugarSeleccionado?.let { lugar ->
             val comercio = comercioSeleccionado
-            val municipio = comercio?.let { municipiosMap[it.lugarId.trim()]?.nombre }
-                ?: lugar.ubicacionLarga
+            val municipio = comercio?.let {
+                municipiosMap[it.lugarId.trim()]?.nombre
+                    ?: it.municipio.trim().ifBlank { null }
+            } ?: lugar.ubicacionLarga
             val imagenUrl = comercio?.imagenUrls?.firstOrNull().orEmpty()
                 .ifBlank { lugar.imagenPortadaUrl }
 
@@ -122,9 +125,13 @@ internal fun TarjetaMarcadorMapa(
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
+                            val etiquetaCategoriaComercio = comercio?.let {
+                                categoriasMap[it.categoria.trim()]?.takeIf(String::isNotBlank)
+                                    ?: it.categoria.replaceFirstChar { c -> c.uppercase() }
+                            }
                             Text(
-                                text = comercio?.categoria?.replaceFirstChar { it.uppercase() }
-                                    ?: stringResource(lugar.categoria.etiquetaRes),
+                                text = etiquetaCategoriaComercio
+                                    ?: stringResource(lugar.categoriaResuelta.etiquetaRes),
                                 color = paleta.turismapPrimario,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold

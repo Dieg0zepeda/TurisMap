@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,7 +30,6 @@ import com.turismap.app.screens.detalleexperiencia.DetalleExperienciaDatosUi
 import com.turismap.app.screens.detalleexperiencia.EncabezadoComercio
 import com.turismap.app.screens.detalleexperiencia.FilaHorarioComercio
 import com.turismap.app.screens.detalleexperiencia.GaleriaMiniaturas
-import com.turismap.app.screens.detalleexperiencia.MenuDigitalDialog
 import com.turismap.app.screens.detalleexperiencia.SeccionDescripcionYServicios
 import com.turismap.app.screens.detalleexperiencia.SeccionEnlacesDirectos
 import com.turismap.app.screens.detalleexperiencia.SeccionResenasExperiencia
@@ -46,14 +46,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     val paleta = rememberDetalleExperienciaPaleta(isSystemInDarkTheme())
     val (state, esFavorito) = rememberDetalleExperienciaState(comercioId)
     val uriHandler = LocalUriHandler.current
-
-    if (state.mostrarModalMenu && state.comercio != null) {
-        MenuDigitalDialog(
-            nombreComercio = state.comercio!!.nombre,
-            paleta = paleta,
-            onDismiss = { state.mostrarModalMenu = false }
-        )
-    }
 
     Column(
         Modifier
@@ -83,7 +75,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                 val datosUi = DetalleExperienciaDatosUi.desde(
                     datos = state.comercio!!,
                     resenas = state.resenas,
-                    usuarioActualUid = state.usuarioActualUid
+                    usuarioActualUid = state.usuarioActualUid,
+                    categoriasMap = state.categoriasMap
                 )
 
                 Box(Modifier.fillMaxSize()) {
@@ -97,6 +90,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         CabeceraMultimediaExperiencia(
                             datosUi = datosUi,
                             esFavorito = esFavorito,
+                            favoritoEnProceso = comercioId in state.favoritosEnProceso,
                             paleta = paleta,
                             onVolver = onVolver,
                             onToggleFavorito = { state.toggleFavorito(esFavorito) }
@@ -108,17 +102,14 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                             // 3. Módulo Exclusivo Premium: Experiencias Destacadas
                             if (datosUi.esPremium) {
-                                TarjetaExperienciasPremium(
-                                    paleta = paleta,
-                                    onAbrirCatalogo = { state.mostrarModalMenu = true }
-                                )
+                                TarjetaExperienciasPremium(paleta = paleta)
                             }
 
                             // 4. Ubicación
                             TarjetaUbicacionComercio(
                                 datosUi = datosUi,
                                 paleta = paleta,
-                                onAbrirMapa = { uriHandler.openUri(datosUi.mapsUrl) }
+                                onAbrirMapa = { state.abrirUriSeguro(uriHandler, datosUi.mapsUrl) }
                             )
 
                             // 5. Canales de Contacto Directo (Socio y Premium)
@@ -131,11 +122,13 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                     paleta = paleta,
                                     onAbrirWhatsapp = {
                                         if (datosUi.telefonoLimpio.isNotBlank()) {
-                                            uriHandler.openUri(datosUi.whatsappUrl)
+                                            state.abrirUriSeguro(uriHandler, datosUi.whatsappUrl)
                                         }
                                     },
                                     onAbrirSitioWeb = {
-                                        datosUi.sitioWebUrl?.let(uriHandler::openUri)
+                                        datosUi.sitioWebUrl?.let { url ->
+                                            state.abrirUriSeguro(uriHandler, url)
+                                        }
                                     }
                                 )
                             }
@@ -173,10 +166,25 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                     BarraInferiorExperiencia(
                         datosUi = datosUi,
                         paleta = paleta,
-                        onLlamar = { uriHandler.openUri(datosUi.telefonoUrl) },
-                        onAbrirWhatsapp = { uriHandler.openUri(datosUi.whatsappUrl) },
-                        onIniciarRuta = { uriHandler.openUri(datosUi.mapsUrl) },
+                        onLlamar = {
+                            if (datosUi.telefonoLimpio.isNotBlank()) {
+                                state.abrirUriSeguro(uriHandler, datosUi.telefonoUrl)
+                            }
+                        },
+                        onAbrirWhatsapp = {
+                            if (datosUi.telefonoLimpio.isNotBlank()) {
+                                state.abrirUriSeguro(uriHandler, datosUi.whatsappUrl)
+                            }
+                        },
+                        onIniciarRuta = { state.abrirUriSeguro(uriHandler, datosUi.mapsUrl) },
                         modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+
+                    SnackbarHost(
+                        hostState = state.snackbarHostState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 84.dp)
                     )
                 }
             }

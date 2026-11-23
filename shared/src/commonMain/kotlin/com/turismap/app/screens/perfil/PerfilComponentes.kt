@@ -2,10 +2,8 @@ package com.turismap.app.screens.perfil
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -18,146 +16,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.turismap.app.components.RemoteImage
 import com.turismap.app.theme.TerracotaTextoAdaptable
+import com.turismap.app.theme.VerdeTextoAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.perfil_btn_cerrar_sesion
-import turismap.shared.generated.resources.perfil_cd_cambiar_portada
-import turismap.shared.generated.resources.perfil_cd_foto_perfil
-import turismap.shared.generated.resources.perfil_cd_foto_portada
-import turismap.shared.generated.resources.perfil_editar_titulo
 import turismap.shared.generated.resources.perfil_estadistica_favoritos
 import turismap.shared.generated.resources.perfil_estadistica_visitas
 import turismap.shared.generated.resources.perfil_negocios_badge
 import turismap.shared.generated.resources.perfil_negocios_descripcion
 import turismap.shared.generated.resources.perfil_negocios_titulo
 import turismap.shared.generated.resources.perfil_negocios_ver_planes
-import turismap.shared.generated.resources.perfil_negocios_ver_web
-import turismap.shared.generated.resources.perfil_opcion_privacidad_subtitulo
-import turismap.shared.generated.resources.perfil_opcion_privacidad_titulo
-import turismap.shared.generated.resources.perfil_seccion_privacidad
-
-@Composable
-internal fun CabeceraPerfil(
-    fotoPortada: String?,
-    fotoPerfil: String?,
-    paleta: PerfilPaleta,
-    onCambiarPortadaClick: () -> Unit,
-    onCambiarFotoPerfilClick: () -> Unit,
-    onEditarPerfilClick: () -> Unit
-) {
-    Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
-        // Foto de Portada
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .background(paleta.verdeEsmeralda)
-                .clickable(onClick = onCambiarPortadaClick)
-        ) {
-            fotoPortada?.takeIf { it.isNotBlank() }?.let { url ->
-                RemoteImage(
-                    url = url,
-                    contentDescription = stringResource(Res.string.perfil_cd_foto_portada),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            IconButton(
-                onClick = onCambiarPortadaClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .background(Color.Black.copy(alpha = 0.4f), CircleShape)
-                    .size(36.dp)
-            ) {
-                Icon(
-                    Icons.Default.PhotoCamera,
-                    contentDescription = stringResource(Res.string.perfil_cd_cambiar_portada),
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
-        // Foto de Perfil
-        Box(modifier = Modifier.size(130.dp).align(Alignment.BottomCenter)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(4.dp, paleta.fondoApp, CircleShape)
-                    .clickable(onClick = onCambiarFotoPerfilClick),
-                contentAlignment = Alignment.Center
-            ) {
-                val cdFotoPerfil = stringResource(Res.string.perfil_cd_foto_perfil)
-                if (!fotoPerfil.isNullOrBlank()) {
-                    RemoteImage(
-                        url = fotoPerfil,
-                        contentDescription = cdFotoPerfil,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = cdFotoPerfil,
-                        modifier = Modifier.size(72.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = (-4).dp, y = (-4).dp)
-                    .size(40.dp)
-                    .background(paleta.terracota, CircleShape)
-                    .border(2.dp, paleta.fondoApp, CircleShape)
-                    .clickable(onClick = onEditarPerfilClick),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = stringResource(Res.string.perfil_editar_titulo),
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun EncabezadoDatosUsuario(
-    nombreMostrar: String,
-    correoMostrar: String,
-    errorPerfil: String?,
-    paleta: PerfilPaleta
-) {
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = nombreMostrar,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = paleta.colorTextoPrincipal,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Text(
-            text = correoMostrar,
-            fontSize = 14.sp,
-            color = paleta.colorTextoSecundario,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        errorPerfil?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
-    }
-}
+import turismap.shared.generated.resources.perfil_opcion_contrasena_subtitulo
+import turismap.shared.generated.resources.perfil_privacidad_cambiar_contrasena
+import turismap.shared.generated.resources.perfil_privacidad_enviando
+import turismap.shared.generated.resources.perfil_seccion_cuenta_seguridad
 
 @Composable
 internal fun SeccionEstadisticasPerfil(
@@ -166,93 +43,110 @@ internal fun SeccionEstadisticasPerfil(
     paleta: PerfilPaleta,
     onFavoritosClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = paleta.fondoTarjeta,
+        border = BorderStroke(1.dp, paleta.colorDivisor)
     ) {
-        ItemEstadistica(
-            valor = cantidadFavoritos,
-            etiqueta = stringResource(Res.string.perfil_estadistica_favoritos),
-            colorEtiqueta = TerracotaTextoAdaptable,
-            colorTexto = paleta.colorTextoPrincipal,
-            onClick = onFavoritosClick
-        )
-        ItemEstadistica(
-            valor = visitas.toString(),
-            etiqueta = stringResource(Res.string.perfil_estadistica_visitas),
-            colorEtiqueta = paleta.colorTextoPrincipal,
-            colorTexto = paleta.colorTextoPrincipal
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ItemEstadistica(
+                valor = cantidadFavoritos,
+                etiqueta = stringResource(Res.string.perfil_estadistica_favoritos),
+                colorEtiqueta = TerracotaTextoAdaptable,
+                colorTexto = paleta.colorTextoPrincipal,
+                modifier = Modifier.weight(1f),
+                mostrarIndicadorAccion = true,
+                formaClick = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+                onClick = onFavoritosClick
+            )
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(paleta.colorDivisor)
+            )
+            ItemEstadistica(
+                valor = visitas.toString(),
+                etiqueta = stringResource(Res.string.perfil_estadistica_visitas),
+                colorEtiqueta = paleta.colorTextoSecundario,
+                colorTexto = paleta.colorTextoPrincipal,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
 internal fun TarjetaTurisMapNegocios(
     paleta: PerfilPaleta,
-    onVerPlanesClick: () -> Unit,
-    onVerEnWebClick: () -> Unit
+    onVerPlanesClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = paleta.verdeEsmeralda)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Surface(shape = RoundedCornerShape(6.dp), color = Color.White.copy(alpha = 0.15f)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color.White.copy(alpha = 0.16f)
+            ) {
                 Text(
                     text = stringResource(Res.string.perfil_negocios_badge),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(Res.string.perfil_negocios_titulo),
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                lineHeight = 20.sp
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(Res.string.perfil_negocios_descripcion),
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.85f),
-                lineHeight = 18.sp
+                lineHeight = 17.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onVerPlanesClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = paleta.terracota),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = stringResource(Res.string.perfil_negocios_ver_planes),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                OutlinedButton(
-                    onClick = onVerEnWebClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(stringResource(Res.string.perfil_negocios_ver_web))
-                }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onVerPlanesClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 42.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = paleta.terracota),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.perfil_negocios_ver_planes),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
@@ -260,30 +154,44 @@ internal fun TarjetaTurisMapNegocios(
 
 @Composable
 internal fun SeccionConfiguracionPerfil(
+    enviandoRecuperacion: Boolean,
     cerrandoSesion: Boolean,
     paleta: PerfilPaleta,
-    onPrivacidadClick: () -> Unit,
+    onCambiarContrasenaClick: () -> Unit,
     onCerrarSesionClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
     ) {
         Text(
-            stringResource(Res.string.perfil_seccion_privacidad),
+            text = stringResource(Res.string.perfil_seccion_cuenta_seguridad),
             fontSize = 12.sp,
             color = paleta.colorTextoSecundario,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier.padding(start = 4.dp)
         )
-        CardOpciones(paleta.fondoTarjeta) {
+        Spacer(modifier = Modifier.height(10.dp))
+        CardOpciones(
+            fondoTarjeta = paleta.fondoTarjeta,
+            colorBorde = paleta.colorDivisor
+        ) {
             ItemMenuOpcion(
-                icono = Icons.Default.Security,
-                titulo = stringResource(Res.string.perfil_opcion_privacidad_titulo),
-                subtitulo = stringResource(Res.string.perfil_opcion_privacidad_subtitulo),
+                icono = Icons.Default.LockReset,
+                titulo = stringResource(
+                    if (enviandoRecuperacion) {
+                        Res.string.perfil_privacidad_enviando
+                    } else {
+                        Res.string.perfil_privacidad_cambiar_contrasena
+                    }
+                ),
+                subtitulo = stringResource(Res.string.perfil_opcion_contrasena_subtitulo),
                 colorTexto = paleta.colorTextoPrincipal,
                 colorIcono = paleta.colorTextoPrincipal,
-                onClick = onPrivacidadClick
+                habilitado = !cerrandoSesion,
+                cargando = enviandoRecuperacion,
+                onClick = onCambiarContrasenaClick
             )
         }
 
@@ -291,18 +199,20 @@ internal fun SeccionConfiguracionPerfil(
 
         OutlinedButton(
             onClick = onCerrarSesionClick,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 52.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = TerracotaTextoAdaptable),
-            border = BorderStroke(2.dp, TerracotaTextoAdaptable),
+            border = BorderStroke(1.5.dp, TerracotaTextoAdaptable),
             shape = RoundedCornerShape(16.dp),
             enabled = !cerrandoSesion
         ) {
             if (cerrandoSesion) {
-                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = TerracotaTextoAdaptable)
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = TerracotaTextoAdaptable)
             } else {
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(Res.string.perfil_btn_cerrar_sesion), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.perfil_btn_cerrar_sesion), fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -314,33 +224,72 @@ private fun ItemEstadistica(
     etiqueta: String,
     colorEtiqueta: Color,
     colorTexto: Color,
+    modifier: Modifier = Modifier,
+    mostrarIndicadorAccion: Boolean = false,
+    formaClick: RoundedCornerShape = RoundedCornerShape(12.dp),
     onClick: (() -> Unit)? = null
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
             .then(
                 if (onClick != null) {
-                    Modifier.clip(RoundedCornerShape(12.dp)).clickable { onClick() }.padding(horizontal = 12.dp, vertical = 6.dp)
+                    Modifier
+                        .clip(formaClick)
+                        .clickable(onClick = onClick)
                 } else {
-                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    Modifier
                 }
             )
+            .padding(horizontal = 12.dp, vertical = 14.dp)
     ) {
-        Text(text = valor, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorTexto)
-        Text(text = etiqueta, fontSize = 12.sp, color = colorEtiqueta, fontWeight = FontWeight.Medium)
+        Text(
+            text = valor,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = colorTexto
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = etiqueta,
+                fontSize = 12.sp,
+                color = colorEtiqueta,
+                fontWeight = if (onClick != null) FontWeight.SemiBold else FontWeight.Medium
+            )
+            if (mostrarIndicadorAccion) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colorEtiqueta,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun CardOpciones(fondoTarjeta: Color, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(fondoTarjeta, RoundedCornerShape(16.dp))
-            .padding(vertical = 4.dp),
-        content = content
-    )
+private fun CardOpciones(
+    fondoTarjeta: Color,
+    colorBorde: Color,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = fondoTarjeta,
+        border = BorderStroke(1.dp, colorBorde)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            content = content
+        )
+    }
 }
 
 @Composable
@@ -350,24 +299,53 @@ private fun ItemMenuOpcion(
     subtitulo: String = "",
     colorTexto: Color,
     colorIcono: Color,
+    habilitado: Boolean = true,
+    cargando: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = habilitado && !cargando, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
+        Icon(
+            imageVector = icono,
+            contentDescription = null,
+            tint = colorIcono,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = titulo, fontSize = 16.sp, color = colorTexto, fontWeight = FontWeight.Medium)
+            Text(
+                text = titulo,
+                fontSize = 15.sp,
+                color = colorTexto,
+                fontWeight = FontWeight.Medium
+            )
             if (subtitulo.isNotEmpty()) {
-                Text(text = subtitulo, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = subtitulo,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
             }
         }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(modifier = Modifier.width(8.dp))
+        if (cargando) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = VerdeTextoAdaptable
+            )
+        } else {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

@@ -95,15 +95,9 @@
     <string name="perfil_negocios_descripcion">Do you own a hotel, café, restaurant, or workshop along CA-8? Reach over 45,000 monthly travelers looking for authentic experiences.</string>
     <string name="perfil_negocios_ver_planes">View business plans</string>
     <string name="perfil_negocios_ver_web">View on the web</string>
-    <string name="perfil_seccion_privacidad">PRIVACY &amp; SECURITY</string>
-    <string name="perfil_opcion_privacidad_titulo">Privacy Settings</string>
-    <string name="perfil_opcion_privacidad_subtitulo">Password and visibility</string>
+    <string name="perfil_seccion_cuenta_seguridad">ACCOUNT &amp; SECURITY</string>
+    <string name="perfil_opcion_contrasena_subtitulo">Receive a reset link in your email</string>
     <string name="perfil_btn_cerrar_sesion">Sign Out</string>
-    <string name="perfil_privacidad_titulo">Privacy</string>
-    <string name="perfil_privacidad_perfil_publico_titulo">Public Profile</string>
-    <string name="perfil_privacidad_perfil_publico_desc">Allow others to see your saved places.</string>
-    <string name="perfil_privacidad_ubicacion_titulo">Location on Reviews</string>
-    <string name="perfil_privacidad_ubicacion_desc">Share where your review was written from.</string>
     <string name="perfil_privacidad_cambiar_contrasena">Change Password</string>
     <string name="perfil_privacidad_enviando">Sending...</string>
     <string name="perfil_privacidad_correo_enviado">We\'ll send you an email.</string>
@@ -160,6 +154,8 @@
     <string name="detalle_lugar_directorio_titulo">Planning your visit to %1$s?</string>
     <string name="detalle_lugar_directorio_desc_con_comercios">Explore the %1$d verified businesses and services available in %2$s.</string>
     <string name="detalle_lugar_directorio_desc_sin_comercios">There are currently 0 registered businesses in %1$s. New establishments will join the network soon.</string>
+    <string name="detalle_lugar_directorio_cargando">Loading available businesses in %1$s...</string>
+    <string name="detalle_lugar_compartir_texto">Discover %1$s along Ruta de las Flores with TurisMap</string>
     <string name="detalle_lugar_directorio_cafeterias">%1$d Cafés &amp; Bars</string>
     <string name="detalle_lugar_directorio_alojamientos">%1$d Hotels &amp; Cabins</string>
     <string name="detalle_lugar_directorio_artesanias">%1$d Handicrafts &amp; Shops</string>
@@ -232,6 +228,7 @@
     <string name="detalle_exp_error_guardar_resena">Could not save review.</string>
     <string name="detalle_exp_error_no_disponible">This business is not available.</string>
     <string name="detalle_exp_error_cargar">Could not load this business.</string>
+    <string name="detalle_exp_error_abrir_enlace">Could not open the link. Please verify you have a compatible app installed.</string>
     <string name="detalle_exp_badge_premium_fotos">PREMIUM PARTNER · %1$d/%2$d PHOTOS</string>
     <string name="detalle_exp_badge_galeria_fotos">Gallery (%1$d/%2$d photos)</string>
     <string name="detalle_exp_badge_contador_fotos">%1$d/%2$d photos</string>
@@ -270,6 +267,7 @@
     <string name="detalle_exp_btn_publicar_resena">Post review</string>
     <string name="detalle_exp_por_consumo">per visit</string>
     <string name="detalle_exp_precio_desde_usd">From %1$s USD</string>
+    <string name="detalle_exp_precio_consultar">Contact for price</string>
     <string name="detalle_exp_btn_iniciar_ruta">Start route</string>
 
     <!-- Business Flow: Plans -->
@@ -283,7 +281,9 @@
     <string name="planes_precio_consultar">Contact us</string>
     <string name="planes_badge_recomendado">Recommended</string>
     <string name="planes_badge_destacado">Featured</string>
+    <string name="planes_badge_mas_popular">Most popular</string>
     <string name="planes_descripcion_fallback">Our team will confirm the details with you.</string>
+    <string name="planes_nota_aclaratoria">Initial reference proposal. Scope and terms will be confirmed before activating the plan.</string>
     <string name="planes_btn_solicitar">Request plan</string>
 
     <!-- Business Flow: Registration Request -->
@@ -319,6 +319,8 @@
     <string name="comercio_label_horario_atencion">Business hours</string>
     <string name="comercio_btn_horario_manual">Enter hours manually</string>
     <string name="comercio_btn_horario_por_dias">Set hours by day</string>
+    <string name="comercio_btn_aplicar_horario">Apply schedule</string>
+    <string name="comercio_error_sin_ubicacion_para_mapa">Select a town first to open the map.</string>
     <string name="comercio_dia_lunes">Monday</string>
     <string name="comercio_dia_martes">Tuesday</string>
     <string name="comercio_dia_miercoles">Wednesday</string>
@@ -341,6 +343,13 @@
     <string name="comercio_btn_solicitud_enviada">Request sent</string>
     <string name="comercio_btn_enviar_solicitud">Submit request</string>
     <string name="comercio_btn_volver_planes">Back to plans</string>
+    <string name="comercio_btn_cambiar_plan">Change</string>
+    <string name="comercio_cargando_formulario">Loading plan and catalogs...</string>
+    <string name="comercio_seccion_info_negocio">Business information</string>
+    <string name="comercio_seccion_ubicacion_horario">Location &amp; hours</string>
+    <string name="comercio_sheet_municipio_titulo">Select your town</string>
+    <string name="comercio_sheet_categoria_titulo">Select a category</string>
+    <string name="comercio_ubicacion_guardada_badge">Location pinned on the map</string>
 
     <!-- Business Flow: Location Picker -->
     <string name="comercio_ubicacion_titulo">Locate my business</string>
@@ -400,4 +409,35 @@
     <string name="repo_usuario_error_guardar_imagen">Could not save the image.</string>
     <string name="repo_usuario_error_actualizar_favoritos">Could not update your favorites.</string>
     <string name="repo_usuario_error_registrar_visita">Could not record the visit.</string>
+
+    <!-- In-app notifications -->
+    <string name="notificaciones_titulo">Notifications</string>
+    <string name="notificaciones_cd_abrir">Open notifications</string>
+    <string name="notificaciones_cd_abrir_con_pendientes">Open notifications (%1$d unread)</string>
+    <string name="notificaciones_cd_volver">Back</string>
+    <string name="notificaciones_btn_marcar_todas">Mark all read</string>
+    <string name="notificaciones_cd_no_leida">Unread notification</string>
+    <string name="notificaciones_badge_aprobada">Approved</string>
+    <string name="notificaciones_badge_rechazada">Rejected</string>
+    <string name="notificaciones_badge_aviso">Notice</string>
+    <string name="notificaciones_titulo_aprobada_default">Request approved!</string>
+    <string name="notificaciones_titulo_rechazada_default">Request rejected</string>
+    <string name="notificaciones_titulo_default">New notification</string>
+    <string name="notificaciones_mensaje_aprobada_default">Your business %1$s is now published on TurisMap.</string>
+    <string name="notificaciones_mensaje_rechazada_default">Your request for %1$s was not approved. Review the details and try again.</string>
+    <string name="notificaciones_mensaje_default">You have an update related to %1$s.</string>
+    <string name="notificaciones_btn_ver_comercio">View my business</string>
+    <string name="notificaciones_btn_ver_planes">View plans</string>
+    <string name="notificaciones_vacio_titulo">No notifications</string>
+    <string name="notificaciones_vacio_descripcion">You will receive updates here when your business request is approved or rejected.</string>
+    <string name="notificaciones_error_cargar">Could not load your notifications.</string>
+    <string name="notificaciones_error_marcar_leida">Could not mark the notification as read.</string>
+    <string name="notificaciones_error_marcar_todas">Could not mark all notifications as read.</string>
+    <string name="notificaciones_error_sesion">Sign in to view your notifications.</string>
+    <string name="notificaciones_todas_marcadas">All notifications marked as read.</string>
+    <string name="notificaciones_tiempo_ahora">Just now</string>
+    <string name="notificaciones_tiempo_minutos">%1$d min ago</string>
+    <string name="notificaciones_tiempo_horas">%1$d h ago</string>
+    <string name="notificaciones_tiempo_dias">%1$d d ago</string>
+    <string name="notificaciones_negocio_fallback">your business</string>
 </resources>

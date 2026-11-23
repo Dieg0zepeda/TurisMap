@@ -38,6 +38,7 @@ import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.detalle_exp_btn_iniciar_ruta
 import turismap.shared.generated.resources.detalle_exp_btn_publicar_resena
 import turismap.shared.generated.resources.detalle_exp_por_consumo
+import turismap.shared.generated.resources.detalle_exp_precio_consultar
 import turismap.shared.generated.resources.detalle_exp_precio_desde_usd
 import turismap.shared.generated.resources.detalle_exp_resena_comentario_label
 import turismap.shared.generated.resources.detalle_exp_resena_escribir
@@ -94,7 +95,7 @@ internal fun SeccionResenasExperiencia(
                 border = BorderStroke(1.dp, paleta.colorBordeSuave)
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("★".repeat(r.calificacion), color = paleta.verdeTurisMap, fontSize = 13.sp)
+                    Text("★".repeat(r.calificacion.coerceIn(0, 5)), color = paleta.verdeTurisMap, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         r.comentario.ifBlank { stringResource(Res.string.detalle_exp_resena_fallback) },
@@ -200,19 +201,26 @@ internal fun BarraInferiorExperiencia(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
+                val precioTexto = datosUi.precioTexto
+                if (datosUi.esPremium || precioTexto != null) {
+                    Text(
+                        stringResource(
+                            if (datosUi.esPremium) {
+                                Res.string.guia_badge_socio_premium
+                            } else {
+                                Res.string.detalle_exp_por_consumo
+                            }
+                        ),
+                        fontSize = 11.sp,
+                        color = paleta.colorTextoSecundario
+                    )
+                }
                 Text(
-                    stringResource(
-                        if (datosUi.esPremium) {
-                            Res.string.guia_badge_socio_premium
-                        } else {
-                            Res.string.detalle_exp_por_consumo
-                        }
-                    ),
-                    fontSize = 11.sp,
-                    color = paleta.colorTextoSecundario
-                )
-                Text(
-                    stringResource(Res.string.detalle_exp_precio_desde_usd, datosUi.precioTexto),
+                    if (precioTexto != null) {
+                        stringResource(Res.string.detalle_exp_precio_desde_usd, precioTexto)
+                    } else {
+                        stringResource(Res.string.detalle_exp_precio_consultar)
+                    },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = paleta.colorTextoPrincipal
