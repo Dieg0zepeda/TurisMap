@@ -77,6 +77,7 @@ import turismap.shared.generated.resources.auth_sin_cuenta_pregunta
 import turismap.shared.generated.resources.auth_subtitulo_ruta
 import turismap.shared.generated.resources.logo_turismap
 import turismap.shared.generated.resources.repo_auth_error_contrasena_longitud
+import turismap.shared.generated.resources.repo_auth_error_nombre_longitud
 
 @Composable
 fun LoginScreen(
@@ -285,26 +286,29 @@ fun LoginScreen(
             fontSize = 13.sp,
             color = terracota,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.align(Alignment.End).clickable {
-                if (!esEmailValido(email)) {
-                    emailError = Res.string.auth_error_correo_restablecer
-                } else {
-                    cargando = true
-                    mensajeError = null
-                    coroutineScope.launch {
-                        try {
-                            AutenticacionRepository.enviarRestablecimientoContrasena(email)
-                            restablecimientoEnviado = true
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (error: Exception) {
-                            mensajeError = error.message ?: getString(Res.string.auth_error_restablecer)
-                        } finally {
-                            cargando = false
+            modifier = Modifier
+                .align(Alignment.End)
+                .clickable(enabled = !cargando && !cargandoGoogle) {
+                    if (cargando || cargandoGoogle) return@clickable
+                    if (!esEmailValido(email)) {
+                        emailError = Res.string.auth_error_correo_restablecer
+                    } else {
+                        cargando = true
+                        mensajeError = null
+                        coroutineScope.launch {
+                            try {
+                                AutenticacionRepository.enviarRestablecimientoContrasena(email)
+                                restablecimientoEnviado = true
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                mensajeError = error.message ?: getString(Res.string.auth_error_restablecer)
+                            } finally {
+                                cargando = false
+                            }
                         }
                     }
                 }
-            }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -466,10 +470,9 @@ fun LoginScreen(
     }
 }
 
-fun esEmailValido(email: String): Boolean {
-    val emailRegex = "^[A-Za-z](.*)([@]{1})(.{1,})(\\.)(.{1,})".toRegex()
-    return emailRegex.matches(email)
-}
+private val EMAIL_REGEX = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$".toRegex()
+
+fun esEmailValido(email: String): Boolean = EMAIL_REGEX.matches(email.trim())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -495,8 +498,9 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
     var interesArtesanias by remember { mutableStateOf(false) }
     var interesMiradores by remember { mutableStateOf(false) }
 
+    val nombreCorto = nombre.isNotEmpty() && nombre.trim().length < 2
     val claveCorta = password.isNotEmpty() && password.length < 8
-    val formularioValido = nombre.isNotBlank() && esEmailValido(email) && password.length >= 8 && aceptoTerminos
+    val formularioValido = nombre.trim().length >= 2 && esEmailValido(email) && password.length >= 8 && aceptoTerminos
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -523,6 +527,15 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 leadingIcon = { Icon(Icons.Default.PersonOutline, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                isError = nombreCorto,
+                supportingText = {
+                    if (nombreCorto) {
+                        Text(
+                            stringResource(Res.string.repo_auth_error_nombre_longitud),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = verdeOscuro),
                 shape = RoundedCornerShape(12.dp)
             )

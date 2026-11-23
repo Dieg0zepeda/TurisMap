@@ -145,7 +145,9 @@ fun ExplorarScreen(
                     colors = CardDefaults.cardColors(containerColor = VerdePrimario)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        val urlImagenDestacado = lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
+                        val urlImagenDestacado = lugarDestacado!!.imagenPortadaUrl.ifBlank {
+                            lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
+                        }
                         if (urlImagenDestacado.isNotEmpty()) {
                             RemoteImage(
                                 url = urlImagenDestacado,
@@ -187,8 +189,13 @@ fun ExplorarScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
+                            val nombreCortoDestacado = lugarDestacado!!.nombre
+                                .trim()
+                                .split(" ")
+                                .lastOrNull { it.isNotBlank() }
+                                ?: lugarDestacado!!.nombre.trim()
                             Text(
-                                text = stringResource(Res.string.explorar_descubre_lugar, lugarDestacado!!.nombre.split(" ").last()),
+                                text = stringResource(Res.string.explorar_descubre_lugar, nombreCortoDestacado),
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White

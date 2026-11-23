@@ -62,3 +62,28 @@ fun formatearBadgeNotificaciones(cantidadNoLeidas: Int): String? = when {
     cantidadNoLeidas > 99 -> "99+"
     else -> cantidadNoLeidas.toString()
 }
+
+@Serializable
+internal data class NotificacionFirestoreDto(
+    val id: String? = null,
+    val tipo: String? = null,
+    val titulo: String? = null,
+    val mensaje: String? = null,
+    val solicitudId: String? = null,
+    val comercioId: String? = null,
+    val nombreNegocio: String? = null,
+    val leida: Boolean? = null,
+    val creadaEn: Timestamp? = null
+) {
+    fun aNotificacion(documentId: String): Notificacion = Notificacion(
+        id = documentId,
+        tipo = tipo.orEmpty(),
+        titulo = titulo.orEmpty(),
+        mensaje = mensaje.orEmpty(),
+        solicitudId = solicitudId.orEmpty(),
+        comercioId = comercioId.orEmpty(),
+        nombreNegocio = nombreNegocio.orEmpty(),
+        leida = leida ?: false,
+        creadaEn = creadaEn
+    )
+}

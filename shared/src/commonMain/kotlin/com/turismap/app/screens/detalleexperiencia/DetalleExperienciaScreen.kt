@@ -30,7 +30,6 @@ import com.turismap.app.screens.detalleexperiencia.DetalleExperienciaDatosUi
 import com.turismap.app.screens.detalleexperiencia.EncabezadoComercio
 import com.turismap.app.screens.detalleexperiencia.FilaHorarioComercio
 import com.turismap.app.screens.detalleexperiencia.GaleriaMiniaturas
-import com.turismap.app.screens.detalleexperiencia.MenuDigitalDialog
 import com.turismap.app.screens.detalleexperiencia.SeccionDescripcionYServicios
 import com.turismap.app.screens.detalleexperiencia.SeccionEnlacesDirectos
 import com.turismap.app.screens.detalleexperiencia.SeccionResenasExperiencia
@@ -47,14 +46,6 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
     val paleta = rememberDetalleExperienciaPaleta(isSystemInDarkTheme())
     val (state, esFavorito) = rememberDetalleExperienciaState(comercioId)
     val uriHandler = LocalUriHandler.current
-
-    if (state.mostrarModalMenu && state.comercio != null) {
-        MenuDigitalDialog(
-            nombreComercio = state.comercio!!.nombre,
-            paleta = paleta,
-            onDismiss = { state.mostrarModalMenu = false }
-        )
-    }
 
     Column(
         Modifier
@@ -84,7 +75,8 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                 val datosUi = DetalleExperienciaDatosUi.desde(
                     datos = state.comercio!!,
                     resenas = state.resenas,
-                    usuarioActualUid = state.usuarioActualUid
+                    usuarioActualUid = state.usuarioActualUid,
+                    categoriasMap = state.categoriasMap
                 )
 
                 Box(Modifier.fillMaxSize()) {
@@ -98,6 +90,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                         CabeceraMultimediaExperiencia(
                             datosUi = datosUi,
                             esFavorito = esFavorito,
+                            favoritoEnProceso = comercioId in state.favoritosEnProceso,
                             paleta = paleta,
                             onVolver = onVolver,
                             onToggleFavorito = { state.toggleFavorito(esFavorito) }
@@ -109,10 +102,7 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
 
                             // 3. Módulo Exclusivo Premium: Experiencias Destacadas
                             if (datosUi.esPremium) {
-                                TarjetaExperienciasPremium(
-                                    paleta = paleta,
-                                    onAbrirCatalogo = { state.mostrarModalMenu = true }
-                                )
+                                TarjetaExperienciasPremium(paleta = paleta)
                             }
 
                             // 4. Ubicación

@@ -60,6 +60,7 @@ internal fun rememberDetalleExperienciaPaleta(esOscuro: Boolean): DetalleExperie
 
 internal data class DetalleExperienciaDatosUi(
     val comercio: Comercio,
+    val categoriaEtiqueta: String,
     val esPropietario: Boolean,
     val esPremium: Boolean,
     val esSocio: Boolean,
@@ -70,7 +71,7 @@ internal data class DetalleExperienciaDatosUi(
     val whatsappUrl: String,
     val mapsUrl: String,
     val sitioWebUrl: String?,
-    val precioTexto: String,
+    val precioTexto: String?,
     val promedioNumericoTexto: String?,
     val totalResenas: Int
 ) {
@@ -78,9 +79,13 @@ internal data class DetalleExperienciaDatosUi(
         fun desde(
             datos: Comercio,
             resenas: List<Resena>,
-            usuarioActualUid: String?
+            usuarioActualUid: String?,
+            categoriasMap: Map<String, String> = emptyMap()
         ): DetalleExperienciaDatosUi {
             val esPropietario = datos.propietarioUid == usuarioActualUid
+            val categoriaEtiqueta = categoriasMap[datos.categoria.trim()]
+                ?.takeIf(String::isNotBlank)
+                ?: datos.categoria.trim()
 
             val esPremium = datos.planInt == 3
             val esSocio = datos.planInt == 2
@@ -114,7 +119,7 @@ internal data class DetalleExperienciaDatosUi(
                 codificarParametroMaps(consultaMaps)
             val sitioWebUrl = validarSitioWebSeguro(datos.sitioWeb)
 
-            val precioTexto = if (datos.precioDesde != null && datos.precioDesde > 0) {
+            val precioTexto = if (datos.precioDesde != null && datos.precioDesde > 0.0) {
                 val pStr = datos.precioDesde.toString()
                 if (pStr.contains(".")) {
                     val partes = pStr.split(".")
@@ -123,7 +128,7 @@ internal data class DetalleExperienciaDatosUi(
                     "$$pStr.00"
                 }
             } else {
-                "$3.00"
+                null
             }
 
             val totalResenasReal = if (resenas.isNotEmpty()) resenas.size else (datos.cantidadResenas ?: 0)
@@ -142,6 +147,7 @@ internal data class DetalleExperienciaDatosUi(
 
             return DetalleExperienciaDatosUi(
                 comercio = datos,
+                categoriaEtiqueta = categoriaEtiqueta,
                 esPropietario = esPropietario,
                 esPremium = esPremium,
                 esSocio = esSocio,
@@ -185,6 +191,8 @@ internal class DetalleExperienciaState(
 ) {
     var comercio by mutableStateOf<Comercio?>(null)
     var resenas by mutableStateOf<List<Resena>>(emptyList())
+    var categoriasMap by mutableStateOf<Map<String, String>>(emptyMap())
+    var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var cargando by mutableStateOf(true)
     var error by mutableStateOf<String?>(null)
     var intento by mutableIntStateOf(0)
@@ -193,7 +201,6 @@ internal class DetalleExperienciaState(
     var enviando by mutableStateOf(false)
     var mensaje by mutableStateOf<String?>(null)
     var resenaGuardadaExito by mutableStateOf(false)
-    var mostrarModalMenu by mutableStateOf(false)
 
     val tieneUsuarioAutenticado: Boolean
         get() = AutenticacionRepository.usuarioActual != null
@@ -243,13 +250,21 @@ internal class DetalleExperienciaState(
     }
 
     fun toggleFavorito(esFavoritoActual: Boolean) {
+        if (comercioId in favoritosEnProceso) return
+        favoritosEnProceso = favoritosEnProceso + comercioId
         scope.launch {
             try {
-                UsuarioRepository.cambiarFavorito(comercioId, !esFavoritoActual)
+                UsuarioRepository.cambiarFavorito(
+                    lugarId = comercioId,
+                    guardar = !esFavoritoActual,
+                    esComercio = true
+                )
             } catch (cancelacion: CancellationException) {
                 throw cancelacion
             } catch (e: Exception) {
                 mensaje = e.message ?: getString(Res.string.guia_error_actualizar_favorito)
+            } finally {
+                favoritosEnProceso = favoritosEnProceso - comercioId
             }
         }
     }
@@ -268,8 +283,16 @@ internal class DetalleExperienciaState(
             scope.launch {
                 try {
                     ComercioRepository.enviarResena(datosId, calificacion, comentario.trim())
+                    val resenasActualizadas = ComercioRepository.obtenerResenas(datosId)
+                    resenas = resenasActualizadas
+                    val propia = resenasActualizadas.firstOrNull {
+                        it.usuarioUid == AutenticacionRepository.usuarioActual?.uid
+                    }
+                    if (propia != null) {
+                        calificacion = propia.calificacion
+                        comentario = propia.comentario
+                    }
                     resenaGuardadaExito = true
-                    intento++
                 } catch (cancelacion: CancellationException) {
                     throw cancelacion
                 } catch (ex: Exception) {
@@ -302,6 +325,13 @@ internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleEx
             state.comercio = ComercioRepository.obtenerPorId(comercioId)
                 ?.takeIf { it.estado == "publicado" }
                 ?: throw IllegalStateException(getString(Res.string.detalle_exp_error_no_disponible))
+            state.categoriasMap = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
+            } catch (_: Exception) {
+                emptyMap()
+            }
             state.resenas = ComercioRepository.obtenerResenas(comercioId)
             val propia = state.resenas.firstOrNull {
                 it.usuarioUid == AutenticacionRepository.usuarioActual?.uid

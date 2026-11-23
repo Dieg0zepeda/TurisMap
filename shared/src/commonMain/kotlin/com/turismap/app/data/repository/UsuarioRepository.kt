@@ -172,8 +172,7 @@ object UsuarioRepository {
     // 3. MUTACIONES DE PERFIL Y FOTOS
     // ==========================================
 
-    @Suppress("UNUSED_PARAMETER")
-    suspend fun actualizarPerfil(nombre: String, telefono: String = "") {
+    suspend fun actualizarPerfil(nombre: String) {
         val usuario = Firebase.auth.currentUser
             ?: throw IllegalStateException(getString(Res.string.perfil_error_sin_sesion))
 
@@ -253,9 +252,16 @@ object UsuarioRepository {
     // 4. FAVORITOS Y RUTAS
     // ==========================================
 
-    suspend fun cambiarFavorito(lugarId: String, guardar: Boolean) {
+    suspend fun cambiarFavorito(
+        lugarId: String,
+        guardar: Boolean,
+        esComercio: Boolean = false
+    ) {
         val uid = obtenerIdUsuarioActual()
             ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_favoritos))
+        val idLimpio = lugarId.trim()
+        if (idLimpio.isEmpty()) return
+
         try {
             val referencia = firestore.collection("usuarios").document(uid)
             val documento = referencia.get()
@@ -269,10 +275,14 @@ object UsuarioRepository {
                 )
             }
 
+            val idBase = idLimpio.removePrefix("comercio:")
+            val esComercioResuelto = esComercio || idLimpio.startsWith("comercio:")
             val operacion = if (guardar) {
-                FieldValue.arrayUnion(lugarId)
+                FieldValue.arrayUnion(idLimpio)
+            } else if (esComercioResuelto) {
+                FieldValue.arrayRemove(idBase, "comercio:$idBase")
             } else {
-                FieldValue.arrayRemove(lugarId)
+                FieldValue.arrayRemove(idLimpio)
             }
             referencia.update("favoritos" to operacion)
         } catch (error: CancellationException) {

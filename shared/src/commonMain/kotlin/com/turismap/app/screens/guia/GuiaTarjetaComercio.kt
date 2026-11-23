@@ -49,7 +49,9 @@ import turismap.shared.generated.resources.guia_cd_favorito
 internal fun TarjetaComercioGuia(
     comercio: Comercio,
     municipio: String,
+    categoriaEtiqueta: String,
     esFavorito: Boolean,
+    favoritoEnProceso: Boolean,
     paleta: GuiaPaleta,
     onToggleFavorito: () -> Unit,
     onClick: () -> Unit
@@ -61,7 +63,7 @@ internal fun TarjetaComercioGuia(
 
     val calificacion = formatearCalificacionComercio(comercio.calificacionPromedio)
         ?: stringResource(Res.string.guia_calificacion_nuevo)
-    val subtitulo = formatearSubtituloComercio(municipio, comercio.categoria)
+    val subtitulo = formatearSubtituloComercio(municipio, categoriaEtiqueta)
 
     val precioDesdeValido = comercio.precioDesde?.takeIf { it > 0.0 }
     val detalleBreve = when {
@@ -164,7 +166,7 @@ internal fun TarjetaComercioGuia(
                             .size(32.dp)
                             .clip(CircleShape)
                             .background(Color.Black.copy(alpha = 0.38f))
-                            .clickable(onClick = onToggleFavorito),
+                            .clickable(enabled = !favoritoEnProceso, onClick = onToggleFavorito),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

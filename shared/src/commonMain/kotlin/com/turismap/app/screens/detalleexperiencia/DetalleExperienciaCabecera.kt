@@ -53,6 +53,7 @@ import turismap.shared.generated.resources.guia_calificacion_nuevo
 internal fun CabeceraMultimediaExperiencia(
     datosUi: DetalleExperienciaDatosUi,
     esFavorito: Boolean,
+    favoritoEnProceso: Boolean,
     paleta: DetalleExperienciaPaleta,
     onVolver: () -> Unit,
     onToggleFavorito: () -> Unit
@@ -193,7 +194,7 @@ internal fun CabeceraMultimediaExperiencia(
                     .background(if (paleta.esOscuro) Color(0xFF1E293B) else Color(0xFFE2E8F0)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(datos.categoria, color = paleta.verdeTurisMap, fontWeight = FontWeight.Bold)
+                Text(datosUi.categoriaEtiqueta, color = paleta.verdeTurisMap, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -259,6 +260,7 @@ internal fun CabeceraMultimediaExperiencia(
                 if (!datosUi.esBasico) {
                     IconButton(
                         onClick = onToggleFavorito,
+                        enabled = !favoritoEnProceso,
                         modifier = Modifier
                             .size(36.dp)
                             .background(Color.Black.copy(alpha = 0.55f), CircleShape)
@@ -305,7 +307,7 @@ internal fun EncabezadoComercio(
             Text("★", color = paleta.verdeTurisMap, fontSize = 15.sp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "$promedioTexto · $resenasTexto · ${datos.categoria}",
+                "$promedioTexto · $resenasTexto · ${datosUi.categoriaEtiqueta}",
                 color = paleta.colorTextoSecundario,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold

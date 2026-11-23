@@ -197,6 +197,7 @@ fun PerfilScreen(
             categoriaSeleccionada = state.categoriaFavoritoSeleccionada,
             cargandoFavoritos = state.cargandoFavoritos,
             favoritosFiltrados = state.favoritosFiltrados,
+            favoritosEnProceso = state.favoritosEnProceso,
             paleta = paleta,
             onDismiss = { state.mostrarVentanaFavoritos = false },
             onSeleccionarCategoria = { state.categoriaFavoritoSeleccionada = it },
@@ -205,17 +206,16 @@ fun PerfilScreen(
                 if (item.esComercio) onComercioClick(item.id)
                 else onLugarClick(item.id)
             },
-            onQuitarFavoritoClick = { idFavoritoOriginal -> state.quitarFavorito(idFavoritoOriginal) }
+            onQuitarFavoritoClick = { item -> state.quitarFavorito(item) }
         )
     }
 
     if (state.mostrarDialogoEditar) {
         DialogoEditarPerfil(
             nombreInicial = state.usuarioBD?.nombre?.takeIf { it.isNotBlank() } ?: nombreMostrar,
-            telefonoInicial = state.usuarioBD?.telefono.orEmpty(),
             guardandoPerfil = state.guardandoPerfil,
             paleta = paleta,
-            onGuardarClick = { nombre, telefono -> state.guardarPerfil(nombre, telefono) },
+            onGuardarClick = { nombre -> state.guardarPerfil(nombre) },
             onDismiss = { if (!state.guardandoPerfil) state.mostrarDialogoEditar = false }
         )
     }

@@ -140,7 +140,9 @@ private fun TarjetaDestinoCarrusel(
                     .height(ALTURA_IMAGEN_TARJETA)
                     .background(VerdePrimario.copy(alpha = 0.14f))
             ) {
-                val urlImagen = lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
+                val urlImagen = lugar.imagenPortadaUrl.ifBlank {
+                    lugar.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
+                }
                 if (urlImagen.isNotEmpty()) {
                     RemoteImage(
                         url = urlImagen,

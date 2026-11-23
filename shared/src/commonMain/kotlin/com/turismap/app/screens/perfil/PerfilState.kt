@@ -55,7 +55,7 @@ internal data class ItemFavoritoUi(
     val categoria: String = "",
     val categoriaRes: StringResource? = null,
     val imagenUrl: String,
-    val calificacion: Double,
+    val calificacion: Double?,
     val esComercio: Boolean
 )
 
@@ -98,7 +98,9 @@ internal class PerfilState(
     // Control del modal de favoritos y filtro por categoría
     var mostrarVentanaFavoritos by mutableStateOf(false)
     var cargandoFavoritos by mutableStateOf(false)
+    var favoritosSincronizados by mutableStateOf(false)
     var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
+    var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
     var mostrarDialogoEditar by mutableStateOf(false)
@@ -144,7 +146,11 @@ internal class PerfilState(
             }
 
     val cantidadFavoritos: String
-        get() = (usuarioBD?.favoritos?.size ?: 0).toString()
+        get() = (if (favoritosSincronizados) {
+            listaFavoritosDetallados.size
+        } else {
+            usuarioBD?.favoritos?.size ?: 0
+        }).toString()
 
     fun actualizarFoto(uriLocal: String) {
         if (subiendoFoto || uriLocal.isBlank()) return
@@ -170,18 +176,27 @@ internal class PerfilState(
         }
     }
 
-    fun quitarFavorito(idFavoritoOriginal: String) {
+    fun quitarFavorito(item: ItemFavoritoUi) {
+        val clave = item.idFavoritoOriginal
+        if (clave in favoritosEnProceso) return
+        favoritosEnProceso = favoritosEnProceso + clave
         coroutineScope.launch {
             try {
-                UsuarioRepository.cambiarFavorito(idFavoritoOriginal, false)
+                UsuarioRepository.cambiarFavorito(
+                    lugarId = item.id,
+                    guardar = false,
+                    esComercio = item.esComercio
+                )
                 listaFavoritosDetallados = listaFavoritosDetallados.filterNot {
-                    it.idFavoritoOriginal == idFavoritoOriginal
+                    it.esComercio == item.esComercio && it.id == item.id
                 }
                 snackbarHostState.showSnackbar(getString(Res.string.perfil_favorito_eliminado))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar(e.message ?: getString(Res.string.perfil_error_actualizar))
+            } finally {
+                favoritosEnProceso = favoritosEnProceso - clave
             }
         }
     }
@@ -210,12 +225,12 @@ internal class PerfilState(
         }
     }
 
-    fun guardarPerfil(nombre: String, telefono: String = "") {
+    fun guardarPerfil(nombre: String) {
         if (!guardandoPerfil) {
             guardandoPerfil = true
             coroutineScope.launch {
                 try {
-                    UsuarioRepository.actualizarPerfil(nombre.trim(), telefono.trim())
+                    UsuarioRepository.actualizarPerfil(nombre.trim())
                     mostrarDialogoEditar = false
                     snackbarHostState.showSnackbar(getString(Res.string.perfil_actualizado))
                 } catch (error: CancellationException) {
@@ -307,63 +322,89 @@ internal fun rememberPerfilState(): PerfilState {
     }
 
     // Carga y mapeo reactivo de favoritos distinguiendo Lugares (Destinos) y Comercios
-    LaunchedEffect(state.mostrarVentanaFavoritos, usuarioBD?.favoritos) {
-        if (state.mostrarVentanaFavoritos) {
-            state.cargandoFavoritos = true
-            try {
-                val favoritosIds = usuarioBD?.favoritos ?: emptyList()
-                if (favoritosIds.isEmpty()) {
-                    state.listaFavoritosDetallados = emptyList()
-                } else {
-                    val todosLugares = try {
-                        LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                        emptyMap()
-                    }
-                    val todosComercios = try {
-                        ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                        emptyMap()
-                    }
+    LaunchedEffect(usuarioBD?.favoritos) {
+        val favoritosIds = usuarioBD?.favoritos ?: run {
+            state.listaFavoritosDetallados = emptyList()
+            state.favoritosSincronizados = false
+            return@LaunchedEffect
+        }
+        if (favoritosIds.isEmpty()) {
+            state.listaFavoritosDetallados = emptyList()
+            state.favoritosSincronizados = true
+            state.cargandoFavoritos = false
+            return@LaunchedEffect
+        }
 
-                    val resueltos = favoritosIds.mapNotNull { idOriginal ->
-                        val idLimpio = idOriginal.trim()
-                        val lugar = todosLugares[idLimpio]
-                        if (lugar != null) {
-                            ItemFavoritoUi(
-                                id = lugar.id,
-                                idFavoritoOriginal = idOriginal,
-                                nombre = lugar.nombre,
-                                categoriaRes = lugar.categoria.etiquetaRes,
-                                imagenUrl = lugar.imagenPortadaUrl,
-                                calificacion = lugar.calificacion,
-                                esComercio = false
-                            )
-                        } else {
-                            val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
-                            val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
-                            if (comercio != null) {
-                                ItemFavoritoUi(
-                                    id = comercio.id,
-                                    idFavoritoOriginal = idOriginal,
-                                    nombre = comercio.nombre,
-                                    categoria = comercio.categoria,
-                                    imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
-                                    calificacion = comercio.calificacionPromedio ?: 4.9,
-                                    esComercio = true
-                                )
-                            } else null
-                        }
-                    }
-                    state.listaFavoritosDetallados = resueltos
-                }
+        state.cargandoFavoritos = true
+        try {
+            var lugaresOk = true
+            val todosLugares = try {
+                LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
+            } catch (_: Exception) {
+                lugaresOk = false
+                emptyMap()
+            }
+            var comerciosOk = true
+            val todosComercios = try {
+                ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                comerciosOk = false
+                emptyMap()
+            }
+            val categoriasMap = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                emptyMap()
+            }
+
+            val clavesVistas = mutableSetOf<Pair<Boolean, String>>()
+            val resueltos = favoritosIds.mapNotNull { idOriginal ->
+                val idLimpio = idOriginal.trim()
+                val lugar = todosLugares[idLimpio]
+                if (lugar != null) {
+                    if (!clavesVistas.add(false to lugar.id)) return@mapNotNull null
+                    ItemFavoritoUi(
+                        id = lugar.id,
+                        idFavoritoOriginal = idOriginal,
+                        nombre = lugar.nombre,
+                        categoriaRes = lugar.categoriaResuelta.etiquetaRes,
+                        imagenUrl = lugar.imagenPortadaUrl,
+                        calificacion = lugar.calificacion.takeIf { it > 0.0 },
+                        esComercio = false
+                    )
+                } else {
+                    val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
+                    val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
+                    if (comercio != null) {
+                        if (!clavesVistas.add(true to comercio.id)) return@mapNotNull null
+                        val etiquetaCategoria = categoriasMap[comercio.categoria.trim()]
+                            ?: comercio.categoria
+                        ItemFavoritoUi(
+                            id = comercio.id,
+                            idFavoritoOriginal = idOriginal,
+                            nombre = comercio.nombre,
+                            categoria = etiquetaCategoria,
+                            imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
+                            calificacion = comercio.calificacionPromedio?.takeIf { it > 0.0 },
+                            esComercio = true
+                        )
+                    } else null
+                }
+            }
+            if (lugaresOk || comerciosOk) {
+                state.listaFavoritosDetallados = resueltos
+                state.favoritosSincronizados = lugaresOk && comerciosOk
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (state.mostrarVentanaFavoritos) {
                 val detalle = error.message?.takeIf { it.isNotBlank() }
                 val mensaje = if (detalle != null) {
                     getString(Res.string.perfil_error_cargar_favoritos, detalle)
@@ -371,9 +412,9 @@ internal fun rememberPerfilState(): PerfilState {
                     getString(Res.string.perfil_error_cargar_favoritos_generico)
                 }
                 state.snackbarHostState.showSnackbar(mensaje)
-            } finally {
-                state.cargandoFavoritos = false
             }
+        } finally {
+            state.cargandoFavoritos = false
         }
     }
 

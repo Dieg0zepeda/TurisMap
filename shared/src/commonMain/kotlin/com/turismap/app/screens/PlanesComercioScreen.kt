@@ -154,7 +154,7 @@ fun PlanesComercioScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                planes.sortedBy { it.precio }.forEach { plan ->
+                planes.sortedBy(PlanComercio::orden).forEach { plan ->
                     TarjetaElegante(
                         plan = plan,
                         onSolicitar = { onSolicitarPlan(plan) },

@@ -111,7 +111,8 @@ fun GuiaScreen(
                             item(key = "destacados") {
                                 SeccionExperienciasDestacadas(
                                     comerciosDestacados = state.comerciosDestacados,
-                                    mapaMunicipios = state.mapaMunicipios,
+                                    resolverUbicacion = state::resolverUbicacionComercio,
+                                    resolverCategoria = state::etiquetaCategoria,
                                     paleta = paleta,
                                     onComercioClick = onComercioClick
                                 )
@@ -129,7 +130,9 @@ fun GuiaScreen(
 
                         // Listado principal de comercios
                         items(state.comerciosFiltrados, key = { it.id }) { comercio ->
-                            val muniNombre = state.mapaMunicipios[comercio.lugarId] ?: municipioPredeterminado
+                            val muniNombre = state.resolverUbicacionComercio(comercio)
+                                .ifBlank { municipioPredeterminado }
+                            val categoriaNombre = state.etiquetaCategoria(comercio.categoria)
                             val esFavorito = favoritosUsuario.contains(comercio.id) ||
                                 favoritosUsuario.contains("comercio:${comercio.id}")
 
@@ -137,7 +140,9 @@ fun GuiaScreen(
                                 TarjetaComercioGuia(
                                     comercio = comercio,
                                     municipio = muniNombre,
+                                    categoriaEtiqueta = categoriaNombre,
                                     esFavorito = esFavorito,
+                                    favoritoEnProceso = comercio.id in state.favoritosEnProceso,
                                     paleta = paleta,
                                     onToggleFavorito = { state.toggleFavorito(comercio.id, !esFavorito) },
                                     onClick = { onComercioClick(comercio.id) }
@@ -159,6 +164,7 @@ fun GuiaScreen(
 
     if (state.mostrarSelectorPueblo) {
         SelectorPuebloBottomSheet(
+            municipiosDisponibles = state.opcionesMunicipios,
             municipioSeleccionado = state.municipioSeleccionado,
             paleta = paleta,
             onMunicipioSeleccionado = { muni ->

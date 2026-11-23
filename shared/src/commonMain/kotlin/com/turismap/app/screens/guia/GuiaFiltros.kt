@@ -177,6 +177,7 @@ internal fun CabeceraBusquedaYPueblo(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SelectorPuebloBottomSheet(
+    municipiosDisponibles: List<String?>,
     municipioSeleccionado: String?,
     paleta: GuiaPaleta,
     onMunicipioSeleccionado: (String?) -> Unit,
@@ -209,7 +210,7 @@ internal fun SelectorPuebloBottomSheet(
                 modifier = Modifier.padding(vertical = 4.dp)
             )
 
-            municipiosRuta.forEach { muni ->
+            municipiosDisponibles.forEach { muni ->
                 val activo = if (muni == null) {
                     municipioSeleccionado == null
                 } else {

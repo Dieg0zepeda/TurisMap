@@ -165,7 +165,7 @@ fun FigmaPoiCard(
                     color = VerdePrimario.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = stringResource(lugar.categoria.etiquetaRes).uppercase(),
+                        text = stringResource(lugar.categoriaResuelta.etiquetaRes).uppercase(),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,

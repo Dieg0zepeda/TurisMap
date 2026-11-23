@@ -1,10 +1,8 @@
 package com.turismap.app.screens.detalleexperiencia
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,12 +13,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,12 +37,10 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
-import turismap.shared.generated.resources.detalle_exp_abierto_ahora
-import turismap.shared.generated.resources.detalle_exp_abierto_todos_dias
+import turismap.shared.generated.resources.comercio_label_horario_atencion
 import turismap.shared.generated.resources.detalle_exp_acerca_titulo
 import turismap.shared.generated.resources.detalle_exp_badge_premium
 import turismap.shared.generated.resources.detalle_exp_btn_redes_web
-import turismap.shared.generated.resources.detalle_exp_btn_ver_catalogo
 import turismap.shared.generated.resources.detalle_exp_btn_ver_mapa
 import turismap.shared.generated.resources.detalle_exp_btn_whatsapp_directo
 import turismap.shared.generated.resources.detalle_exp_canal_oficial
@@ -50,7 +48,6 @@ import turismap.shared.generated.resources.detalle_exp_canal_premium
 import turismap.shared.generated.resources.detalle_exp_descripcion_fallback
 import turismap.shared.generated.resources.detalle_exp_enlaces_titulo
 import turismap.shared.generated.resources.detalle_exp_galeria_titulo
-import turismap.shared.generated.resources.detalle_exp_horario_fallback
 import turismap.shared.generated.resources.detalle_exp_parada_recomendada
 import turismap.shared.generated.resources.detalle_exp_premium_descripcion
 import turismap.shared.generated.resources.detalle_exp_premium_subtitulo
@@ -60,8 +57,7 @@ import turismap.shared.generated.resources.guia_seccion_destacadas
 
 @Composable
 internal fun TarjetaExperienciasPremium(
-    paleta: DetalleExperienciaPaleta,
-    onAbrirCatalogo: () -> Unit
+    paleta: DetalleExperienciaPaleta
 ) {
     Spacer(Modifier.height(14.dp))
     Card(
@@ -119,27 +115,6 @@ internal fun TarjetaExperienciasPremium(
                 fontSize = 12.5.sp,
                 lineHeight = 18.sp
             )
-
-            Spacer(Modifier.height(12.dp))
-
-            Button(
-                onClick = onAbrirCatalogo,
-                colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📖", fontSize = 14.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(Res.string.detalle_exp_btn_ver_catalogo),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.5.sp
-                    )
-                }
-            }
         }
     }
 }
@@ -370,33 +345,36 @@ internal fun FilaHorarioComercio(
     datosUi: DetalleExperienciaDatosUi,
     paleta: DetalleExperienciaPaleta
 ) {
+    val horarioReal = datosUi.comercio.horario.trim()
+    if (horarioReal.isEmpty()) return
+
     Spacer(Modifier.height(18.dp))
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).background(paleta.verdeTurisMap, CircleShape))
-            Spacer(Modifier.width(6.dp))
+        Icon(
+            imageVector = Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = paleta.colorTextoSecundario,
+            modifier = Modifier.size(18.dp).padding(top = 2.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                stringResource(
-                    if (datosUi.esPremium) {
-                        Res.string.detalle_exp_abierto_todos_dias
-                    } else {
-                        Res.string.detalle_exp_abierto_ahora
-                    }
-                ),
-                color = if (paleta.esOscuro) Color(0xFF34D399) else Color(0xFF047857),
-                fontWeight = FontWeight.Bold,
+                stringResource(Res.string.comercio_label_horario_atencion),
+                color = paleta.colorTextoPrincipal,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 12.5.sp
             )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                horarioReal,
+                color = paleta.colorTextoSecundario,
+                fontSize = 12.5.sp,
+                lineHeight = 18.sp
+            )
         }
-        Text(
-            datosUi.comercio.horario.ifBlank { stringResource(Res.string.detalle_exp_horario_fallback) },
-            color = paleta.colorTextoSecundario,
-            fontSize = 12.5.sp
-        )
     }
 }
 

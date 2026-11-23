@@ -4,5 +4,16 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TurisMap utiliza tu ubicación para mostrarte en el mapa turístico de la Ruta de las Flores y calcular rutas hacia destinos y comercios cercanos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TurisMap necesita acceso a tu galería de fotos para que puedas actualizar tu foto de perfil y portada.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>tel</string>
+		<string>whatsapp</string>
+		<string>comgooglemaps</string>
+	</array>
 </dict>
 </plist>

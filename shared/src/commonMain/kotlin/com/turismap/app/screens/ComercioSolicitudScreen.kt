@@ -53,6 +53,8 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_cancelar
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.comercio_btn_aplicar_horario
 import turismap.shared.generated.resources.comercio_btn_cambiar_ubicacion_mapa
 import turismap.shared.generated.resources.comercio_btn_enviar_solicitud
 import turismap.shared.generated.resources.comercio_btn_horario_manual
@@ -79,6 +81,7 @@ import turismap.shared.generated.resources.comercio_error_plan_no_disponible
 import turismap.shared.generated.resources.comercio_error_seleccionar_ubicacion
 import turismap.shared.generated.resources.comercio_error_seleccionar_ubicacion_exacta
 import turismap.shared.generated.resources.comercio_error_sin_categorias
+import turismap.shared.generated.resources.comercio_error_sin_ubicacion_para_mapa
 import turismap.shared.generated.resources.comercio_error_sin_ubicaciones
 import turismap.shared.generated.resources.comercio_error_sitio_web_https
 import turismap.shared.generated.resources.comercio_error_telefono_digitos
@@ -262,20 +265,25 @@ fun ComercioSolicitudScreen(
         }
     }
 
-    if (seleccionandoUbicacion) {
-        val lugar = lugarSeleccionado
-        if (lugar != null) {
-            SeleccionarUbicacionComercioScreen(
-                coordenadaInicial = lugar.ubicacionCoordenadas,
-                coordenadaGuardada = coordenadaSeleccionada,
-                onBack = { seleccionandoUbicacion = false },
-                onGuardar = { coordenada ->
-                    coordenadaSeleccionada = coordenada
-                    seleccionandoUbicacion = false
-                }
-            )
+    val lugarParaMapa = lugarSeleccionado
+    if (seleccionandoUbicacion && lugarParaMapa != null) {
+        SeleccionarUbicacionComercioScreen(
+            coordenadaInicial = lugarParaMapa.ubicacionCoordenadas,
+            coordenadaGuardada = coordenadaSeleccionada,
+            onBack = { seleccionandoUbicacion = false },
+            onGuardar = { coordenada ->
+                coordenadaSeleccionada = coordenada
+                seleccionandoUbicacion = false
+            }
+        )
+    } else {
+        LaunchedEffect(seleccionandoUbicacion, lugarParaMapa) {
+            if (seleccionandoUbicacion && lugarParaMapa == null) {
+                seleccionandoUbicacion = false
+                errorEnvio = getString(Res.string.comercio_error_sin_ubicacion_para_mapa)
+            }
         }
-    } else Scaffold(
+        Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.comercio_titulo_registrar)) },
@@ -350,6 +358,19 @@ fun ComercioSolicitudScreen(
                         fontSize = 12.5.sp,
                         color = Color(0xFF475569)
                     )
+                }
+            }
+
+            if (cargandoPlan) {
+                CircularProgressIndicator(modifier = Modifier.padding(vertical = 4.dp))
+            } else {
+                planError?.let { errorPlan ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(errorPlan, color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = { intentoCarga++ }) {
+                            Text(stringResource(Res.string.btn_reintentar))
+                        }
+                    }
                 }
             }
 
@@ -593,17 +614,22 @@ fun ComercioSolicitudScreen(
                             }
                         }
 
-                        LaunchedEffect(diasSeleccionados, horariosPorDia) {
-                            horario = if (diasSeleccionados.isEmpty()) {
-                                ""
-                            } else {
-                                diasSeleccionados.joinToString(", ") { dia ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                val diasOrdenados = DiaSemanaSolicitud.entries.filter { it in diasSeleccionados }
+                                horario = diasOrdenados.joinToString(", ") { dia ->
                                     val horarioDia = horariosPorDia[dia] ?: HorarioDia()
                                     val abre = horarioDia.apertura.trim().ifBlank { "8:00 AM" }
                                     val cierra = horarioDia.cierre.trim().ifBlank { "5:00 PM" }
                                     "${dia.nombrePersistencia}: $abre a $cierra"
                                 }
-                            }
+                                mostrarHorarioDetallado = false
+                            },
+                            enabled = diasSeleccionados.isNotEmpty(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(Res.string.comercio_btn_aplicar_horario))
                         }
                     } else {
                         CampoSolicitud(
@@ -726,6 +752,7 @@ fun ComercioSolicitudScreen(
                 }
             }
         }
+    }
     }
 }
 

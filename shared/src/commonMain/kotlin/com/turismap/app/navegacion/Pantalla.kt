@@ -2,7 +2,9 @@ package com.turismap.app.navegacion
 
 sealed class Pantalla(val ruta: String) {
     object Explorar : Pantalla("explorar")
-    object Mapa : Pantalla("mapa")
+    object Mapa : Pantalla("mapa") {
+        const val rutaPatron = "mapa?lat={lat}&lng={lng}&zoom={zoom}"
+    }
     object Guia : Pantalla("guia")
     object Perfil : Pantalla("perfil")
     object Notificaciones : Pantalla("notificaciones")

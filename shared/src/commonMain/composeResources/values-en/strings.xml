@@ -154,6 +154,8 @@
     <string name="detalle_lugar_directorio_titulo">Planning your visit to %1$s?</string>
     <string name="detalle_lugar_directorio_desc_con_comercios">Explore the %1$d verified businesses and services available in %2$s.</string>
     <string name="detalle_lugar_directorio_desc_sin_comercios">There are currently 0 registered businesses in %1$s. New establishments will join the network soon.</string>
+    <string name="detalle_lugar_directorio_cargando">Loading available businesses in %1$s...</string>
+    <string name="detalle_lugar_compartir_texto">Discover %1$s along Ruta de las Flores with TurisMap</string>
     <string name="detalle_lugar_directorio_cafeterias">%1$d Cafés &amp; Bars</string>
     <string name="detalle_lugar_directorio_alojamientos">%1$d Hotels &amp; Cabins</string>
     <string name="detalle_lugar_directorio_artesanias">%1$d Handicrafts &amp; Shops</string>
@@ -265,6 +267,7 @@
     <string name="detalle_exp_btn_publicar_resena">Post review</string>
     <string name="detalle_exp_por_consumo">per visit</string>
     <string name="detalle_exp_precio_desde_usd">From %1$s USD</string>
+    <string name="detalle_exp_precio_consultar">Contact for price</string>
     <string name="detalle_exp_btn_iniciar_ruta">Start route</string>
 
     <!-- Business Flow: Plans -->
@@ -314,6 +317,8 @@
     <string name="comercio_label_horario_atencion">Business hours</string>
     <string name="comercio_btn_horario_manual">Enter hours manually</string>
     <string name="comercio_btn_horario_por_dias">Set hours by day</string>
+    <string name="comercio_btn_aplicar_horario">Apply schedule</string>
+    <string name="comercio_error_sin_ubicacion_para_mapa">Select a town first to open the map.</string>
     <string name="comercio_dia_lunes">Monday</string>
     <string name="comercio_dia_martes">Tuesday</string>
     <string name="comercio_dia_miercoles">Wednesday</string>

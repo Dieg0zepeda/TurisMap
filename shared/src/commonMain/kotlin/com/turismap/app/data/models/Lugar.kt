@@ -7,7 +7,7 @@ data class Lugar(
     val id: String = "",
     val nombre: String = "",
     val subtitulo: String = "",
-    val categoria: CategoriaLugar = CategoriaLugar.TODOS,
+    val categoria: String = CategoriaLugar.TODOS.name,
     val ubicacionCoordenadas: Coordenada = Coordenada(),
     val ubicacionCorta: String = "",
     val ubicacionLarga: String = "",
@@ -21,4 +21,7 @@ data class Lugar(
     val mejorTemporadaDesc: String = "",
     val atractivos: List<Atractivo> = emptyList(),
     val directorioStats: DirectorioStats = DirectorioStats()
-)
+) {
+    val categoriaResuelta: CategoriaLugar
+        get() = CategoriaLugar.desdeTexto(categoria)
+}

@@ -10,5 +10,6 @@ data class Atractivo(
     val titulo: String = "",
     val descripcion: String = "",
     val accion: String = "",
-    val imagenUrl: String = ""
+    val imagenUrl: String = "",
+    val ubicacionCoordenadas: Coordenada? = null
 )

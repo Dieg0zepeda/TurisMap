@@ -154,6 +154,8 @@
     <string name="detalle_lugar_directorio_titulo">¿Planeas tu visita a %1$s?</string>
     <string name="detalle_lugar_directorio_desc_con_comercios">Explora los %1$d comercios y servicios verificados disponibles en %2$s.</string>
     <string name="detalle_lugar_directorio_desc_sin_comercios">Actualmente hay 0 comercios registrados en %1$s. Próximamente se integrarán nuevos establecimientos a la red.</string>
+    <string name="detalle_lugar_directorio_cargando">Cargando comercios disponibles en %1$s...</string>
+    <string name="detalle_lugar_compartir_texto">Descubre %1$s en la Ruta de las Flores con TurisMap</string>
     <string name="detalle_lugar_directorio_cafeterias">%1$d Cafeterías y Bares</string>
     <string name="detalle_lugar_directorio_alojamientos">%1$d Hoteles y Cabañas</string>
     <string name="detalle_lugar_directorio_artesanias">%1$d Artesanías y Tiendas</string>
@@ -265,6 +267,7 @@
     <string name="detalle_exp_btn_publicar_resena">Publicar reseña</string>
     <string name="detalle_exp_por_consumo">por consumo</string>
     <string name="detalle_exp_precio_desde_usd">Desde %1$s USD</string>
+    <string name="detalle_exp_precio_consultar">Consultar</string>
     <string name="detalle_exp_btn_iniciar_ruta">Iniciar ruta</string>
 
     <!-- Flujo Comercial: Planes -->
@@ -314,6 +317,8 @@
     <string name="comercio_label_horario_atencion">Horario de atención</string>
     <string name="comercio_btn_horario_manual">Escribir horario manual</string>
     <string name="comercio_btn_horario_por_dias">Configurar horario por días</string>
+    <string name="comercio_btn_aplicar_horario">Aplicar horario</string>
+    <string name="comercio_error_sin_ubicacion_para_mapa">Selecciona primero un pueblo para abrir el mapa.</string>
     <string name="comercio_dia_lunes">Lunes</string>
     <string name="comercio_dia_martes">Martes</string>
     <string name="comercio_dia_miercoles">Miércoles</string>

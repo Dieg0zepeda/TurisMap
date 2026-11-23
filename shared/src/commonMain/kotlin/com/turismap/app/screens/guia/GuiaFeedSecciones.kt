@@ -91,7 +91,8 @@ internal fun Modifier.shimmerEffect(esOscuro: Boolean = false): Modifier = compo
 @Composable
 internal fun SeccionExperienciasDestacadas(
     comerciosDestacados: List<Comercio>,
-    mapaMunicipios: Map<String, String>,
+    resolverUbicacion: (Comercio) -> String,
+    resolverCategoria: (String) -> String,
     paleta: GuiaPaleta,
     onComercioClick: (String) -> Unit
 ) {
@@ -130,10 +131,12 @@ internal fun SeccionExperienciasDestacadas(
             modifier = Modifier.fillMaxWidth()
         ) {
             items(comerciosDestacados, key = { "dest_${it.id}" }) { destacado ->
-                val muniNombre = mapaMunicipios[destacado.lugarId] ?: municipioPredeterminado
+                val muniNombre = resolverUbicacion(destacado).ifBlank { municipioPredeterminado }
+                val categoriaNombre = resolverCategoria(destacado.categoria)
                 TarjetaMiniDestacada(
                     comercio = destacado,
                     municipio = muniNombre,
+                    categoriaEtiqueta = categoriaNombre,
                     paleta = paleta,
                     onClick = { onComercioClick(destacado.id) }
                 )
@@ -229,13 +232,14 @@ internal fun EstadoVacioGuia(
 internal fun TarjetaMiniDestacada(
     comercio: Comercio,
     municipio: String,
+    categoriaEtiqueta: String,
     paleta: GuiaPaleta,
     onClick: () -> Unit
 ) {
     val urlPortada = comercio.imagenUrls.firstOrNull {
         it.startsWith("http://") || it.startsWith("https://")
     }
-    val subtitulo = formatearSubtituloComercio(municipio, comercio.categoria)
+    val subtitulo = formatearSubtituloComercio(municipio, categoriaEtiqueta)
 
     Card(
         shape = RoundedCornerShape(16.dp),

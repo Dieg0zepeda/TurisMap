@@ -15,6 +15,7 @@ import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.screens.mapa.normalizarTextoMapa
 import com.turismap.app.theme.TerracotaAcento
 import com.turismap.app.theme.VerdePrimario
 import kotlinx.coroutines.CancellationException
@@ -77,16 +78,8 @@ internal fun rememberGuiaPaleta(esOscuro: Boolean): GuiaPaleta =
         )
     }
 
-internal fun normalizarTexto(txt: String?): String {
-    if (txt.isNullOrBlank()) return ""
-    return txt.lowercase()
-        .replace("á", "a")
-        .replace("é", "e")
-        .replace("í", "i")
-        .replace("ó", "o")
-        .replace("ú", "u")
-        .trim()
-}
+internal fun normalizarTexto(txt: String?): String =
+    if (txt.isNullOrBlank()) "" else normalizarTextoMapa(txt)
 
 internal const val CATEGORIA_FILTRO_TODOS = "Todos"
 
@@ -105,14 +98,15 @@ internal val categoriasFiltros: List<CategoriaFiltro> by lazy {
     )
 }
 
-internal val municipiosRuta: List<String?> = listOf(
-    null,
+internal val municipiosRutaRespaldo: List<String> = listOf(
     "Nahuizalco",
     "Salcoatitán",
     "Juayúa",
     "Apaneca",
     "Concepción de Ataco",
-    "Ahuachapán"
+    "Ahuachapán",
+    "El Refugio",
+    "Tacuba"
 )
 
 internal fun coincideConCategoria(categoriaComercio: String?, filtroId: String): Boolean {
@@ -141,15 +135,36 @@ internal class GuiaState(
 
     var listaComercios by mutableStateOf<List<Comercio>>(emptyList())
     var mapaMunicipios by mutableStateOf<Map<String, String>>(emptyMap())
+    var mapaCategorias by mutableStateOf<Map<String, String>>(emptyMap())
+    var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var cargando by mutableStateOf(cargandoInicial)
     var errorCarga by mutableStateOf<String?>(null)
+
+    val opcionesMunicipios: List<String?> by derivedStateOf {
+        val dinamicos = mapaMunicipios.values
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinct()
+        val base = if (dinamicos.isNotEmpty()) dinamicos else municipiosRutaRespaldo
+        listOf(null) + base
+    }
+
+    fun etiquetaCategoria(categoriaId: String): String =
+        mapaCategorias[categoriaId.trim()]?.takeIf(String::isNotBlank) ?: categoriaId.trim()
+
+    fun resolverUbicacionComercio(item: Comercio): String =
+        mapaMunicipios[item.lugarId.trim()]
+            ?: mapaMunicipios[item.lugarId]
+            ?: item.municipio.trim().ifBlank { item.direccion.trim() }
 
     // Filtrado reactivo de comercios
     val comerciosFiltrados: List<Comercio> by derivedStateOf {
         listaComercios.filter { item ->
-            val coincideCat = coincideConCategoria(item.categoria, categoriaSeleccionada)
+            val etiquetaCat = etiquetaCategoria(item.categoria)
+            val coincideCat = coincideConCategoria(item.categoria, categoriaSeleccionada) ||
+                coincideConCategoria(etiquetaCat, categoriaSeleccionada)
 
-            val nombreMuni = mapaMunicipios[item.lugarId] ?: item.direccion
+            val nombreMuni = resolverUbicacionComercio(item)
             val coincideMuni = if (municipioSeleccionado == null) true
             else normalizarTexto(nombreMuni).contains(normalizarTexto(municipioSeleccionado))
 
@@ -158,7 +173,9 @@ internal class GuiaState(
                 normalizarTexto(item.nombre).contains(q) ||
                 normalizarTexto(item.direccion).contains(q) ||
                 normalizarTexto(item.descripcion).contains(q) ||
-                normalizarTexto(nombreMuni).contains(q)
+                normalizarTexto(nombreMuni).contains(q) ||
+                normalizarTexto(etiquetaCat).contains(q) ||
+                normalizarTexto(item.categoria).contains(q)
 
             coincideCat && coincideMuni && coincideBusqueda
         }.sortedByDescending { it.planInt }
@@ -170,32 +187,62 @@ internal class GuiaState(
     }
 
     fun toggleFavorito(idComercio: String, guardar: Boolean) {
+        if (idComercio in favoritosEnProceso) return
+        favoritosEnProceso = favoritosEnProceso + idComercio
         scope.launch {
             try {
-                UsuarioRepository.cambiarFavorito(idComercio, guardar)
+                UsuarioRepository.cambiarFavorito(
+                    lugarId = idComercio,
+                    guardar = guardar,
+                    esComercio = true
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar(
                     e.message ?: getString(Res.string.guia_error_actualizar_favorito)
                 )
+            } finally {
+                favoritosEnProceso = favoritosEnProceso - idComercio
             }
+        }
+    }
+
+    suspend fun cargarDatos() {
+        cargando = true
+        errorCarga = null
+        try {
+            val comerciosCargados = ComercioRepository.obtenerPublicados()
+            val municipiosCargados = try {
+                LugaresRepository.obtenerTodos().associate { it.id.trim() to it.nombre.trim() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyMap()
+            }
+            val categoriasCargadas = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyMap()
+            }
+
+            listaComercios = comerciosCargados
+            mapaMunicipios = municipiosCargados
+            mapaCategorias = categoriasCargadas
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
+        } finally {
+            cargando = false
         }
     }
 
     fun reintentarCarga() {
         scope.launch {
-            cargando = true
-            errorCarga = null
-            try {
-                listaComercios = ComercioRepository.obtenerPublicados()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
-            } finally {
-                cargando = false
-            }
+            cargarDatos()
         }
     }
 }
@@ -220,29 +267,23 @@ internal fun rememberGuiaState(comerciosExternos: List<Comercio>?): Pair<GuiaSta
     LaunchedEffect(comerciosExternos) {
         if (comerciosExternos != null) {
             state.listaComercios = comerciosExternos
-            state.cargando = false
-        } else {
-            state.cargando = true
-            state.errorCarga = null
-            try {
-                val comerciosCargados = ComercioRepository.obtenerPublicados()
-                val municipiosCargados = try {
-                    LugaresRepository.obtenerTodos().associate { it.id to it.nombre }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (_: Exception) {
-                    emptyMap()
-                }
-
-                state.listaComercios = comerciosCargados
-                state.mapaMunicipios = municipiosCargados
+            state.mapaMunicipios = try {
+                LugaresRepository.obtenerTodos().associate { it.id.trim() to it.nombre.trim() }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
-                state.errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
-            } finally {
-                state.cargando = false
+            } catch (_: Exception) {
+                emptyMap()
             }
+            state.mapaCategorias = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyMap()
+            }
+            state.cargando = false
+        } else {
+            state.cargarDatos()
         }
     }
 

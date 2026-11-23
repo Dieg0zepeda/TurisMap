@@ -29,6 +29,7 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
+import com.turismap.app.data.repository.esCoordenadaValida
 import com.turismap.app.screens.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -80,7 +81,7 @@ fun TurisMapNavHost(
 
         // 2. Mapa con soporte de centrado en destino
         composable(
-            route = "${Pantalla.Mapa.ruta}?lat={lat}&lng={lng}&zoom={zoom}",
+            route = Pantalla.Mapa.rutaPatron,
             arguments = listOf(
                 navArgument("lat") {
                     type = NavType.StringType
@@ -245,11 +246,16 @@ fun TurisMapNavHost(
                         favoritoGuardado = favoritoGuardado,
                         favoritoCargando = favoritoCargando,
                         onIrAGuia = { controladorNavegacion.navigate(Pantalla.Guia.ruta) },
-                        onVerAtractivoEnMapa = { _ ->
+                        onVerAtractivoEnMapa = { atractivo ->
                             lugarCompleto?.let { lugar ->
-                                val coords = CoordenadasRuta.obtener(lugar.id)
+                                val coordsAtractivo = atractivo.ubicacionCoordenadas?.takeIf(::esCoordenadaValida)
+                                val coordsLugar = lugar.ubicacionCoordenadas.takeIf(::esCoordenadaValida)
+                                val coordsFallback = CoordenadasRuta.obtener(lugar.id)
+                                val lat = coordsAtractivo?.latitud ?: coordsLugar?.latitud ?: coordsFallback.latitud
+                                val lng = coordsAtractivo?.longitud ?: coordsLugar?.longitud ?: coordsFallback.longitud
+                                val zoom = if (coordsAtractivo != null) 16.5f else coordsFallback.zoom
                                 controladorNavegacion.navigate(
-                                    "${Pantalla.Mapa.ruta}?lat=${coords.latitud}&lng=${coords.longitud}&zoom=${coords.zoom}"
+                                    "${Pantalla.Mapa.ruta}?lat=$lat&lng=$lng&zoom=$zoom"
                                 )
                             }
                         },

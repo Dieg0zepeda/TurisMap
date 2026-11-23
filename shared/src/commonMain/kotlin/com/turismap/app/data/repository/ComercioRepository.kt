@@ -96,7 +96,7 @@ data class Comercio(
     val imagenUrls: List<String> = emptyList(),
     val estado: String = "pendiente",
     val destacado: Boolean = false,
-    val nivelPlan: Int = 1, // 1 = Básico, 2 = Socio, 3 = Premium
+    val nivelPlan: Int? = null, // 1 = Básico, 2 = Socio, 3 = Premium
     val planId: String? = null,
     val plan: String? = null,
     val tipoPlan: String? = null,
@@ -116,10 +116,25 @@ data class Comercio(
 
     // 1 = Básico, 2 = Socio, 3 = Premium
     val planInt: Int
-        get() = when {
-            planClave.contains("premium") || planClave.contains("25") || nivelPlan == 3 -> 3
-            planClave.contains("socio") || planClave.contains("turismap") || planClave.contains("15") || nivelPlan == 2 -> 2
-            else -> 1
+        get() {
+            val nivelExplicito = nivelPlan?.takeIf { it in 1..3 }
+            if (nivelExplicito != null) return nivelExplicito
+
+            val idExacto = planId?.trim()?.lowercase().orEmpty()
+            val porPlanId = when (idExacto) {
+                "presencia_basica" -> 1
+                "socio_turismap" -> 2
+                "socio_premium" -> 3
+                else -> null
+            }
+            if (porPlanId != null) return porPlanId
+
+            val clave = planClave
+            return when {
+                clave == "socio_premium" || clave.contains("premium") -> 3
+                clave == "socio_turismap" || clave.contains("socio") -> 2
+                else -> 1
+            }
         }
 
     val esNivelPremium: Boolean
@@ -185,25 +200,135 @@ data class PlanComercio(
     }
 }
 
+@Serializable
+private data class ComercioFirestoreDto(
+    val id: String? = null,
+    val propietarioUid: String? = null,
+    val lugarId: String? = null,
+    val nombre: String? = null,
+    val descripcion: String? = null,
+    val categoria: String? = null,
+    val direccion: String? = null,
+    val telefono: String? = null,
+    val sitioWeb: String? = null,
+    val horario: String? = null,
+    val precioDesde: Double? = null,
+    val servicios: List<String?>? = null,
+    val imagenUrls: List<String?>? = null,
+    val estado: String? = null,
+    val destacado: Boolean? = null,
+    val nivelPlan: Int? = null,
+    val planId: String? = null,
+    val plan: String? = null,
+    val tipoPlan: String? = null,
+    @SerialName("calificacionPromedio") val calificacionPromedio: Double? = null,
+    @SerialName("cantidadResenas") val cantidadResenas: Int? = null,
+    val creadoEn: Timestamp? = null,
+    val actualizadoEn: Timestamp? = null
+)
+
+@Serializable
+private data class PlanComercioFirestoreDto(
+    val nombre: String? = null,
+    val descripcion: String? = null,
+    val beneficios: List<String?>? = null,
+    val precio: Double? = null,
+    val moneda: String? = null,
+    val periodicidad: String? = null,
+    val orden: Int? = null,
+    val activo: Boolean? = null,
+    val id: String? = null
+) {
+    fun aPlanComercio(documentId: String): PlanComercio = PlanComercio(
+        nombre = nombre.orEmpty(),
+        descripcion = descripcion.orEmpty(),
+        beneficios = beneficios.orEmpty().mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) },
+        precio = precio?.takeIf(Double::isFinite),
+        moneda = moneda.orEmpty(),
+        periodicidad = periodicidad.orEmpty(),
+        orden = orden ?: 0,
+        activo = activo ?: true,
+        id = id,
+        documentId = documentId
+    )
+}
+
+@Serializable
+private data class CategoriaComercioFirestoreDto(
+    @SerialName("id") val id: String? = null,
+    val nombre: String? = null,
+    val descripcion: String? = null,
+    val orden: Int? = null,
+    val activo: Boolean? = null
+) {
+    fun aCategoriaComercio(documentId: String): CategoriaComercio = CategoriaComercio(
+        id = documentId,
+        nombre = nombre.orEmpty(),
+        descripcion = descripcion.orEmpty(),
+        orden = orden ?: 0,
+        activo = activo ?: true
+    )
+}
+
+@Serializable
+private data class ResenaFirestoreDto(
+    val tipoDestino: String? = null,
+    val destinoId: String? = null,
+    val usuarioUid: String? = null,
+    val calificacion: Int? = null,
+    val comentario: String? = null,
+    val creadoEn: Timestamp? = null,
+    val actualizadoEn: Timestamp? = null
+) {
+    fun aResena(): Resena = Resena(
+        tipoDestino = tipoDestino.orEmpty().ifBlank { "comercio" },
+        destinoId = destinoId.orEmpty(),
+        usuarioUid = usuarioUid.orEmpty(),
+        calificacion = calificacion ?: 0,
+        comentario = comentario.orEmpty(),
+        creadoEn = creadoEn,
+        actualizadoEn = actualizadoEn
+    )
+}
+
 object ComercioRepository {
     private val firestore by lazy { Firebase.firestore }
+
+    private fun esErrorIndiceFaltante(error: Throwable): Boolean {
+        val mensajeCompleto = generateSequence(error as Throwable?) { it.cause }
+            .mapNotNull(Throwable::message)
+            .joinToString(" ")
+        return mensajeCompleto.contains("FAILED_PRECONDITION", ignoreCase = true) ||
+            mensajeCompleto.contains("requires an index", ignoreCase = true) ||
+            mensajeCompleto.contains("index", ignoreCase = true)
+    }
 
     suspend fun obtenerPlanesDisponibles(): List<PlanComercio> =
         firestore.collection("planes_comercio")
             .where { "activo" equalTo true }
             .get()
             .documents
-            .map { documento ->
-                documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
+            .mapNotNull { documento ->
+                try {
+                    documento.data(PlanComercioFirestoreDto.serializer()).aPlanComercio(documento.id)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    null
+                }
             }
             .sortedBy(PlanComercio::orden)
 
     suspend fun obtenerPlanDisponible(id: String): PlanComercio? {
-        val documento = firestore.collection("planes_comercio").document(id).get()
-        return if (documento.exists) {
-            documento.data(PlanComercio.serializer()).copy(documentId = documento.id)
+        val documento = firestore.collection("planes_comercio").document(id.trim()).get()
+        if (!documento.exists) return null
+        return try {
+            documento.data(PlanComercioFirestoreDto.serializer())
+                .aPlanComercio(documento.id)
                 .takeIf(PlanComercio::activo)
-        } else {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
             null
         }
     }
@@ -213,8 +338,14 @@ object ComercioRepository {
             .where { "activo" equalTo true }
             .get()
             .documents
-            .map { documento ->
-                documento.data(CategoriaComercio.serializer()).copy(id = documento.id)
+            .mapNotNull { documento ->
+                try {
+                    documento.data(CategoriaComercioFirestoreDto.serializer()).aCategoriaComercio(documento.id)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    null
+                }
             }
             .filter { it.etiqueta.isNotBlank() }
             .sortedBy(CategoriaComercio::orden)
@@ -260,30 +391,55 @@ object ComercioRepository {
         return null
     }
 
-    private fun DocumentSnapshot.aComercio(): Comercio =
-        data(Comercio.serializer()).copy(
+    private fun DocumentSnapshot.aComercio(): Comercio {
+        val dto = data(ComercioFirestoreDto.serializer())
+        return Comercio(
             id = id,
+            propietarioUid = dto.propietarioUid.orEmpty(),
+            lugarId = dto.lugarId.orEmpty(),
+            nombre = dto.nombre.orEmpty(),
+            descripcion = dto.descripcion.orEmpty(),
+            categoria = dto.categoria.orEmpty(),
+            direccion = dto.direccion.orEmpty(),
+            telefono = dto.telefono.orEmpty(),
+            sitioWeb = dto.sitioWeb.orEmpty(),
+            horario = dto.horario.orEmpty(),
+            precioDesde = dto.precioDesde?.takeIf(Double::isFinite),
+            servicios = dto.servicios.orEmpty().mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) },
+            imagenUrls = dto.imagenUrls.orEmpty().mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) },
+            estado = dto.estado.orEmpty().ifBlank { "pendiente" },
+            destacado = dto.destacado ?: false,
+            nivelPlan = dto.nivelPlan,
+            planId = dto.planId,
+            plan = dto.plan,
+            tipoPlan = dto.tipoPlan,
+            calificacionPromedio = dto.calificacionPromedio?.takeIf(Double::isFinite) ?: 0.0,
+            cantidadResenas = dto.cantidadResenas ?: 0,
+            creadoEn = dto.creadoEn,
+            actualizadoEn = dto.actualizadoEn,
             municipio = leerCampoSeguro<String>("municipio").orEmpty().trim(),
             coordenadas = extraerCoordenadaSegura("coordenadas"),
             ubicacionCoordenadas = extraerCoordenadaSegura("ubicacionCoordenadas"),
             latitud = leerDoubleSeguro("latitud"),
             longitud = leerDoubleSeguro("longitud")
         )
+    }
+
+    private fun DocumentSnapshot.aComercioSeguro(): Comercio? =
+        try {
+            aComercio()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
 
     fun observarPublicados(): Flow<List<Comercio>> =
         firestore.collection("comercios")
             .where { "estado" equalTo "publicado" }
             .snapshots
             .map { snapshot ->
-                snapshot.documents.mapNotNull { documento ->
-                    try {
-                        documento.aComercio()
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
+                snapshot.documents.mapNotNull { documento -> documento.aComercioSeguro() }
             }
 
     suspend fun obtenerPublicados(): List<Comercio> =
@@ -291,27 +447,75 @@ object ComercioRepository {
             .where { "estado" equalTo "publicado" }
             .get()
             .documents
-            .mapNotNull { documento ->
-                try {
-                    documento.aComercio()
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (_: Exception) {
-                    null
-                }
-            }
+            .mapNotNull { documento -> documento.aComercioSeguro() }
 
-    suspend fun obtenerDestacados(): List<Comercio> =
-        firestore.collection("comercios")
-            .where { "estado" equalTo "publicado" }
-            .get()
-            .documents
-            .map { documento -> documento.aComercio() }
+    suspend fun obtenerPublicadosPorLugar(
+        lugarId: String,
+        nombreLugar: String = ""
+    ): List<Comercio> {
+        val idLimpio = lugarId.trim()
+        val nombreLimpio = nombreLugar.trim()
+        if (idLimpio.isEmpty() && nombreLimpio.isEmpty()) return emptyList()
+
+        return try {
+            val acumulados = linkedMapOf<String, Comercio>()
+            if (idLimpio.isNotEmpty()) {
+                firestore.collection("comercios")
+                    .where { "estado" equalTo "publicado" }
+                    .where { "lugarId" equalTo idLimpio }
+                    .get()
+                    .documents
+                    .mapNotNull { it.aComercioSeguro() }
+                    .forEach { acumulados[it.id] = it }
+            }
+            if (nombreLimpio.isNotEmpty()) {
+                firestore.collection("comercios")
+                    .where { "estado" equalTo "publicado" }
+                    .where { "municipio" equalTo nombreLimpio }
+                    .get()
+                    .documents
+                    .mapNotNull { it.aComercioSeguro() }
+                    .forEach { acumulados[it.id] = it }
+            }
+            acumulados.values.toList()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (esErrorIndiceFaltante(error)) {
+                obtenerPublicados()
+            } else {
+                throw error
+            }
+        }
+    }
+
+    suspend fun obtenerDestacados(): List<Comercio> {
+        val documentos = try {
+            firestore.collection("comercios")
+                .where { "estado" equalTo "publicado" }
+                .where { "destacado" equalTo true }
+                .get()
+                .documents
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (esErrorIndiceFaltante(error)) {
+                firestore.collection("comercios")
+                    .where { "estado" equalTo "publicado" }
+                    .get()
+                    .documents
+            } else {
+                throw error
+            }
+        }
+        return documentos
+            .mapNotNull { documento -> documento.aComercioSeguro() }
             .filter { it.destacado }
+    }
 
     suspend fun obtenerPorId(id: String): Comercio? {
-        val documento = firestore.collection("comercios").document(id).get()
-        return if (documento.exists) documento.aComercio() else null
+        val documento = firestore.collection("comercios").document(id.trim()).get()
+        return if (documento.exists) documento.aComercioSeguro() else null
     }
 
     suspend fun enviarSolicitud(
@@ -376,7 +580,8 @@ object ComercioRepository {
         require(email.trim().equals(correoAutenticado, ignoreCase = true)) {
             getString(Res.string.repo_error_correo_no_coincide)
         }
-        require(planId.isNotBlank()) { getString(Res.string.repo_error_plan_requerido) }
+        val planIdLimpio = planId.trim()
+        require(planIdLimpio.isNotBlank()) { getString(Res.string.repo_error_plan_requerido) }
         require(nombreCompleto.trim().length in 1..120) {
             getString(Res.string.repo_error_nombre_completo_longitud)
         }
@@ -418,7 +623,7 @@ object ComercioRepository {
                 "telefono" to telefono.trim(),
                 "sitioWeb" to sitioWeb.trim(),
                 "horario" to horario.trim(),
-                "planId" to planId,
+                "planId" to planIdLimpio,
                 "coordenadas" to mapOf(
                     "latitud" to coordenadas.latitud,
                     "longitud" to coordenadas.longitud
@@ -431,13 +636,19 @@ object ComercioRepository {
 
     suspend fun obtenerResenas(comercioId: String): List<Resena> =
         firestore.collection("resenas")
-            .where {
-                "tipoDestino" equalTo "comercio"
-                "destinoId" equalTo comercioId
-            }
+            .where { "tipoDestino" equalTo "comercio" }
+            .where { "destinoId" equalTo comercioId }
             .get()
             .documents
-            .map { it.data(Resena.serializer()) }
+            .mapNotNull { documento ->
+                try {
+                    documento.data(ResenaFirestoreDto.serializer()).aResena()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    null
+                }
+            }
 
     suspend fun enviarResena(comercioId: String, calificacion: Int, comentario: String) {
         val uid = Firebase.auth.currentUser?.uid

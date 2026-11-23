@@ -105,6 +105,7 @@ internal class MapaState(
     var lugaresTuristicos: List<Lugar> by mutableStateOf(emptyList())
     var todosLosComercios: List<Comercio> by mutableStateOf(emptyList())
     var municipiosMap: Map<String, Lugar> by mutableStateOf(emptyMap())
+    var categoriasMap: Map<String, String> by mutableStateOf(emptyMap())
     var lugarSeleccionado: Lugar? by mutableStateOf(null)
 
     var camaraLatObjetivo: Double? by mutableStateOf(latInicial)
@@ -137,14 +138,18 @@ internal class MapaState(
     val hayErrorOEstadoVacioCarga: Boolean
         get() = errorCargaDetalle != null || sinDatosPublicados
 
+    fun etiquetaCategoria(categoriaId: String): String =
+        categoriasMap[categoriaId.trim()]?.takeIf(String::isNotBlank)
+            ?: categoriaId.trim().replaceFirstChar { it.uppercase() }
+
     private fun comercioALugar(comercio: Comercio): Lugar {
         val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
         val nombreMunicipio = municipio?.nombre?.ifBlank { null } ?: comercio.municipio
         return Lugar(
             id = "comercio:${comercio.id}",
             nombre = comercio.nombre,
-            subtitulo = comercio.categoria.replaceFirstChar { it.uppercase() },
-            categoria = CategoriaLugar.TODOS,
+            subtitulo = etiquetaCategoria(comercio.categoria),
+            categoria = CategoriaLugar.TODOS.name,
             ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
             ubicacionCorta = comercio.direccion,
             ubicacionLarga = nombreMunicipio,
@@ -163,6 +168,7 @@ internal class MapaState(
                 comercio.nombre,
                 comercio.direccion,
                 comercio.categoria,
+                etiquetaCategoria(comercio.categoria),
                 comercio.descripcion,
                 comercio.municipio,
                 comercio.lugarId,
@@ -212,6 +218,7 @@ internal class MapaState(
                         consulta = consulta,
                         nombre = comercio.nombre,
                         comercio.categoria,
+                        etiquetaCategoria(comercio.categoria),
                         comercio.direccion,
                         comercio.municipio,
                         nombreMunicipio,
@@ -368,6 +375,13 @@ internal fun rememberMapaState(
             val lugares = LugaresRepository.obtenerTodos()
             state.lugaresTuristicos = lugares
             state.municipiosMap = lugares.associateBy { it.id.trim() }
+            state.categoriasMap = try {
+                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                emptyMap()
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
