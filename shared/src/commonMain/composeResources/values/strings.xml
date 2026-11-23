@@ -45,6 +45,7 @@
     <string name="auth_cd_ocultar_contrasena">Ocultar contraseña</string>
     <string name="auth_error_correo_requerido">El correo es requerido</string>
     <string name="auth_error_correo_invalido">Formato de correo inválido</string>
+    <string name="auth_error_contrasena_requerida">La contraseña es requerida</string>
     <string name="auth_error_contrasena_corta">La contraseña debe tener al menos 6 caracteres</string>
     <string name="auth_error_correo_restablecer">Ingresa un correo válido para restablecer tu contraseña</string>
     <string name="auth_restablecimiento_enviado">Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.</string>
@@ -264,6 +265,7 @@
     <string name="detalle_exp_resena_propio_comercio">No puedes reseñar tu propio comercio</string>
     <string name="detalle_exp_resena_escribir">Escribe tu reseña</string>
     <string name="detalle_exp_resena_comentario_label">Comentario (opcional)</string>
+    <string name="detalle_exp_resena_guardada_exito">¡Tu reseña se ha publicado correctamente!</string>
     <string name="detalle_exp_btn_publicar_resena">Publicar reseña</string>
     <string name="detalle_exp_por_consumo">por consumo</string>
     <string name="detalle_exp_precio_desde_usd">Desde %1$s USD</string>
@@ -331,6 +333,7 @@
     <string name="comercio_label_promocion">Promoción exclusiva para turistas (ej. 10% en café)</string>
     <string name="comercio_solicitud_exito">Solicitud enviada con éxito. Será revisada y publicada desde el panel administrativo.</string>
     <string name="comercio_error_sitio_web_https">El sitio web debe comenzar con https://.</string>
+    <string name="comercio_error_telefono_digitos">Ingresa un número válido de al menos 8 dígitos</string>
     <string name="comercio_error_seleccionar_ubicacion">Selecciona una ubicación.</string>
     <string name="comercio_error_seleccionar_ubicacion_exacta">Selecciona la ubicación exacta del negocio.</string>
     <string name="comercio_error_enviar_solicitud">No se pudo enviar la solicitud.</string>

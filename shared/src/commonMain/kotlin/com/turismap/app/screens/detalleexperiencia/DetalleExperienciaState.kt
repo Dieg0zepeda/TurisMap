@@ -166,6 +166,7 @@ internal class DetalleExperienciaState(
     var comentario by mutableStateOf("")
     var enviando by mutableStateOf(false)
     var mensaje by mutableStateOf<String?>(null)
+    var resenaGuardadaExito by mutableStateOf(false)
     var mostrarModalMenu by mutableStateOf(false)
 
     val tieneUsuarioAutenticado: Boolean
@@ -178,8 +179,16 @@ internal class DetalleExperienciaState(
         intento++
     }
 
+    fun actualizarCalificacion(nuevaCalificacion: Int) {
+        calificacion = nuevaCalificacion
+        mensaje = null
+        resenaGuardadaExito = false
+    }
+
     fun actualizarComentario(nuevoComentario: String) {
         comentario = sanitizarComentarioResena(nuevoComentario)
+        mensaje = null
+        resenaGuardadaExito = false
     }
 
     fun toggleFavorito(esFavoritoActual: Boolean) {
@@ -197,15 +206,18 @@ internal class DetalleExperienciaState(
     fun publicarResena(datosId: String) {
         val errorValidacion = validarCalificacionResena(calificacion)
         if (errorValidacion != null) {
+            resenaGuardadaExito = false
             scope.launch {
                 mensaje = getString(errorValidacion)
             }
         } else {
             enviando = true
             mensaje = null
+            resenaGuardadaExito = false
             scope.launch {
                 try {
-                    ComercioRepository.enviarResena(datosId, calificacion, comentario)
+                    ComercioRepository.enviarResena(datosId, calificacion, comentario.trim())
+                    resenaGuardadaExito = true
                     intento++
                 } catch (cancelacion: CancellationException) {
                     throw cancelacion

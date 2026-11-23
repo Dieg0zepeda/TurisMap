@@ -122,7 +122,10 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                             )
 
                             // 5. Canales de Contacto Directo (Socio y Premium)
-                            if (datosUi.esSocio || datosUi.esPremium) {
+                            if (
+                                (datosUi.esSocio || datosUi.esPremium) &&
+                                (datosUi.telefonoLimpio.isNotBlank() || datosUi.sitioWebUrl != null)
+                            ) {
                                 SeccionEnlacesDirectos(
                                     datosUi = datosUi,
                                     paleta = paleta,
@@ -157,8 +160,9 @@ fun DetalleExperienciaScreen(comercioId: String, onVolver: () -> Unit) {
                                 comentario = state.comentario,
                                 enviando = state.enviando,
                                 mensaje = state.mensaje,
+                                resenaGuardadaExito = state.resenaGuardadaExito,
                                 paleta = paleta,
-                                onCalificacionChange = { state.calificacion = it },
+                                onCalificacionChange = state::actualizarCalificacion,
                                 onComentarioChange = state::actualizarComentario,
                                 onPublicarResena = { state.publicarResena(datosUi.comercio.id) }
                             )

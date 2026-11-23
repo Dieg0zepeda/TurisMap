@@ -45,6 +45,7 @@
     <string name="auth_cd_ocultar_contrasena">Hide password</string>
     <string name="auth_error_correo_requerido">Email is required</string>
     <string name="auth_error_correo_invalido">Invalid email format</string>
+    <string name="auth_error_contrasena_requerida">Password is required</string>
     <string name="auth_error_contrasena_corta">Password must be at least 6 characters</string>
     <string name="auth_error_correo_restablecer">Enter a valid email to reset your password</string>
     <string name="auth_restablecimiento_enviado">If this email is registered, you\'ll receive instructions to reset your password.</string>
@@ -264,6 +265,7 @@
     <string name="detalle_exp_resena_propio_comercio">You cannot review your own business</string>
     <string name="detalle_exp_resena_escribir">Write your review</string>
     <string name="detalle_exp_resena_comentario_label">Comment (optional)</string>
+    <string name="detalle_exp_resena_guardada_exito">Your review has been posted successfully!</string>
     <string name="detalle_exp_btn_publicar_resena">Post review</string>
     <string name="detalle_exp_por_consumo">per visit</string>
     <string name="detalle_exp_precio_desde_usd">From %1$s USD</string>
@@ -331,6 +333,7 @@
     <string name="comercio_label_promocion">Exclusive promotion for travelers (e.g. 10% off coffee)</string>
     <string name="comercio_solicitud_exito">Request submitted successfully. It will be reviewed and published from the admin panel.</string>
     <string name="comercio_error_sitio_web_https">The website URL must start with https://.</string>
+    <string name="comercio_error_telefono_digitos">Enter a valid number with at least 8 digits</string>
     <string name="comercio_error_seleccionar_ubicacion">Select a location.</string>
     <string name="comercio_error_seleccionar_ubicacion_exacta">Select the exact location of your business.</string>
     <string name="comercio_error_enviar_solicitud">Could not submit the request.</string>

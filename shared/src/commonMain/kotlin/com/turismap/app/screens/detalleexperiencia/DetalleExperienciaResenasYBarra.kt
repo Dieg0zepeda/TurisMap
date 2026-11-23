@@ -42,6 +42,7 @@ import turismap.shared.generated.resources.detalle_exp_precio_desde_usd
 import turismap.shared.generated.resources.detalle_exp_resena_comentario_label
 import turismap.shared.generated.resources.detalle_exp_resena_escribir
 import turismap.shared.generated.resources.detalle_exp_resena_fallback
+import turismap.shared.generated.resources.detalle_exp_resena_guardada_exito
 import turismap.shared.generated.resources.detalle_exp_resena_iniciar_sesion
 import turismap.shared.generated.resources.detalle_exp_resena_propio_comercio
 import turismap.shared.generated.resources.detalle_exp_resenas_titulo
@@ -57,6 +58,7 @@ internal fun SeccionResenasExperiencia(
     comentario: String,
     enviando: Boolean,
     mensaje: String?,
+    resenaGuardadaExito: Boolean,
     paleta: DetalleExperienciaPaleta,
     onCalificacionChange: (Int) -> Unit,
     onComentarioChange: (String) -> Unit,
@@ -151,6 +153,14 @@ internal fun SeccionResenasExperiencia(
     )
 
     mensaje?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+    if (resenaGuardadaExito) {
+        Text(
+            stringResource(Res.string.detalle_exp_resena_guardada_exito),
+            color = paleta.verdeTurisMap,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.5.sp
+        )
+    }
 
     Button(
         onClick = onPublicarResena,
@@ -210,7 +220,7 @@ internal fun BarraInferiorExperiencia(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (datosUi.comercio.telefono.isNotBlank()) {
+                if (datosUi.telefonoLimpio.isNotBlank()) {
                     IconButton(
                         onClick = onLlamar,
                         modifier = Modifier

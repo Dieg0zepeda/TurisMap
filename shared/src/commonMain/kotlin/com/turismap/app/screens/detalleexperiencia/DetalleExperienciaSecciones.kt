@@ -264,32 +264,36 @@ internal fun SeccionEnlacesDirectos(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Button(
-            onClick = onAbrirWhatsapp,
-            colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap),
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                "💬 ${stringResource(Res.string.detalle_exp_btn_whatsapp_directo)}",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
-            )
+        if (datosUi.telefonoLimpio.isNotBlank()) {
+            Button(
+                onClick = onAbrirWhatsapp,
+                colors = ButtonDefaults.buttonColors(containerColor = paleta.verdeTurisMap),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "💬 ${stringResource(Res.string.detalle_exp_btn_whatsapp_directo)}",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
         }
 
-        OutlinedButton(
-            onClick = onAbrirSitioWeb,
-            shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(1.dp, paleta.verdeTurisMap.copy(alpha = 0.5f)),
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                "🌐 ${stringResource(Res.string.detalle_exp_btn_redes_web)}",
-                color = paleta.colorTextoPrincipal,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp
-            )
+        if (datosUi.sitioWebUrl != null) {
+            OutlinedButton(
+                onClick = onAbrirSitioWeb,
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, paleta.verdeTurisMap.copy(alpha = 0.5f)),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "🌐 ${stringResource(Res.string.detalle_exp_btn_redes_web)}",
+                    color = paleta.colorTextoPrincipal,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
