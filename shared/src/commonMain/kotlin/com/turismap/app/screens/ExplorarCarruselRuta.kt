@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +38,6 @@ import com.turismap.app.theme.FondoBlancoAdaptable
 import com.turismap.app.theme.GrisBorde
 import com.turismap.app.theme.GrisTextoSecundario
 import com.turismap.app.theme.TextoPrincipalOscuro
-import com.turismap.app.theme.VerdePrimario
 import com.turismap.app.theme.VerdeTextoAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
@@ -106,20 +107,24 @@ private fun TarjetaDestinoCarrusel(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val esModoOscuro = isSystemInDarkTheme()
     Card(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(RADIO_TARJETA_RUTA),
         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-        elevation = CardDefaults.cardElevation(defaultElevation = ELEVACION_TARJETA_RUTA),
-        border = BorderStroke(width = 1.dp, color = GrisBorde.copy(alpha = 0.55f))
+        elevation = CardDefaults.cardElevation(defaultElevation = if (esModoOscuro) 2.dp else ELEVACION_TARJETA_RUTA),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (esModoOscuro) GrisBorde else GrisBorde.copy(alpha = 0.70f)
+        )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(ALTURA_IMAGEN_TARJETA)
-                    .background(VerdePrimario.copy(alpha = 0.14f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 val urlImagen = lugar.imagenPortadaUrl.ifBlank {
                     lugar.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
@@ -136,7 +141,8 @@ private fun TarjetaDestinoCarrusel(
                 Surface(
                     modifier = Modifier.padding(10.dp),
                     shape = RoundedCornerShape(8.dp),
-                    color = FondoBlancoAdaptable.copy(alpha = 0.92f)
+                    color = FondoBlancoAdaptable.copy(alpha = 0.92f),
+                    border = BorderStroke(0.8.dp, GrisBorde.copy(alpha = 0.75f))
                 ) {
                     val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta
                         ?: stringResource(Res.string.explorar_etiqueta_destino_predeterminada)

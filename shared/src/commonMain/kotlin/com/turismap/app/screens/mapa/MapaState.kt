@@ -16,6 +16,13 @@ import com.turismap.app.data.models.CategoriaLugar
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.esCoordenadaValida
+import com.turismap.app.theme.BosqueSobrePrimario
+import com.turismap.app.theme.PinoBorde
+import com.turismap.app.theme.PinoContenedor
+import com.turismap.app.theme.TextoClaroBosque
+import com.turismap.app.theme.TextoSecundarioBosque
+import com.turismap.app.theme.VerdeBosqueMarca
+import com.turismap.app.theme.VerdeSalviaOscuro
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -61,7 +68,8 @@ internal enum class FiltroMarcadoresMapa {
 // Paleta corporativa TurisMap
 internal data class MapaPaleta(
     val esOscuro: Boolean,
-    val turismapPrimario: Color = Color(0xFF1B5E20),
+    val turismapPrimario: Color,
+    val sobrePrimario: Color,
     val turismapAcento: Color = Color(0xFFF59E0B), // Ámbar / Dorado
     val airbnbOscuro: Color,
     val airbnbGris: Color,
@@ -74,10 +82,12 @@ internal fun rememberMapaPaleta(esOscuro: Boolean): MapaPaleta =
     remember(esOscuro) {
         MapaPaleta(
             esOscuro = esOscuro,
-            airbnbOscuro = if (esOscuro) Color(0xFFF7F7F7) else Color(0xFF1E1E1E),
-            airbnbGris = if (esOscuro) Color(0xFFA0A0A0) else Color(0xFF717171),
-            airbnbFondo = if (esOscuro) Color(0xFF2C2C2C) else Color(0xFFF7F7F8),
-            airbnbBorde = if (esOscuro) Color(0xFF404040) else Color(0xFFEBEBEB)
+            turismapPrimario = if (esOscuro) VerdeSalviaOscuro else VerdeBosqueMarca,
+            sobrePrimario = if (esOscuro) BosqueSobrePrimario else Color.White,
+            airbnbOscuro = if (esOscuro) TextoClaroBosque else Color(0xFF1E1E1E),
+            airbnbGris = if (esOscuro) TextoSecundarioBosque else Color(0xFF717171),
+            airbnbFondo = if (esOscuro) PinoContenedor else Color(0xFFF7F7F8),
+            airbnbBorde = if (esOscuro) PinoBorde else Color(0xFFEBEBEB)
         )
     }
 

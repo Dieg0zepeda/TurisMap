@@ -97,7 +97,11 @@ internal fun BadgePlanComercio(
     val fondo = if (esPremium) paleta.ambarFondo else paleta.socioFondo
     val textoColor = if (esPremium) paleta.ambarTexto else paleta.socioTexto
     val acentoColor = if (esPremium) paleta.ambarAcento else paleta.socioAcento
-    val bordeColor = if (esPremium) paleta.ambarAcento.copy(alpha = 0.35f) else paleta.airbnbBorder
+    val bordeColor = if (esPremium) {
+        paleta.ambarAcento.copy(alpha = 0.38f)
+    } else {
+        paleta.bordeEnfocado.copy(alpha = if (paleta.esOscuro) 0.45f else 0.25f)
+    }
     val icono = if (esPremium) Icons.Rounded.WorkspacePremium else Icons.Rounded.Verified
     val etiquetaRes = if (esPremium) Res.string.guia_badge_socio_premium else Res.string.guia_badge_socio_turismap
 

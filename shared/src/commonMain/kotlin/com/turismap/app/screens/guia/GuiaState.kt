@@ -19,8 +19,18 @@ import com.turismap.app.data.repository.EstadoPublicados
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.screens.mapa.normalizarTextoMapa
+import com.turismap.app.theme.BosqueContenedorPrimario
+import com.turismap.app.theme.BosqueSobreContenedorPrimario
+import com.turismap.app.theme.PinoBorde
+import com.turismap.app.theme.PinoContenedor
+import com.turismap.app.theme.PinoContenedorAlto
+import com.turismap.app.theme.PinoSuperficie
 import com.turismap.app.theme.TerracotaAcento
-import com.turismap.app.theme.VerdePrimario
+import com.turismap.app.theme.TextoClaroBosque
+import com.turismap.app.theme.TextoSecundarioBosque
+import com.turismap.app.theme.VerdeBosqueMarca
+import com.turismap.app.theme.VerdeEsmeraldaOscuro
+import com.turismap.app.theme.VerdeSalviaOscuro
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -44,10 +54,19 @@ internal data class GuiaPaleta(
     val airbnbLightGray: Color,
     val airbnbBorder: Color,
     val superficieTarjeta: Color,
-    val airbnbPrimary: Color = Color(0xFFFF385C),
-    val verdeTurisMap: Color = VerdePrimario,
+    val superficieBuscador: Color,
+    val bordeEnfocado: Color,
+    val airbnbPrimary: Color = TerracotaAcento,
+    val verdeTurisMap: Color = VerdeBosqueMarca,
     val filtroActivoFondo: Color,
+    val filtroActivoBorde: Color,
     val filtroActivoContenido: Color,
+    val puebloActivoFondo: Color,
+    val puebloActivoBorde: Color,
+    val puebloActivoContenido: Color,
+    val etiquetaFondo: Color,
+    val etiquetaBorde: Color,
+    val etiquetaTexto: Color,
     val ambarFondo: Color,
     val ambarTexto: Color,
     val ambarAcento: Color,
@@ -64,22 +83,31 @@ internal fun rememberGuiaPaleta(esOscuro: Boolean): GuiaPaleta =
     remember(esOscuro) {
         GuiaPaleta(
             esOscuro = esOscuro,
-            airbnbBlack = if (esOscuro) Color(0xFFF5F6F5) else Color(0xFF1E2220),
-            airbnbGray = if (esOscuro) Color(0xFFA0A7A3) else Color(0xFF6B7280),
-            airbnbLightGray = if (esOscuro) Color(0xFF262A28) else Color(0xFFF3F5F4),
-            airbnbBorder = if (esOscuro) Color(0xFF353B38) else Color(0xFFE5E7EB),
-            superficieTarjeta = if (esOscuro) Color(0xFF1E2120) else Color.White,
-            filtroActivoFondo = if (esOscuro) Color(0xFF2A7D5E) else VerdePrimario,
-            filtroActivoContenido = if (esOscuro) Color(0xFF6EE7B7) else VerdePrimario,
-            ambarFondo = if (esOscuro) Color(0xFF3B2C12).copy(alpha = 0.92f) else Color(0xFFFEF3C7).copy(alpha = 0.95f),
-            ambarTexto = if (esOscuro) Color(0xFFFDE68A) else Color(0xFF92400E),
-            ambarAcento = if (esOscuro) Color(0xFFFBBF24) else Color(0xFFD97706),
-            socioFondo = if (esOscuro) Color(0xFF2B2725).copy(alpha = 0.92f) else Color(0xFFF7F4F1).copy(alpha = 0.95f),
-            socioTexto = if (esOscuro) Color(0xFFE5E7EB) else Color(0xFF374151),
-            socioAcento = if (esOscuro) Color(0xFFE28B73) else TerracotaAcento,
-            placeholderInicio = if (esOscuro) Color(0xFF28302C) else Color(0xFFEDEAE4),
-            placeholderFin = if (esOscuro) Color(0xFF1B221F) else Color(0xFFDCE4DF),
-            placeholderIcono = if (esOscuro) Color(0xFF8FA399) else Color(0xFF64746C)
+            airbnbBlack = if (esOscuro) TextoClaroBosque else Color(0xFF1E2220),
+            airbnbGray = if (esOscuro) TextoSecundarioBosque else Color(0xFF6B7280),
+            airbnbLightGray = if (esOscuro) PinoContenedorAlto else Color(0xFFF3F5F4),
+            airbnbBorder = if (esOscuro) PinoBorde else Color(0xFFE5E7EB),
+            superficieTarjeta = if (esOscuro) PinoSuperficie else Color.White,
+            superficieBuscador = if (esOscuro) PinoContenedor else Color.White,
+            bordeEnfocado = if (esOscuro) VerdeSalviaOscuro else VerdeBosqueMarca,
+            filtroActivoFondo = if (esOscuro) BosqueContenedorPrimario else VerdeBosqueMarca,
+            filtroActivoBorde = if (esOscuro) VerdeSalviaOscuro else VerdeBosqueMarca,
+            filtroActivoContenido = if (esOscuro) BosqueSobreContenedorPrimario else Color.White,
+            puebloActivoFondo = if (esOscuro) BosqueContenedorPrimario else VerdeBosqueMarca.copy(alpha = 0.10f),
+            puebloActivoBorde = if (esOscuro) VerdeSalviaOscuro else VerdeBosqueMarca.copy(alpha = 0.45f),
+            puebloActivoContenido = if (esOscuro) BosqueSobreContenedorPrimario else VerdeBosqueMarca,
+            etiquetaFondo = if (esOscuro) PinoContenedor else Color(0xFFEAF3EE),
+            etiquetaBorde = if (esOscuro) PinoBorde else Color(0xFFD2E4DA),
+            etiquetaTexto = if (esOscuro) VerdeEsmeraldaOscuro else VerdeBosqueMarca,
+            ambarFondo = if (esOscuro) Color(0xFF2D2412).copy(alpha = 0.94f) else Color(0xFFFEF3C7).copy(alpha = 0.95f),
+            ambarTexto = if (esOscuro) Color(0xFFF3D689) else Color(0xFF92400E),
+            ambarAcento = if (esOscuro) Color(0xFFE9C46A) else Color(0xFFD97706),
+            socioFondo = if (esOscuro) BosqueContenedorPrimario.copy(alpha = 0.94f) else Color(0xFFEEF5F1).copy(alpha = 0.95f),
+            socioTexto = if (esOscuro) BosqueSobreContenedorPrimario else VerdeBosqueMarca,
+            socioAcento = if (esOscuro) VerdeEsmeraldaOscuro else VerdeBosqueMarca,
+            placeholderInicio = if (esOscuro) PinoContenedor else Color(0xFFEDEAE4),
+            placeholderFin = if (esOscuro) PinoSuperficie else Color(0xFFDCE4DF),
+            placeholderIcono = if (esOscuro) VerdeEsmeraldaOscuro.copy(alpha = 0.72f) else Color(0xFF64746C)
         )
     }
 

@@ -62,8 +62,8 @@ fun GuiaScreen(
         )
 
         HorizontalDivider(
-            color = paleta.airbnbBorder.copy(alpha = 0.7f),
-            thickness = 0.6.dp
+            color = paleta.airbnbBorder,
+            thickness = 0.8.dp
         )
 
         // 2. Contenido desplazable: filtros de categoría + destacados + listado principal

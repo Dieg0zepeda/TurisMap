@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.FondoBlancoAdaptable
+import com.turismap.app.theme.SuperficieContenedorAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_buscar
@@ -89,7 +90,7 @@ internal fun CabeceraMapa(
         // Barra de búsqueda superior a todo lo ancho en una sola línea
         Surface(
             shape = RoundedCornerShape(26.dp),
-            color = FondoBlancoAdaptable,
+            color = SuperficieContenedorAdaptable,
             shadowElevation = 5.dp,
             border = BorderStroke(1.dp, paleta.airbnbBorde),
             modifier = Modifier
@@ -206,7 +207,7 @@ internal fun CabeceraMapa(
                     ) {
                         Text(
                             text = "${stringResource(filtroTipoMarcadores.etiquetaRes)} ($cantidadLugaresEnMapa) ▾",
-                            color = Color.White,
+                            color = paleta.sobrePrimario,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -224,7 +225,7 @@ internal fun CabeceraMapa(
                         onAbrirMenuCapas()
                     },
                     shape = RoundedCornerShape(16.dp),
-                    color = FondoBlancoAdaptable,
+                    color = SuperficieContenedorAdaptable,
                     shadowElevation = 5.dp,
                     border = BorderStroke(1.dp, paleta.airbnbBorde),
                     modifier = Modifier.size(48.dp)

@@ -1,7 +1,9 @@
 package com.turismap.app.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -116,14 +119,23 @@ fun ExplorarScreen(
     val destinosSinDestacado = remember(lugares, lugarDestacado) {
         lugares.filter { it.id != lugarDestacado?.id }
     }
+    val esModoOscuro = isSystemInDarkTheme()
 
     if (cargando) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = VerdePrimario)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else if (errorCarga != null) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -137,8 +149,8 @@ fun ExplorarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(scrollState)
-                .background(GrisFondo)
                 .padding(bottom = 24.dp)
         ) {
             // Cabecera con título y acceso a notificaciones
@@ -183,7 +195,10 @@ fun ExplorarScreen(
                         .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
                         .clickable { onLugarClick(lugarDestacado!!) },
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = VerdePrimario)
+                    border = if (esModoOscuro) BorderStroke(1.dp, GrisBorde) else null,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         val urlImagenDestacado = lugarDestacado!!.imagenPortadaUrl.ifBlank {
@@ -203,8 +218,12 @@ fun ExplorarScreen(
                                 .fillMaxSize()
                                 .background(
                                     brush = Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                                        startY = 300f
+                                        colorStops = arrayOf(
+                                            0.0f to Color.Transparent,
+                                            0.38f to ObsidianaFondo.copy(alpha = 0.14f),
+                                            0.72f to ObsidianaFondo.copy(alpha = 0.66f),
+                                            1.0f to ObsidianaFondo.copy(alpha = 0.90f)
+                                        )
                                     )
                                 )
                         )
@@ -216,14 +235,14 @@ fun ExplorarScreen(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.2f)
+                                color = TerracotaAcento
                             ) {
                                 Text(
                                     text = stringResource(Res.string.explorar_badge_destino_destacado),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp),
                                     letterSpacing = 0.8.sp
                                 )
                             }
@@ -247,7 +266,7 @@ fun ExplorarScreen(
                             Text(
                                 text = lugarDestacado!!.nombre,
                                 fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.9f)
+                                color = Color.White.copy(alpha = 0.92f)
                             )
                         }
                     }
@@ -303,6 +322,7 @@ fun ExplorarScreen(
                                     onComercioClick(experiencia.id)
                                 },
                             shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, GrisBorde),
                             colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable)
                         ) {
                             Column(Modifier.padding(16.dp)) {
@@ -314,6 +334,7 @@ fun ExplorarScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(150.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                     )
                                     Spacer(Modifier.height(12.dp))
                                 }
@@ -332,14 +353,17 @@ fun ExplorarScreen(
                                     Spacer(Modifier.height(8.dp))
                                     Text(
                                         text = stringResource(Res.string.explorar_precio_desde, it.toString()),
-                                        color = TerracotaAcento,
+                                        color = TerracotaTextoAdaptable,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = { onComercioClick(experiencia.id) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario)
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 ) {
                                     Text(stringResource(Res.string.explorar_btn_ver_detalle))
                                 }
