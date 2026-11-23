@@ -46,11 +46,9 @@ import turismap.shared.generated.resources.nav_lugar_no_encontrado
 fun TurisMapNavHost(
     controladorNavegacion: NavHostController = rememberNavController(),
     modificador: Modifier = Modifier,
-    mostrarBarraInferior: Boolean = true,
     cantidadNotificacionesNoLeidas: Int = 0,
     onCerrarSesion: () -> Unit = {},
-    destinoInicial: String = Pantalla.Explorar.ruta,
-    onSolicitarGoogleSignIn: (((String?) -> Unit) -> Unit)? = null
+    destinoInicial: String = Pantalla.Explorar.ruta
 ) {
     val abrirNotificaciones = {
         controladorNavegacion.navigate(Pantalla.Notificaciones.ruta) {
@@ -124,12 +122,6 @@ fun TurisMapNavHost(
             GuiaScreen(
                 onComercioClick = { comercioId ->
                     controladorNavegacion.navigate(Pantalla.DetalleExperiencia.crearRuta(comercioId))
-                },
-                onIniciarRuta = { _ ->
-                    controladorNavegacion.navigate(Pantalla.Mapa.ruta) {
-                        popUpTo(Pantalla.Guia.ruta) { inclusive = true }
-                        launchSingleTop = true
-                    }
                 }
             )
         }
@@ -305,20 +297,6 @@ fun TurisMapNavHost(
                 DetalleExperienciaScreen(
                     comercioId = comercioId,
                     onVolver = { controladorNavegacion.popBackStack() }
-                )
-            }
-        }
-
-        // 7. Inicio de Sesión
-        composable(Pantalla.InicioSesion.ruta) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                LoginScreen(
-                    onLoginExitoso = {
-                        controladorNavegacion.navigate(Pantalla.Explorar.ruta) {
-                            popUpTo(Pantalla.InicioSesion.ruta) { inclusive = true }
-                        }
-                    },
-                    onSolicitarGoogleSignIn = onSolicitarGoogleSignIn
                 )
             }
         }

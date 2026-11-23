@@ -3,7 +3,6 @@ package com.turismap.app.data.repository
 import com.turismap.app.data.models.Atractivo
 import com.turismap.app.data.models.CategoriaLugar
 import com.turismap.app.data.models.Coordenada
-import com.turismap.app.data.models.DirectorioStats
 import com.turismap.app.data.models.Lugar
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.DocumentSnapshot
@@ -54,33 +53,6 @@ private data class AtractivoFirestoreDto(
 }
 
 @Serializable
-private data class DirectorioStatsFirestoreDto(
-    val tituloGeneral: String? = null,
-    val descripcionGeneral: String? = null,
-    val stat1Icon: String? = null,
-    val stat1Texto: String? = null,
-    val stat2Icon: String? = null,
-    val stat2Texto: String? = null,
-    val stat3Icon: String? = null,
-    val stat3Texto: String? = null,
-    val stat4Icon: String? = null,
-    val stat4Texto: String? = null
-) {
-    fun aDirectorioStats(): DirectorioStats = DirectorioStats(
-        tituloGeneral = tituloGeneral.orEmpty(),
-        descripcionGeneral = descripcionGeneral.orEmpty(),
-        stat1Icon = stat1Icon.orEmpty(),
-        stat1Texto = stat1Texto.orEmpty(),
-        stat2Icon = stat2Icon.orEmpty(),
-        stat2Texto = stat2Texto.orEmpty(),
-        stat3Icon = stat3Icon.orEmpty(),
-        stat3Texto = stat3Texto.orEmpty(),
-        stat4Icon = stat4Icon.orEmpty(),
-        stat4Texto = stat4Texto.orEmpty()
-    )
-}
-
-@Serializable
 private data class LugarFirestoreDto(
     val id: String? = null,
     val nombre: String? = null,
@@ -98,8 +70,7 @@ private data class LugarFirestoreDto(
     val imagenPortadaUrl: String? = null,
     val mejorTemporadaTitulo: String? = null,
     val mejorTemporadaDesc: String? = null,
-    val atractivos: List<AtractivoFirestoreDto?>? = null,
-    val directorioStats: DirectorioStatsFirestoreDto? = null
+    val atractivos: List<AtractivoFirestoreDto?>? = null
 ) {
     fun aLugar(documentId: String): Lugar = Lugar(
         id = documentId,
@@ -119,8 +90,7 @@ private data class LugarFirestoreDto(
         imagenPortadaUrl = imagenPortadaUrl.orEmpty(),
         mejorTemporadaTitulo = mejorTemporadaTitulo.orEmpty(),
         mejorTemporadaDesc = mejorTemporadaDesc.orEmpty(),
-        atractivos = atractivos.orEmpty().mapNotNull { it?.aAtractivo() },
-        directorioStats = directorioStats?.aDirectorioStats() ?: DirectorioStats()
+        atractivos = atractivos.orEmpty().mapNotNull { it?.aAtractivo() }
     )
 }
 

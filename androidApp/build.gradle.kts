@@ -23,26 +23,16 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
-// Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:21.3.0")
+
+    // Google Sign-In
+    implementation(libs.play.services.auth)
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 
-    // Firebase (BOM y servicios sin versión directa)
+    // Firebase BOM y Auth (firebase-firestore y coil-compose provienen de :shared)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
-
-    // Coil para cargar imágenes
-    implementation(libs.coil.compose)
-
-    // Navegación
-    // implementation(libs.androidx.navigation.compose)
-
-    // Koin
-    implementation(libs.koin.android)
-    implementation(libs.koin.androidx.compose)
 }
 
 android {
@@ -64,7 +54,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

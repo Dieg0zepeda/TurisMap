@@ -37,9 +37,7 @@ import turismap.shared.generated.resources.auth_ruta_flores
 fun GuiaScreen(
     paddingValues: PaddingValues = PaddingValues(0.dp),
     comerciosExternos: List<Comercio>? = null,
-    onLlamarComercio: (String) -> Unit = {},
-    onComercioClick: (String) -> Unit = {},
-    onIniciarRuta: (Comercio) -> Unit = {}
+    onComercioClick: (String) -> Unit = {}
 ) {
     val esOscuro = isSystemInDarkTheme()
     val paleta = rememberGuiaPaleta(esOscuro)

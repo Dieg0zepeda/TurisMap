@@ -261,24 +261,6 @@ internal class PerfilState(
             }
         }
     }
-
-    fun mostrarMensaje(mensaje: String) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(mensaje)
-        }
-    }
-
-    fun mostrarMensaje(recurso: StringResource) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(getString(recurso))
-        }
-    }
-
-    fun mostrarMensajeOError(mensaje: String?, fallback: StringResource) {
-        coroutineScope.launch {
-            snackbarHostState.showSnackbar(mensaje ?: getString(fallback))
-        }
-    }
 }
 
 @Composable

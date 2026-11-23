@@ -19,8 +19,7 @@ data class Lugar(
     val imagenPortadaUrl: String = "",
     val mejorTemporadaTitulo: String = "",
     val mejorTemporadaDesc: String = "",
-    val atractivos: List<Atractivo> = emptyList(),
-    val directorioStats: DirectorioStats = DirectorioStats()
+    val atractivos: List<Atractivo> = emptyList()
 ) {
     val categoriaResuelta: CategoriaLugar
         get() = CategoriaLugar.desdeTexto(categoria)

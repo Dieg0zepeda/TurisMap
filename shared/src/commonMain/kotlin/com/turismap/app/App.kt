@@ -134,7 +134,6 @@ fun App(
                     TurisMapNavHost(
                         controladorNavegacion = controladorNavegacion,
                         modificador = Modifier.padding(paddingValues),
-                        mostrarBarraInferior = mostrarBarraInferior,
                         cantidadNotificacionesNoLeidas = cantidadNotificacionesNoLeidas,
                         onCerrarSesion = { /* authStateChanged cierra la sesión reactivamente */ }
                     )

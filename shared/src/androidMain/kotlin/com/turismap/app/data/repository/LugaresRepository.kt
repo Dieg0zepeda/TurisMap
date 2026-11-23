@@ -7,7 +7,6 @@ import com.google.firebase.firestore.firestore
 import com.turismap.app.data.models.Atractivo
 import com.turismap.app.data.models.CategoriaLugar
 import com.turismap.app.data.models.Coordenada
-import com.turismap.app.data.models.DirectorioStats
 import com.turismap.app.data.models.Lugar
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -63,22 +62,6 @@ private fun Any?.comoAtractivos(): List<Atractivo> {
     }
 }
 
-private fun Any?.comoDirectorioStats(): DirectorioStats {
-    val mapa = this as? Map<*, *> ?: return DirectorioStats()
-    return DirectorioStats(
-        tituloGeneral = mapa["tituloGeneral"].comoTexto(),
-        descripcionGeneral = mapa["descripcionGeneral"].comoTexto(),
-        stat1Icon = mapa["stat1Icon"].comoTexto(),
-        stat1Texto = mapa["stat1Texto"].comoTexto(),
-        stat2Icon = mapa["stat2Icon"].comoTexto(),
-        stat2Texto = mapa["stat2Texto"].comoTexto(),
-        stat3Icon = mapa["stat3Icon"].comoTexto(),
-        stat3Texto = mapa["stat3Texto"].comoTexto(),
-        stat4Icon = mapa["stat4Icon"].comoTexto(),
-        stat4Texto = mapa["stat4Texto"].comoTexto()
-    )
-}
-
 private fun DocumentSnapshot.aLugarSeguro(): Lugar? {
     if (!exists()) return null
     val datos = data ?: return null
@@ -106,8 +89,7 @@ private fun DocumentSnapshot.aLugarSeguro(): Lugar? {
         imagenPortadaUrl = datos["imagenPortadaUrl"].comoTexto(),
         mejorTemporadaTitulo = datos["mejorTemporadaTitulo"].comoTexto(),
         mejorTemporadaDesc = datos["mejorTemporadaDesc"].comoTexto(),
-        atractivos = datos["atractivos"].comoAtractivos(),
-        directorioStats = datos["directorioStats"].comoDirectorioStats()
+        atractivos = datos["atractivos"].comoAtractivos()
     )
 }
 

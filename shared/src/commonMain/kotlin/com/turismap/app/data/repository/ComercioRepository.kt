@@ -30,7 +30,6 @@ import turismap.shared.generated.resources.repo_error_nombre_negocio_longitud
 import turismap.shared.generated.resources.repo_error_plan_requerido
 import turismap.shared.generated.resources.repo_error_sesion_enviar_solicitud
 import turismap.shared.generated.resources.repo_error_sesion_publicar_resena
-import turismap.shared.generated.resources.repo_error_sesion_registrar_comercio
 import turismap.shared.generated.resources.repo_error_sesion_sin_correo
 import turismap.shared.generated.resources.repo_error_telefono_longitud
 import turismap.shared.generated.resources.repo_error_ubicacion_longitud
@@ -516,46 +515,6 @@ object ComercioRepository {
     suspend fun obtenerPorId(id: String): Comercio? {
         val documento = firestore.collection("comercios").document(id.trim()).get()
         return if (documento.exists) documento.aComercioSeguro() else null
-    }
-
-    suspend fun enviarSolicitud(
-        lugarId: String,
-        nombre: String,
-        descripcion: String,
-        categoria: String,
-        direccion: String,
-        telefono: String,
-        sitioWeb: String,
-        horario: String,
-        precioDesde: Double?,
-        servicios: List<String>,
-        imagenUrls: List<String>
-    ) {
-        val uid = Firebase.auth.currentUser?.uid
-            ?: throw IllegalStateException(getString(Res.string.repo_error_sesion_registrar_comercio))
-        val ahoraServidor = FieldValue.serverTimestamp
-        firestore.collection("comercios").add(
-            mapOf(
-                "propietarioUid" to uid,
-                "lugarId" to lugarId,
-                "nombre" to nombre,
-                "descripcion" to descripcion,
-                "categoria" to categoria,
-                "direccion" to direccion,
-                "telefono" to telefono,
-                "sitioWeb" to sitioWeb,
-                "horario" to horario,
-                "precioDesde" to precioDesde,
-                "servicios" to servicios,
-                "imagenUrls" to imagenUrls,
-                "calificacionPromedio" to 0.0,
-                "cantidadResenas" to 0,
-                "destacado" to false,
-                "estado" to "pendiente",
-                "creadoEn" to ahoraServidor,
-                "actualizadoEn" to ahoraServidor
-            )
-        )
     }
 
     suspend fun enviarSolicitudComercio(

@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    kotlin("plugin.serialization") version "2.4.10"
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -43,14 +43,13 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
-            implementation(libs.compose.uiTooling)
 
             // Google Maps para Jetpack Compose en Android
-            implementation("com.google.maps.android:maps-compose:4.4.1")
-            implementation("com.google.maps.android:maps-compose-utils:4.4.1")
-            implementation("com.google.android.gms:play-services-maps:19.0.0")
+            implementation(libs.maps.compose)
+            implementation(libs.maps.compose.utils)
+            implementation(libs.play.services.maps)
 
-            // Firebase integrado usando la referencia completa de dependencias del proyecto
+            // Firebase integrado usando la referencia centralizada
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.firestore)
 
@@ -58,7 +57,7 @@ kotlin {
             implementation(libs.coil.compose)
 
             // Google Play Services Location para obtener ubicación del usuario
-            implementation("com.google.android.gms:play-services-location:21.1.0")
+            implementation(libs.play.services.location)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -77,11 +76,10 @@ kotlin {
             implementation(libs.navigation.compose)
 
             // Serialización JSON y GitLive Firebase Multiplatform
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-            implementation("dev.gitlive:firebase-firestore:1.11.1")
-            implementation("dev.gitlive:firebase-auth:1.11.1")
-            // 🚀 AQUÍ SE AÑADIÓ LA DEPENDENCIA PARA FIREBASE STORAGE
-            implementation("dev.gitlive:firebase-storage:1.11.1")
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.gitlive.firebase.firestore)
+            implementation(libs.gitlive.firebase.auth)
+            implementation(libs.gitlive.firebase.storage)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

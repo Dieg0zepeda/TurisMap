@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -75,7 +74,11 @@ object UsuarioRepository {
                 if (uid.isNullOrBlank()) {
                     flowOf(null)
                 } else {
-                    observarUsuarioPorId(uid)
+                    firestore.collection("usuarios").document(uid).snapshots
+                        .map { snapshot ->
+                            if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
+                        }
+                        .catch { emit(null) }
                 }
             }
             .catch { emit(null) }
@@ -90,20 +93,6 @@ object UsuarioRepository {
      * Devuelve el flujo compartido del usuario autenticado actual.
      */
     fun observarUsuarioActual(): StateFlow<UsuarioBD?> = usuarioActualFlow
-
-    fun observarUsuarioPorId(idUsuario: String): Flow<UsuarioBD?> =
-        firestore.collection("usuarios").document(idUsuario).snapshots
-            .map { snapshot ->
-                if (snapshot.exists) snapshot.data(UsuarioBD.serializer()) else null
-            }
-            .catch { emit(null) }
-
-    fun observarContadorVisitas(idUsuario: String): Flow<Int> =
-        firestore.collection("usuarios").document(idUsuario)
-            .collection("historial_rutas")
-            .snapshots
-            .map { it.documents.size }
-            .catch { emit(0) }
 
     // ==========================================
     // 2. CONSULTAS PUNTUALES
@@ -322,26 +311,5 @@ object UsuarioRepository {
         throw error
     } catch (_: Exception) {
         0
-    }
-
-    suspend fun obtenerHistorialVisitas(idUsuario: String): List<String> = try {
-        firestore.collection("usuarios").document(idUsuario)
-            .collection("historial_rutas")
-            .get()
-            .documents
-            .mapNotNull { doc ->
-                try {
-                    doc.get<String>("lugarId")
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (_: Exception) {
-                    null
-                }
-            }
-            .distinct()
-    } catch (error: CancellationException) {
-        throw error
-    } catch (_: Exception) {
-        emptyList()
     }
 }
