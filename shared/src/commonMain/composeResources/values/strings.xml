@@ -130,11 +130,11 @@
 
     <!-- Pantalla Explorar -->
     <string name="explorar_error_cargar_destinos">No se pudieron cargar los destinos.</string>
-    <string name="explorar_titulo">Explorar la Ruta</string>
+    <string name="explorar_titulo">Ruta de las Flores</string>
     <string name="explorar_cd_fondo_destino">Fondo de %1$s</string>
     <string name="explorar_badge_destino_destacado">DESTINO DESTACADO</string>
     <string name="explorar_descubre_lugar">Descubre %1$s</string>
-    <string name="explorar_seccion_explora_ruta">Explora la Ruta</string>
+    <string name="explorar_seccion_pueblos_ruta">Pueblos de la Ruta</string>
     <string name="explorar_etiqueta_destino_predeterminada">Destino</string>
     <string name="explorar_seccion_experiencias">Experiencias Destacadas</string>
     <string name="explorar_experiencias_vacio">Aún no hay experiencias destacadas publicadas.</string>

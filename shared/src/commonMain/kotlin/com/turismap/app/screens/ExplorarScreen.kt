@@ -38,7 +38,7 @@ import turismap.shared.generated.resources.explorar_error_cargar_destinos
 import turismap.shared.generated.resources.explorar_experiencias_vacio
 import turismap.shared.generated.resources.explorar_precio_desde
 import turismap.shared.generated.resources.explorar_seccion_experiencias
-import turismap.shared.generated.resources.explorar_seccion_explora_ruta
+import turismap.shared.generated.resources.explorar_seccion_pueblos_ruta
 import turismap.shared.generated.resources.explorar_titulo
 
 @Composable
@@ -216,7 +216,7 @@ fun ExplorarScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = stringResource(Res.string.explorar_seccion_explora_ruta),
+                text = stringResource(Res.string.explorar_seccion_pueblos_ruta),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextoPrincipalOscuro,
@@ -225,7 +225,7 @@ fun ExplorarScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Carrusel horizontal con foco central sin el elemento repetido
+            // Carrusel horizontal alineado a la izquierda sin el elemento repetido
             CarruselExploraRuta(
                 destinos = destinosSinDestacado,
                 onLugarClick = onLugarClick

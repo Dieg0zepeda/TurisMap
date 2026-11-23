@@ -2,6 +2,9 @@ package com.turismap.app.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -11,9 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PageSize
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -21,15 +25,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
-import androidx.compose.ui.zIndex
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.FondoBlancoAdaptable
@@ -38,19 +38,20 @@ import com.turismap.app.theme.GrisTextoSecundario
 import com.turismap.app.theme.TextoPrincipalOscuro
 import com.turismap.app.theme.VerdePrimario
 import com.turismap.app.theme.VerdeTextoAdaptable
-import kotlin.math.absoluteValue
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.explorar_etiqueta_destino_predeterminada
 
-private const val PROPORCION_ANCHO_TARJETA = 0.69f
-private val ESPACIADO_PAGINAS = 12.dp
+private const val PROPORCION_ANCHO_TARJETA = 0.80f
+private val ANCHO_MAXIMO_TARJETA = 340.dp
+private val MARGEN_HORIZONTAL_CARRUSEL = 16.dp
+private val ESPACIADO_TARJETAS = 12.dp
 private val PADDING_SUPERIOR_CARRUSEL = 8.dp
 private val PADDING_INFERIOR_CARRUSEL = 16.dp
 private val ALTURA_TARJETA_RUTA = 260.dp
 private val ALTURA_IMAGEN_TARJETA = 140.dp
 private val RADIO_TARJETA_RUTA = 20.dp
-private val DESPLAZAMIENTO_VERTICAL_LATERAL = 12.dp
+private val ELEVACION_TARJETA_RUTA = 4.dp
 
 @Composable
 internal fun CarruselExploraRuta(
@@ -60,52 +61,41 @@ internal fun CarruselExploraRuta(
 ) {
     if (destinos.isEmpty()) return
 
-    val pagerState = rememberPagerState(pageCount = { destinos.size })
+    val listState = rememberLazyListState()
+    val snapFlingBehavior = rememberSnapFlingBehavior(
+        lazyListState = listState,
+        snapPosition = SnapPosition.Start
+    )
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val anchoTarjeta = maxWidth * PROPORCION_ANCHO_TARJETA
-        val paddingHorizontal = ((maxWidth - anchoTarjeta) / 2f).coerceAtLeast(0.dp)
+        val anchoDisponible = (maxWidth - MARGEN_HORIZONTAL_CARRUSEL * 2).coerceAtLeast(0.dp)
+        val anchoTarjeta = (anchoDisponible * PROPORCION_ANCHO_TARJETA)
+            .coerceAtMost(ANCHO_MAXIMO_TARJETA)
 
-        HorizontalPager(
-            state = pagerState,
+        LazyRow(
+            state = listState,
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(
-                start = paddingHorizontal,
+                start = MARGEN_HORIZONTAL_CARRUSEL,
                 top = PADDING_SUPERIOR_CARRUSEL,
-                end = paddingHorizontal,
+                end = MARGEN_HORIZONTAL_CARRUSEL,
                 bottom = PADDING_INFERIOR_CARRUSEL
             ),
-            pageSize = PageSize.Fixed(anchoTarjeta),
-            pageSpacing = ESPACIADO_PAGINAS,
-            beyondViewportPageCount = 1,
-            key = { indice -> destinos[indice].id }
-        ) { pagina ->
-            val lugar = destinos[pagina]
-            val pageOffset = (
-                (pagerState.currentPage - pagina) + pagerState.currentPageOffsetFraction
-            ).absoluteValue.coerceIn(0f, 1f)
-            val factorFoco = 1f - pageOffset
-
-            TarjetaDestinoCarrusel(
-                lugar = lugar,
-                factorFoco = factorFoco,
-                onClick = { onLugarClick(lugar) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(ALTURA_TARJETA_RUTA)
-                    .zIndex(factorFoco)
-                    .graphicsLayer {
-                        val escala = lerp(start = 0.92f, stop = 1f, fraction = factorFoco)
-                        scaleX = escala
-                        scaleY = escala
-                        alpha = lerp(start = 0.78f, stop = 1f, fraction = factorFoco)
-                        translationY = lerp(
-                            start = DESPLAZAMIENTO_VERTICAL_LATERAL.toPx(),
-                            stop = 0f,
-                            fraction = factorFoco
-                        )
-                    }
-            )
+            horizontalArrangement = Arrangement.spacedBy(ESPACIADO_TARJETAS),
+            flingBehavior = snapFlingBehavior
+        ) {
+            items(
+                items = destinos,
+                key = { lugar -> lugar.id }
+            ) { lugar ->
+                TarjetaDestinoCarrusel(
+                    lugar = lugar,
+                    onClick = { onLugarClick(lugar) },
+                    modifier = Modifier
+                        .width(anchoTarjeta)
+                        .height(ALTURA_TARJETA_RUTA)
+                )
+            }
         }
     }
 }
@@ -113,25 +103,16 @@ internal fun CarruselExploraRuta(
 @Composable
 private fun TarjetaDestinoCarrusel(
     lugar: Lugar,
-    factorFoco: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val elevacion = lerp(start = 2f, stop = 8f, fraction = factorFoco).dp
-    val anchoBorde = lerp(start = 1f, stop = 1.5f, fraction = factorFoco).dp
-    val colorBorde = lerpColor(
-        start = GrisBorde.copy(alpha = 0.45f),
-        stop = VerdeTextoAdaptable.copy(alpha = 0.55f),
-        fraction = factorFoco
-    )
-
     Card(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(RADIO_TARJETA_RUTA),
         colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevacion),
-        border = BorderStroke(width = anchoBorde, color = colorBorde)
+        elevation = CardDefaults.cardElevation(defaultElevation = ELEVACION_TARJETA_RUTA),
+        border = BorderStroke(width = 1.dp, color = GrisBorde.copy(alpha = 0.55f))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(

@@ -130,11 +130,11 @@
 
     <!-- Explore Screen -->
     <string name="explorar_error_cargar_destinos">Could not load destinations.</string>
-    <string name="explorar_titulo">Explore the Route</string>
+    <string name="explorar_titulo">Ruta de las Flores</string>
     <string name="explorar_cd_fondo_destino">Background of %1$s</string>
     <string name="explorar_badge_destino_destacado">FEATURED DESTINATION</string>
     <string name="explorar_descubre_lugar">Discover %1$s</string>
-    <string name="explorar_seccion_explora_ruta">Explore the Route</string>
+    <string name="explorar_seccion_pueblos_ruta">Towns along the Route</string>
     <string name="explorar_etiqueta_destino_predeterminada">Destination</string>
     <string name="explorar_seccion_experiencias">Featured Experiences</string>
     <string name="explorar_experiencias_vacio">No featured experiences published yet.</string>
