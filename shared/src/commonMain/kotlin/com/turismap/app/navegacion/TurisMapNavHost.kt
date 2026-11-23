@@ -32,6 +32,14 @@ import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.screens.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.nav_error_actualizar_favorito
+import turismap.shared.generated.resources.nav_error_cargar_lugar
+import turismap.shared.generated.resources.nav_error_guardar_visita
+import turismap.shared.generated.resources.nav_lugar_no_encontrado
 
 @Composable
 fun TurisMapNavHost(
@@ -191,13 +199,13 @@ fun TurisMapNavHost(
                         } catch (error: CancellationException) {
                             throw error
                         } catch (error: Exception) {
-                            mensajeAccion = error.message ?: "No se pudo guardar esta visita en tu historial."
+                            mensajeAccion = error.message ?: getString(Res.string.nav_error_guardar_visita)
                         }
                     }
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    errorCarga = error.message ?: "No se pudo cargar este lugar."
+                    errorCarga = error.message ?: getString(Res.string.nav_error_cargar_lugar)
                 } finally {
                     cargando = false
                 }
@@ -231,7 +239,7 @@ fun TurisMapNavHost(
                                     } catch (error: CancellationException) {
                                         throw error
                                     } catch (error: Exception) {
-                                        mensajeAccion = error.message ?: "No se pudo actualizar el favorito."
+                                        mensajeAccion = error.message ?: getString(Res.string.nav_error_actualizar_favorito)
                                     } finally {
                                         favoritoCargando = false
                                     }
@@ -248,9 +256,9 @@ fun TurisMapNavHost(
                     }
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(errorCarga ?: "No se encontró el lugar.")
+                        Text(errorCarga ?: stringResource(Res.string.nav_lugar_no_encontrado))
                         if (errorCarga != null) {
-                            Button(onClick = { intentoCarga++ }) { Text("Reintentar") }
+                            Button(onClick = { intentoCarga++ }) { Text(stringResource(Res.string.btn_reintentar)) }
                         }
                     }
                 }

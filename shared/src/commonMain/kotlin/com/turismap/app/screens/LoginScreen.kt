@@ -33,9 +33,50 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.data.repository.AutenticacionRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.auth_badge_pueblos_vivos
+import turismap.shared.generated.resources.auth_bienvenida_descripcion
+import turismap.shared.generated.resources.auth_bienvenida_titulo
+import turismap.shared.generated.resources.auth_btn_crear_cuenta
+import turismap.shared.generated.resources.auth_btn_google
+import turismap.shared.generated.resources.auth_btn_ingresar_ruta
+import turismap.shared.generated.resources.auth_btn_registrate_gratis
+import turismap.shared.generated.resources.auth_cd_logo
+import turismap.shared.generated.resources.auth_cd_mostrar_contrasena
+import turismap.shared.generated.resources.auth_cd_ocultar_contrasena
+import turismap.shared.generated.resources.auth_contrasena_label
+import turismap.shared.generated.resources.auth_correo_label
+import turismap.shared.generated.resources.auth_correo_placeholder
+import turismap.shared.generated.resources.auth_error_contrasena_requerida
+import turismap.shared.generated.resources.auth_error_correo_invalido
+import turismap.shared.generated.resources.auth_error_correo_requerido
+import turismap.shared.generated.resources.auth_error_correo_restablecer
+import turismap.shared.generated.resources.auth_error_crear_cuenta
+import turismap.shared.generated.resources.auth_error_google
+import turismap.shared.generated.resources.auth_error_google_no_configurado
+import turismap.shared.generated.resources.auth_error_iniciar_sesion
+import turismap.shared.generated.resources.auth_error_restablecer
+import turismap.shared.generated.resources.auth_interes_artesanias
+import turismap.shared.generated.resources.auth_interes_cafe
+import turismap.shared.generated.resources.auth_interes_cascadas
+import turismap.shared.generated.resources.auth_interes_miradores
+import turismap.shared.generated.resources.auth_o_continua_con
+import turismap.shared.generated.resources.auth_olvide_contrasena
+import turismap.shared.generated.resources.auth_registro_contrasena_label
+import turismap.shared.generated.resources.auth_registro_descripcion
+import turismap.shared.generated.resources.auth_registro_intereses_titulo
+import turismap.shared.generated.resources.auth_registro_nombre_label
+import turismap.shared.generated.resources.auth_registro_terminos
+import turismap.shared.generated.resources.auth_registro_titulo
+import turismap.shared.generated.resources.auth_restablecimiento_enviado
+import turismap.shared.generated.resources.auth_sin_cuenta_pregunta
+import turismap.shared.generated.resources.auth_subtitulo_ruta
 import turismap.shared.generated.resources.logo_turismap
+import turismap.shared.generated.resources.repo_auth_error_contrasena_longitud
 
 @Composable
 fun LoginScreen(
@@ -54,28 +95,29 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var mostrarVentanaRegistro by remember { mutableStateOf(false) }
-    var emailError by remember { mutableStateOf<String?>(null) }
-    // En login quitamos la validación en tiempo real para no molestar al usuario
+    var emailError by remember { mutableStateOf<StringResource?>(null) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
     var cargando by remember { mutableStateOf(false) }
     var cargandoGoogle by remember { mutableStateOf(false) }
     var restablecimientoEnviado by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val errorGoogleNoConfigurado = stringResource(Res.string.auth_error_google_no_configurado)
+    val errorContrasenaRequerida = stringResource(Res.string.auth_error_contrasena_requerida)
 
     fun validarFormulario(): Boolean {
         var isValid = true
         emailError = null
 
         if (email.isBlank()) {
-            emailError = "El correo es requerido"
+            emailError = Res.string.auth_error_correo_requerido
             isValid = false
         } else if (!esEmailValido(email)) {
-            emailError = "Formato de correo inválido"
+            emailError = Res.string.auth_error_correo_invalido
             isValid = false
         }
 
         if (password.isEmpty()) {
-            mensajeError = "La contraseña es requerida"
+            mensajeError = errorContrasenaRequerida
             isValid = false
         }
 
@@ -107,7 +149,7 @@ fun LoginScreen(
         ) {
             Image(
                 painter = painterResource(Res.drawable.logo_turismap),
-                contentDescription = "Logo TurisMap",
+                contentDescription = stringResource(Res.string.auth_cd_logo),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = androidx.compose.ui.layout.ContentScale.Fit
             )
@@ -126,14 +168,14 @@ fun LoginScreen(
             ) {
                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = terracota, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("PUEBLOS VIVOS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = terracota)
+                Text(stringResource(Res.string.auth_badge_pueblos_vivos), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = terracota)
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "RUTA DE LAS FLORES - EL SALVADOR",
+            text = stringResource(Res.string.auth_subtitulo_ruta),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Gray,
@@ -141,14 +183,14 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Bienvenido a TurisMap",
+            text = stringResource(Res.string.auth_bienvenida_titulo),
             fontSize = 24.sp,
             fontWeight = FontWeight.ExtraBold,
             color = verdeOscuro
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Explora pueblos vivos, cascadas y la mejor ruta del café en El Salvador.",
+            text = stringResource(Res.string.auth_bienvenida_descripcion),
             fontSize = 14.sp,
             color = grisTexto,
             textAlign = TextAlign.Center,
@@ -159,13 +201,17 @@ fun LoginScreen(
 
         // Campo Correo
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("Correo electrónico", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = grisTexto)
+            Text(stringResource(Res.string.auth_correo_label), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = grisTexto)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    emailError = null
+                    mensajeError = null
+                },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("viajero@laruta.sv") },
+                placeholder = { Text(stringResource(Res.string.auth_correo_placeholder)) },
                 leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -178,8 +224,8 @@ fun LoginScreen(
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
-            if (emailError != null) {
-                Text(text = emailError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+            emailError?.let { errorRes ->
+                Text(text = stringResource(errorRes), color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
             }
         }
 
@@ -187,7 +233,7 @@ fun LoginScreen(
 
         // Campo Contraseña
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("Contraseña", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = grisTexto)
+            Text(stringResource(Res.string.auth_contrasena_label), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = grisTexto)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = password,
@@ -201,7 +247,12 @@ fun LoginScreen(
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = "Mostrar contraseña")
+                        Icon(
+                            imageVector = image,
+                            contentDescription = stringResource(
+                                if (passwordVisible) Res.string.auth_cd_ocultar_contrasena else Res.string.auth_cd_mostrar_contrasena
+                            )
+                        )
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -224,19 +275,19 @@ fun LoginScreen(
 
         if (restablecimientoEnviado) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.", color = verdeOscuro, fontSize = 13.sp)
+            Text(stringResource(Res.string.auth_restablecimiento_enviado), color = verdeOscuro, fontSize = 13.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "¿Olvidaste tu contraseña?",
+            text = stringResource(Res.string.auth_olvide_contrasena),
             fontSize = 13.sp,
             color = terracota,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.align(Alignment.End).clickable {
                 if (!esEmailValido(email)) {
-                    emailError = "Ingresa un correo válido para restablecer tu contraseña"
+                    emailError = Res.string.auth_error_correo_restablecer
                 } else {
                     cargando = true
                     mensajeError = null
@@ -247,7 +298,7 @@ fun LoginScreen(
                         } catch (error: CancellationException) {
                             throw error
                         } catch (error: Exception) {
-                            mensajeError = error.message ?: "No se pudo solicitar el restablecimiento."
+                            mensajeError = error.message ?: getString(Res.string.auth_error_restablecer)
                         } finally {
                             cargando = false
                         }
@@ -271,7 +322,7 @@ fun LoginScreen(
                         } catch (error: CancellationException) {
                             throw error
                         } catch (error: Exception) {
-                            mensajeError = error.message ?: "No se pudo iniciar sesión."
+                            mensajeError = error.message ?: getString(Res.string.auth_error_iniciar_sesion)
                         } finally {
                             cargando = false
                         }
@@ -288,7 +339,7 @@ fun LoginScreen(
             if (cargando) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
-                Text("Ingresar a la Ruta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.auth_btn_ingresar_ruta), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }
@@ -303,7 +354,7 @@ fun LoginScreen(
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = grisTexto.copy(alpha = 0.3f))
             Text(
-                text = "o continúa con",
+                text = stringResource(Res.string.auth_o_continua_con),
                 color = grisTexto,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 12.dp)
@@ -327,14 +378,14 @@ fun LoginScreen(
                             } catch (error: CancellationException) {
                                 throw error
                             } catch (error: Exception) {
-                                mensajeError = error.message ?: "Error al autenticar con Google."
+                                mensajeError = error.message ?: getString(Res.string.auth_error_google)
                             } finally {
                                 cargandoGoogle = false
                             }
                         }
                     } ?: run {
                         cargandoGoogle = false
-                        mensajeError = "Servicio de Google Sign-In no configurado."
+                        mensajeError = errorGoogleNoConfigurado
                     }
                 }
             },
@@ -351,6 +402,7 @@ fun LoginScreen(
             if (cargandoGoogle) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = verdeOscuro)
             } else {
+                // Icono 'G' de Google
                 Surface(
                     shape = CircleShape,
                     color = Color.White,
@@ -363,7 +415,7 @@ fun LoginScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Continuar con Google",
+                    text = stringResource(Res.string.auth_btn_google),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (esOscuro) Color.White else Color(0xFF333333)
@@ -378,9 +430,10 @@ fun LoginScreen(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("¿Aún no tienes cuenta? ", color = grisTexto, fontSize = 14.sp)
+            Text(stringResource(Res.string.auth_sin_cuenta_pregunta), color = grisTexto, fontSize = 14.sp)
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "Regístrate gratis",
+                text = stringResource(Res.string.auth_btn_registrate_gratis),
                 color = verdeOscuro,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
@@ -431,7 +484,6 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
     var interesArtesanias by remember { mutableStateOf(false) }
     var interesMiradores by remember { mutableStateOf(false) }
 
-    // Evaluación en tiempo real
     val claveCorta = password.isNotEmpty() && password.length < 8
     val formularioValido = nombre.isNotBlank() && esEmailValido(email) && password.length >= 8 && aceptoTerminos
 
@@ -448,15 +500,15 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 .padding(bottom = 32.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("Crea tu cuenta de viajero", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = verdeOscuro)
+            Text(stringResource(Res.string.auth_registro_titulo), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = verdeOscuro)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Descubre rutas secretas, guarda tus municipios favoritos y planifica tu aventura.", fontSize = 14.sp, color = grisTexto)
+            Text(stringResource(Res.string.auth_registro_descripcion), fontSize = 14.sp, color = grisTexto)
 
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = nombre, onValueChange = { nombre = it },
-                label = { Text("Nombre completo") },
+                label = { Text(stringResource(Res.string.auth_registro_nombre_label)) },
                 leadingIcon = { Icon(Icons.Default.PersonOutline, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -468,7 +520,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
-                label = { Text("Correo electrónico") },
+                label = { Text(stringResource(Res.string.auth_correo_label)) },
                 leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
@@ -481,12 +533,17 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
-                label = { Text("Crea una clave segura") },
+                label = { Text(stringResource(Res.string.auth_registro_contrasena_label)) },
                 leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = "Mostrar")
+                        Icon(
+                            imageVector = image,
+                            contentDescription = stringResource(
+                                if (passwordVisible) Res.string.auth_cd_ocultar_contrasena else Res.string.auth_cd_mostrar_contrasena
+                            )
+                        )
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -496,7 +553,10 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 isError = claveCorta,
                 supportingText = {
                     if (claveCorta) {
-                        Text("La contraseña debe tener al menos 8 caracteres", color = MaterialTheme.colorScheme.error)
+                        Text(
+                            stringResource(Res.string.repo_auth_error_contrasena_longitud),
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = verdeOscuro),
@@ -505,24 +565,24 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("¿Qué te inspira explorar?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = verdeOscuro)
+            Text(stringResource(Res.string.auth_registro_intereses_titulo), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = verdeOscuro)
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChipInteres("Cascadas", interesCascadas, Modifier.weight(1f)) { interesCascadas = !interesCascadas }
-                ChipInteres("Fincas de Café", interesCafe, Modifier.weight(1f)) { interesCafe = !interesCafe }
+                ChipInteres(stringResource(Res.string.auth_interes_cascadas), interesCascadas, Modifier.weight(1f)) { interesCascadas = !interesCascadas }
+                ChipInteres(stringResource(Res.string.auth_interes_cafe), interesCafe, Modifier.weight(1f)) { interesCafe = !interesCafe }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChipInteres("Artesanías", interesArtesanias, Modifier.weight(1f)) { interesArtesanias = !interesArtesanias }
-                ChipInteres("Miradores", interesMiradores, Modifier.weight(1f)) { interesMiradores = !interesMiradores }
+                ChipInteres(stringResource(Res.string.auth_interes_artesanias), interesArtesanias, Modifier.weight(1f)) { interesArtesanias = !interesArtesanias }
+                ChipInteres(stringResource(Res.string.auth_interes_miradores), interesMiradores, Modifier.weight(1f)) { interesMiradores = !interesMiradores }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = aceptoTerminos, onCheckedChange = { aceptoTerminos = it }, colors = CheckboxDefaults.colors(checkedColor = verdeOscuro))
-                Text("Acepto los Términos y Condiciones", fontSize = 12.sp, color = grisTexto)
+                Text(stringResource(Res.string.auth_registro_terminos), fontSize = 12.sp, color = grisTexto)
             }
 
             mensajeError?.let { error ->
@@ -549,7 +609,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                             } catch (error: CancellationException) {
                                 throw error
                             } catch (error: Exception) {
-                                mensajeError = error.message ?: "No se pudo crear la cuenta."
+                                mensajeError = error.message ?: getString(Res.string.auth_error_crear_cuenta)
                             } finally {
                                 cargando = false
                             }
@@ -567,7 +627,7 @@ fun VentanaRegistro(onDismiss: () -> Unit, onRegistroExitoso: () -> Unit) {
                 if (cargando) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                 } else {
-                    Text("Crear Cuenta Gratis", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(Res.string.auth_btn_crear_cuenta), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 }

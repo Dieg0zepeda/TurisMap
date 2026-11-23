@@ -27,6 +27,26 @@ import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.detalle_lugar_atractivos_destacados
+import turismap.shared.generated.resources.detalle_lugar_atractivos_titulo
+import turismap.shared.generated.resources.detalle_lugar_btn_explorar_guia
+import turismap.shared.generated.resources.detalle_lugar_btn_ver_guia
+import turismap.shared.generated.resources.detalle_lugar_cd_atras
+import turismap.shared.generated.resources.detalle_lugar_cd_compartir
+import turismap.shared.generated.resources.detalle_lugar_cd_fondo
+import turismap.shared.generated.resources.detalle_lugar_cd_guardar_favorito
+import turismap.shared.generated.resources.detalle_lugar_cd_quitar_favorito
+import turismap.shared.generated.resources.detalle_lugar_directorio_alojamientos
+import turismap.shared.generated.resources.detalle_lugar_directorio_artesanias
+import turismap.shared.generated.resources.detalle_lugar_directorio_badge
+import turismap.shared.generated.resources.detalle_lugar_directorio_cafeterias
+import turismap.shared.generated.resources.detalle_lugar_directorio_desc_con_comercios
+import turismap.shared.generated.resources.detalle_lugar_directorio_desc_sin_comercios
+import turismap.shared.generated.resources.detalle_lugar_directorio_guias
+import turismap.shared.generated.resources.detalle_lugar_directorio_titulo
+import turismap.shared.generated.resources.detalle_lugar_historia_titulo
 
 @Composable
 fun DetalleLugarScreen(
@@ -101,7 +121,7 @@ fun DetalleLugarScreen(
             if (urlImagen.isNotEmpty()) {
                 RemoteImage(
                     url = urlImagen,
-                    contentDescription = "Fondo de ${lugar.nombre}",
+                    contentDescription = stringResource(Res.string.detalle_lugar_cd_fondo, lugar.nombre),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -115,12 +135,22 @@ fun DetalleLugarScreen(
                     shape = CircleShape, color = FondoBlancoAdaptable.copy(alpha = 0.9f),
                     modifier = Modifier.size(40.dp).clickable { onBackClick() }
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", modifier = Modifier.padding(8.dp), tint = TextoPrincipalOscuro)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = stringResource(Res.string.detalle_lugar_cd_atras),
+                        modifier = Modifier.padding(8.dp),
+                        tint = TextoPrincipalOscuro
+                    )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Surface(shape = CircleShape, color = FondoBlancoAdaptable.copy(alpha = 0.9f), modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir", modifier = Modifier.padding(10.dp), tint = TextoPrincipalOscuro)
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = stringResource(Res.string.detalle_lugar_cd_compartir),
+                            modifier = Modifier.padding(10.dp),
+                            tint = TextoPrincipalOscuro
+                        )
                     }
                     Surface(
                         onClick = onToggleFavorito,
@@ -131,7 +161,13 @@ fun DetalleLugarScreen(
                     ) {
                         Icon(
                             if (favoritoGuardado) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (favoritoGuardado) "Quitar de favoritos" else "Guardar en favoritos",
+                            contentDescription = stringResource(
+                                if (favoritoGuardado) {
+                                    Res.string.detalle_lugar_cd_quitar_favorito
+                                } else {
+                                    Res.string.detalle_lugar_cd_guardar_favorito
+                                }
+                            ),
                             modifier = Modifier.padding(10.dp),
                             tint = if (favoritoGuardado) TerracotaAcento else TextoPrincipalOscuro
                         )
@@ -204,7 +240,12 @@ fun DetalleLugarScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    Text(text = "Historia & Esencia", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextoPrincipalOscuro)
+                    Text(
+                        text = stringResource(Res.string.detalle_lugar_historia_titulo),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoPrincipalOscuro
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(text = lugar.historia.orEmpty(), fontSize = 14.sp, lineHeight = 22.sp, color = GrisTextoSecundario)
                     Spacer(modifier = Modifier.height(20.dp))
@@ -227,13 +268,18 @@ fun DetalleLugarScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Atractivos Imperdibles",
+                            text = stringResource(Res.string.detalle_lugar_atractivos_titulo),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextoPrincipalOscuro,
                             modifier = Modifier.weight(1f)
                         )
-                        Text(text = "${listaAtractivos.size} Destacados", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VerdeTextoAdaptable)
+                        Text(
+                            text = stringResource(Res.string.detalle_lugar_atractivos_destacados, listaAtractivos.size),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VerdeTextoAdaptable
+                        )
                     }
                 }
             }
@@ -261,7 +307,7 @@ fun DetalleLugarScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = "DIRECTORIO LOCAL",
+                        text = stringResource(Res.string.detalle_lugar_directorio_badge),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.7f),
@@ -269,7 +315,7 @@ fun DetalleLugarScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "¿Planeas tu visita a ${lugar.nombre}?",
+                        text = stringResource(Res.string.detalle_lugar_directorio_titulo, lugar.nombre),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -277,9 +323,16 @@ fun DetalleLugarScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (totalComercios > 0) {
-                            "Explora los $totalComercios comercios y servicios verificados disponibles en ${lugar.nombre}."
+                            stringResource(
+                                Res.string.detalle_lugar_directorio_desc_con_comercios,
+                                totalComercios,
+                                lugar.nombre
+                            )
                         } else {
-                            "Actualmente hay 0 comercios registrados en ${lugar.nombre}. Próximamente se integrarán nuevos establecimientos a la red."
+                            stringResource(
+                                Res.string.detalle_lugar_directorio_desc_sin_comercios,
+                                lugar.nombre
+                            )
                         },
                         fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.8f),
@@ -291,12 +344,12 @@ fun DetalleLugarScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         DirectorioIconoGen(
                             icono = Icons.Default.LocalCafe,
-                            texto = "$cantCafes Cafeterías y Bares",
+                            texto = stringResource(Res.string.detalle_lugar_directorio_cafeterias, cantCafes),
                             modifier = Modifier.weight(1f)
                         )
                         DirectorioIconoGen(
                             icono = Icons.Default.Home,
-                            texto = "$cantAlojamientos Hoteles y Cabañas",
+                            texto = stringResource(Res.string.detalle_lugar_directorio_alojamientos, cantAlojamientos),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -304,12 +357,12 @@ fun DetalleLugarScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         DirectorioIconoGen(
                             icono = Icons.Default.Palette,
-                            texto = "$cantArtesanias Artesanías y Tiendas",
+                            texto = stringResource(Res.string.detalle_lugar_directorio_artesanias, cantArtesanias),
                             modifier = Modifier.weight(1f)
                         )
                         DirectorioIconoGen(
                             icono = Icons.Default.DirectionsWalk,
-                            texto = "$cantExperiencias Guías y Operadores",
+                            texto = stringResource(Res.string.detalle_lugar_directorio_guias, cantExperiencias),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -322,7 +375,13 @@ fun DetalleLugarScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = if (totalComercios > 0) "Ver Guía de Comercio y Ocio →" else "Explorar Guía General →",
+                            text = stringResource(
+                                if (totalComercios > 0) {
+                                    Res.string.detalle_lugar_btn_ver_guia
+                                } else {
+                                    Res.string.detalle_lugar_btn_explorar_guia
+                                }
+                            ),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

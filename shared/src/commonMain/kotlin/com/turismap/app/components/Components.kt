@@ -26,6 +26,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.theme.*
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.app_name
+import turismap.shared.generated.resources.btn_buscar
+import turismap.shared.generated.resources.btn_cerrar
+import turismap.shared.generated.resources.componente_buscar_corredor_placeholder
+import turismap.shared.generated.resources.componente_cd_notificaciones
+import turismap.shared.generated.resources.componente_explorar_destino
+import turismap.shared.generated.resources.nav_tab_explorar
+import turismap.shared.generated.resources.nav_tab_guia
+import turismap.shared.generated.resources.nav_tab_mapa
+import turismap.shared.generated.resources.nav_tab_perfil
 
 @Composable
 fun FigmaTopHeader() {
@@ -38,14 +51,14 @@ fun FigmaTopHeader() {
     ) {
         Column {
             Text(
-                text = "TURISMAP",
+                text = stringResource(Res.string.app_name).uppercase(),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = VerdeTextoAdaptable,
                 letterSpacing = 1.2.sp
             )
             Text(
-                text = "Mapa",
+                text = stringResource(Res.string.nav_tab_mapa),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A202C)
@@ -62,7 +75,7 @@ fun FigmaTopHeader() {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notificaciones",
+                        contentDescription = stringResource(Res.string.componente_cd_notificaciones),
                         tint = VerdeTextoAdaptable,
                         modifier = Modifier.size(20.dp)
                     )
@@ -108,13 +121,13 @@ fun FigmaSearchBar(modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Buscar",
+                contentDescription = stringResource(Res.string.btn_buscar),
                 tint = GrisTextoSecundario,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Buscar en el corredor CA-8...",
+                text = stringResource(Res.string.componente_buscar_corredor_placeholder),
                 fontSize = 14.sp,
                 color = GrisTextoSecundario,
                 modifier = Modifier.weight(1f)
@@ -152,7 +165,7 @@ fun FigmaPoiCard(
                     color = VerdePrimario.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = lugar.categoria.etiqueta.uppercase(),
+                        text = stringResource(lugar.categoria.etiquetaRes).uppercase(),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -170,7 +183,7 @@ fun FigmaPoiCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar",
+                            contentDescription = stringResource(Res.string.btn_cerrar),
                             tint = GrisTextoSecundario,
                             modifier = Modifier.size(16.dp)
                         )
@@ -213,7 +226,7 @@ fun FigmaPoiCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Explorar destino",
+                    text = stringResource(Res.string.componente_explorar_destino),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -228,12 +241,12 @@ fun FigmaBottomBar(
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    data class NavTab(val label: String, val icon: ImageVector)
+    data class NavTab(val labelRes: StringResource, val icon: ImageVector)
     val tabs = listOf(
-        NavTab("Explorar", Icons.Default.Home),
-        NavTab("Mapa", Icons.Default.Place),
-        NavTab("Guia", Icons.Default.DateRange),
-        NavTab("Perfil", Icons.Default.Person)
+        NavTab(Res.string.nav_tab_explorar, Icons.Default.Home),
+        NavTab(Res.string.nav_tab_mapa, Icons.Default.Place),
+        NavTab(Res.string.nav_tab_guia, Icons.Default.DateRange),
+        NavTab(Res.string.nav_tab_perfil, Icons.Default.Person)
     )
 
     Surface(
@@ -252,6 +265,7 @@ fun FigmaBottomBar(
         ) {
             tabs.forEachIndexed { index, tab ->
                 val isSelected = selectedIndex == index
+                val label = stringResource(tab.labelRes)
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -262,13 +276,13 @@ fun FigmaBottomBar(
                 ) {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label,
+                        contentDescription = label,
                         tint = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = tab.label,
+                        text = label,
                         fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) VerdeTextoAdaptable else GrisTextoSecundario,

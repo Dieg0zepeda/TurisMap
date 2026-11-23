@@ -26,6 +26,22 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.app_name
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.explorar_badge_destino_destacado
+import turismap.shared.generated.resources.explorar_btn_ver_detalle
+import turismap.shared.generated.resources.explorar_cd_fondo_destino
+import turismap.shared.generated.resources.explorar_descubre_lugar
+import turismap.shared.generated.resources.explorar_error_cargar_destinos
+import turismap.shared.generated.resources.explorar_etiqueta_destino_predeterminada
+import turismap.shared.generated.resources.explorar_experiencias_vacio
+import turismap.shared.generated.resources.explorar_precio_desde
+import turismap.shared.generated.resources.explorar_seccion_experiencias
+import turismap.shared.generated.resources.explorar_seccion_explora_ruta
+import turismap.shared.generated.resources.explorar_titulo
 
 @Composable
 fun ExplorarScreen(
@@ -49,7 +65,7 @@ fun ExplorarScreen(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            errorCarga = error.message ?: "No se pudieron cargar los destinos."
+            errorCarga = error.message ?: getString(Res.string.explorar_error_cargar_destinos)
         } finally {
             cargando = false
         }
@@ -70,10 +86,10 @@ fun ExplorarScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(errorCarga ?: "No se pudieron cargar los destinos.", color = TextoPrincipalOscuro)
+            Text(errorCarga ?: stringResource(Res.string.explorar_error_cargar_destinos), color = TextoPrincipalOscuro)
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { intentoCarga++ }) {
-                Text("Reintentar")
+                Text(stringResource(Res.string.btn_reintentar))
             }
         }
     } else {
@@ -91,14 +107,14 @@ fun ExplorarScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = "TURISMAP",
+                    text = stringResource(Res.string.app_name).uppercase(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = VerdeTextoAdaptable,
                     letterSpacing = 1.2.sp
                 )
                 Text(
-                    text = "Explorar la Ruta",
+                    text = stringResource(Res.string.explorar_titulo),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextoPrincipalOscuro
@@ -124,7 +140,7 @@ fun ExplorarScreen(
                         if (urlImagenDestacado.isNotEmpty()) {
                             RemoteImage(
                                 url = urlImagenDestacado,
-                                contentDescription = "Fondo de ${lugarDestacado!!.nombre}",
+                                contentDescription = stringResource(Res.string.explorar_cd_fondo_destino, lugarDestacado!!.nombre),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -151,7 +167,7 @@ fun ExplorarScreen(
                                 color = Color.White.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "DESTINO DESTACADO",
+                                    text = stringResource(Res.string.explorar_badge_destino_destacado),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -163,7 +179,7 @@ fun ExplorarScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "Descubre ${lugarDestacado!!.nombre.split(" ").last()}",
+                                text = stringResource(Res.string.explorar_descubre_lugar, lugarDestacado!!.nombre.split(" ").last()),
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -184,7 +200,7 @@ fun ExplorarScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Explora la Ruta",
+                text = stringResource(Res.string.explorar_seccion_explora_ruta),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextoPrincipalOscuro,
@@ -228,7 +244,8 @@ fun ExplorarScreen(
                                     shape = RoundedCornerShape(6.dp),
                                     color = FondoBlancoAdaptable.copy(alpha = 0.9f)
                                 ) {
-                                    val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta ?: "Destino"
+                                    val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta
+                                        ?: stringResource(Res.string.explorar_etiqueta_destino_predeterminada)
                                     Text(
                                         text = etiqueta,
                                         fontSize = 10.sp,
@@ -261,7 +278,7 @@ fun ExplorarScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Experiencias Destacadas",
+                text = stringResource(Res.string.explorar_seccion_experiencias),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextoPrincipalOscuro,
@@ -270,7 +287,7 @@ fun ExplorarScreen(
             Spacer(modifier = Modifier.height(16.dp))
             if (experienciasDestacadas.isEmpty()) {
                 Text(
-                    "Aún no hay experiencias destacadas publicadas.",
+                    stringResource(Res.string.explorar_experiencias_vacio),
                     color = GrisTextoSecundario,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -317,7 +334,7 @@ fun ExplorarScreen(
                                 experiencia.precioDesde?.let {
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        text = "Desde $it",
+                                        text = stringResource(Res.string.explorar_precio_desde, it.toString()),
                                         color = TerracotaAcento,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -327,7 +344,7 @@ fun ExplorarScreen(
                                     onClick = { onComercioClick(experiencia.id) },
                                     colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario)
                                 ) {
-                                    Text("Ver detalle")
+                                    Text(stringResource(Res.string.explorar_btn_ver_detalle))
                                 }
                             }
                         }

@@ -10,8 +10,11 @@ import com.turismap.app.data.models.Lugar // Importación del nuevo modelo
 
 @Composable
 actual fun MapaTuristico(
-    lugares: List<Lugar>, // Actualizado de LugarTuristico a Lugar
-    onLugarClick: (Lugar) -> Unit, // Actualizado de LugarTuristico a Lugar
+    lugares: List<Lugar>,
+    latInicial: Double?,
+    lngInicial: Double?,
+    zoomInicial: Float?,
+    onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

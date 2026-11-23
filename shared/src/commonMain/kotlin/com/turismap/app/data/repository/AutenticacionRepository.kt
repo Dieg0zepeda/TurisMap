@@ -5,6 +5,32 @@ import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.repo_auth_error_cargar_perfil
+import turismap.shared.generated.resources.repo_auth_error_contrasena_debil
+import turismap.shared.generated.resources.repo_auth_error_contrasena_longitud
+import turismap.shared.generated.resources.repo_auth_error_correo_en_uso
+import turismap.shared.generated.resources.repo_auth_error_correo_invalido
+import turismap.shared.generated.resources.repo_auth_error_correo_recuperacion
+import turismap.shared.generated.resources.repo_auth_error_crear_cuenta
+import turismap.shared.generated.resources.repo_auth_error_credenciales_invalidas
+import turismap.shared.generated.resources.repo_auth_error_credenciales_vacias
+import turismap.shared.generated.resources.repo_auth_error_cuenta_deshabilitada
+import turismap.shared.generated.resources.repo_auth_error_demasiados_intentos
+import turismap.shared.generated.resources.repo_auth_error_enviar_recuperacion
+import turismap.shared.generated.resources.repo_auth_error_google
+import turismap.shared.generated.resources.repo_auth_error_guardar_perfil
+import turismap.shared.generated.resources.repo_auth_error_iniciar_sesion
+import turismap.shared.generated.resources.repo_auth_error_nombre_longitud
+import turismap.shared.generated.resources.repo_auth_error_permisos
+import turismap.shared.generated.resources.repo_auth_error_sin_conexion
+import turismap.shared.generated.resources.repo_auth_error_sincronizar_google
+import turismap.shared.generated.resources.repo_error_auth_usuario_creado_no_devuelto
+import turismap.shared.generated.resources.repo_error_auth_usuario_google
+import turismap.shared.generated.resources.repo_error_auth_usuario_no_devuelto
+import turismap.shared.generated.resources.repo_nombre_viajero_predeterminado
 
 object AutenticacionRepository {
     private val auth by lazy { Firebase.auth }
@@ -12,34 +38,49 @@ object AutenticacionRepository {
     val usuarioActual: FirebaseUser?
         get() = auth.currentUser
 
-    internal fun traducirErrorAuth(error: Throwable, porDefecto: String): Exception {
-        val msg = error.message?.lowercase().orEmpty()
-        val traducido = when {
-            msg.contains("invalid-credential") || msg.contains("wrong-password") || msg.contains("user-not-found") || msg.contains("invalid_login_credentials") ->
-                "Correo o contraseña incorrectos. Verifica tus datos."
+    internal suspend fun traducirErrorAuth(
+        error: Throwable,
+        porDefectoRes: StringResource
+    ): Exception {
+        val msg = generateSequence(error as Throwable?) { it.cause }
+            .mapNotNull(Throwable::message)
+            .joinToString(" ")
+            .lowercase()
+        val recurso = when {
+            msg.contains("invalid-credential") ||
+                msg.contains("wrong-password") ||
+                msg.contains("user-not-found") ||
+                msg.contains("invalid_login_credentials") ->
+                Res.string.repo_auth_error_credenciales_invalidas
             msg.contains("email-already-in-use") || msg.contains("already in use") ->
-                "Este correo electrónico ya está registrado en TurisMap."
+                Res.string.repo_auth_error_correo_en_uso
             msg.contains("invalid-email") || msg.contains("badly formatted") ->
-                "El formato del correo electrónico no es válido."
+                Res.string.repo_auth_error_correo_invalido
             msg.contains("weak-password") ->
-                "La contraseña es muy débil. Usa al menos 8 caracteres."
+                Res.string.repo_auth_error_contrasena_debil
             msg.contains("too-many-requests") || msg.contains("blocked") ->
-                "Demasiados intentos fallidos. Espera un momento e intenta de nuevo."
-            msg.contains("network-request-failed") || msg.contains("network") || msg.contains("unable to resolve host") || msg.contains("unavailable") || msg.contains("deadline-exceeded") ->
-                "Sin conexión a internet. Verifica tu red e intenta nuevamente."
-            msg.contains("permission-denied") || msg.contains("permission_denied") || msg.contains("insufficient permissions") ->
-                "No tienes permisos para realizar esta acción o los datos no cumplen el formato."
+                Res.string.repo_auth_error_demasiados_intentos
+            msg.contains("network-request-failed") ||
+                msg.contains("network") ||
+                msg.contains("unable to resolve host") ||
+                msg.contains("unavailable") ||
+                msg.contains("deadline-exceeded") ->
+                Res.string.repo_auth_error_sin_conexion
+            msg.contains("permission-denied") ||
+                msg.contains("permission_denied") ||
+                msg.contains("insufficient permissions") ->
+                Res.string.repo_auth_error_permisos
             msg.contains("user-disabled") ->
-                "Esta cuenta ha sido deshabilitada por un administrador."
-            else -> porDefecto
+                Res.string.repo_auth_error_cuenta_deshabilitada
+            else -> porDefectoRes
         }
-        return IllegalStateException(traducido, error)
+        return IllegalStateException(getString(recurso), error)
     }
 
     suspend fun iniciarSesion(email: String, contrasena: String) {
         val emailLimpio = email.trim()
         require(emailLimpio.isNotBlank() && contrasena.isNotBlank()) {
-            "Ingresa tu correo y contraseña para continuar."
+            getString(Res.string.repo_auth_error_credenciales_vacias)
         }
 
         val resultado = try {
@@ -47,11 +88,11 @@ object AutenticacionRepository {
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            throw traducirErrorAuth(error, "No se pudo iniciar sesión. Verifica tus credenciales.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_iniciar_sesion)
         }
 
         val usuario = resultado.user
-            ?: throw IllegalStateException("No se pudo obtener la sesión del usuario.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_no_devuelto))
         try {
             UsuarioRepository.asegurarPerfil(
                 email = usuario.email ?: emailLimpio,
@@ -62,7 +103,7 @@ object AutenticacionRepository {
             throw error
         } catch (error: Exception) {
             auth.signOut()
-            throw traducirErrorAuth(error, "No se pudo cargar el perfil del usuario.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_cargar_perfil)
         }
     }
 
@@ -76,10 +117,10 @@ object AutenticacionRepository {
         val emailLimpio = email.trim()
 
         require(nombreLimpio.length in 2..120) {
-            "El nombre debe tener entre 2 y 120 caracteres."
+            getString(Res.string.repo_auth_error_nombre_longitud)
         }
         require(contrasena.length >= 8) {
-            "La contraseña debe tener al menos 8 caracteres."
+            getString(Res.string.repo_auth_error_contrasena_longitud)
         }
 
         val resultado = try {
@@ -87,11 +128,11 @@ object AutenticacionRepository {
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            throw traducirErrorAuth(error, "No se pudo crear la cuenta.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_crear_cuenta)
         }
 
         val usuario = resultado.user
-            ?: throw IllegalStateException("No se pudo confirmar el usuario creado.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_creado_no_devuelto))
         try {
             usuario.updateProfile(displayName = nombreLimpio)
             UsuarioRepository.asegurarPerfil(
@@ -104,10 +145,14 @@ object AutenticacionRepository {
             throw error
         } catch (error: Exception) {
             auth.signOut()
-            throw traducirErrorAuth(error, "No se pudo guardar el perfil del viajero.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_guardar_perfil)
         }
     }
 
+    /**
+     * Autenticación con Google usando el idToken obtenido del dispositivo.
+     * Guarda la foto de perfil oficial y asegura el rol 'viajero'.
+     */
     suspend fun iniciarSesionConGoogle(idToken: String) {
         val credencial = GoogleAuthProvider.credential(idToken = idToken, accessToken = null)
         val resultado = try {
@@ -115,37 +160,38 @@ object AutenticacionRepository {
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            throw traducirErrorAuth(error, "Error al autenticar con Google.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_google)
         }
 
         val usuario = resultado.user
-            ?: throw IllegalStateException("No se pudo obtener el usuario de Google.")
+            ?: throw IllegalStateException(getString(Res.string.repo_error_auth_usuario_google))
 
         try {
+            val nombrePredeterminado = getString(Res.string.repo_nombre_viajero_predeterminado)
             UsuarioRepository.asegurarPerfil(
                 email = usuario.email.orEmpty(),
-                nombre = usuario.displayName.orEmpty().ifBlank { "Viajero TurisMap" },
+                nombre = usuario.displayName.orEmpty().ifBlank { nombrePredeterminado },
                 fotoUrl = usuario.photoURL
             )
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
             auth.signOut()
-            throw traducirErrorAuth(error, "No se pudo sincronizar el perfil con Google.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_sincronizar_google)
         }
     }
 
     suspend fun enviarRestablecimientoContrasena(email: String) {
         val emailLimpio = email.trim()
         require(emailLimpio.isNotBlank()) {
-            "Ingresa tu correo electrónico para recuperar la contraseña."
+            getString(Res.string.repo_auth_error_correo_recuperacion)
         }
         try {
             auth.sendPasswordResetEmail(emailLimpio)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            throw traducirErrorAuth(error, "No se pudo enviar el correo de recuperación.")
+            throw traducirErrorAuth(error, Res.string.repo_auth_error_enviar_recuperacion)
         }
     }
 

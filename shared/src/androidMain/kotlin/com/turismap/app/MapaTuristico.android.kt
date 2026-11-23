@@ -17,6 +17,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -74,9 +75,10 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.turismap.app.data.models.Lugar
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-class LugarClusterItem(val lugar: Lugar) : ClusterItem {
+data class LugarClusterItem(val lugar: Lugar) : ClusterItem {
     override fun getPosition(): LatLng = LatLng(lugar.ubicacionCoordenadas.latitud, lugar.ubicacionCoordenadas.longitud)
     override fun getTitle(): String = lugar.nombre
     override fun getSnippet(): String = lugar.subtitulo
@@ -144,6 +146,7 @@ actual fun MapaTuristico(
     var hasPermission by remember { mutableStateOf(false) }
     var shouldRequestPermission by remember { mutableStateOf(false) }
     var mapaCargado by remember { mutableStateOf(false) }
+    var centradoInicialRealizado by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         hasPermission = ContextCompat.checkSelfPermission(
@@ -183,10 +186,12 @@ actual fun MapaTuristico(
             .build()
     }
 
-    // Animación de cámara prioritaria: si hay coordenadas viaja al municipio
-    LaunchedEffect(mapaCargado, latInicial, lngInicial) {
+    // Animación de cámara prioritaria: viaja a coordenadas recibidas (ruta o búsqueda)
+    // y realiza el centrado inicial hacia el usuario/ruta una sola vez.
+    LaunchedEffect(mapaCargado, latInicial, lngInicial, zoomInicial) {
         if (mapaCargado) {
             if (latInicial != null && lngInicial != null) {
+                centradoInicialRealizado = true
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
@@ -195,9 +200,10 @@ actual fun MapaTuristico(
                             .tilt(45f)
                             .build()
                     ),
-                    durationMs = 1000
+                    durationMs = 900
                 )
-            } else {
+            } else if (!centradoInicialRealizado) {
+                centradoInicialRealizado = true
                 cameraPositionState.animate(
                     CameraUpdateFactory.newCameraPosition(
                         CameraPosition.Builder()
@@ -250,10 +256,11 @@ actual fun MapaTuristico(
         )
     }
 
-    val mapUiSettings = remember(hasPermission) {
+    val mapUiSettings = remember {
         MapUiSettings(
+            compassEnabled = true,
             zoomControlsEnabled = false,
-            myLocationButtonEnabled = hasPermission,
+            myLocationButtonEnabled = false,
             rotationGesturesEnabled = true,
             tiltGesturesEnabled = true,
             mapToolbarEnabled = false
@@ -267,6 +274,7 @@ actual fun MapaTuristico(
         cameraPositionState = cameraPositionState,
         properties = mapProperties,
         uiSettings = mapUiSettings,
+        contentPadding = PaddingValues(top = 72.dp),
         onMapLoaded = { mapaCargado = true }
     ) {
         Polyline(
@@ -287,6 +295,43 @@ actual fun MapaTuristico(
 
         Clustering(
             items = clusterItems,
+            onClusterClick = { cluster ->
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                coroutineScope.launch {
+                    val posicionesDistintas = cluster.items.map { it.position }.distinct()
+                    val animarPorZoom: suspend () -> Unit = {
+                        val nuevoZoom = (cameraPositionState.position.zoom + 2.2f).coerceAtMost(19f)
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.Builder()
+                                    .target(cluster.position)
+                                    .zoom(nuevoZoom)
+                                    .tilt(cameraPositionState.position.tilt)
+                                    .bearing(cameraPositionState.position.bearing)
+                                    .build()
+                            ),
+                            durationMs = 500
+                        )
+                    }
+                    if (posicionesDistintas.size > 1 && cameraPositionState.position.zoom < 17f) {
+                        val limitesBuilder = LatLngBounds.Builder()
+                        posicionesDistintas.forEach { limitesBuilder.include(it) }
+                        try {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngBounds(limitesBuilder.build(), 140),
+                                durationMs = 500
+                            )
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (_: IllegalStateException) {
+                            animarPorZoom()
+                        }
+                    } else {
+                        animarPorZoom()
+                    }
+                }
+                true
+            },
             onClusterItemClick = { item ->
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
 
@@ -305,6 +350,22 @@ actual fun MapaTuristico(
                     )
                 }
                 true
+            },
+            clusterContent = { cluster ->
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .shadow(6.dp, CircleShape)
+                        .border(3.dp, Color.White, CircleShape)
+                        .background(Color(0xFF1B4934), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = cluster.size.toString(),
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             },
             clusterItemContent = { item ->
                 val esComercio = item.lugar.id.startsWith("comercio:")

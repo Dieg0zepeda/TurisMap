@@ -23,6 +23,22 @@ import androidx.compose.ui.unit.sp
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.PlanComercio
 import kotlinx.coroutines.CancellationException
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.btn_reintentar
+import turismap.shared.generated.resources.planes_badge_destacado
+import turismap.shared.generated.resources.planes_badge_recomendado
+import turismap.shared.generated.resources.planes_btn_solicitar
+import turismap.shared.generated.resources.planes_cd_volver
+import turismap.shared.generated.resources.planes_descripcion_fallback
+import turismap.shared.generated.resources.planes_encabezado_subtitulo
+import turismap.shared.generated.resources.planes_encabezado_titulo
+import turismap.shared.generated.resources.planes_error_cargar
+import turismap.shared.generated.resources.planes_error_permisos
+import turismap.shared.generated.resources.planes_estado_vacio
+import turismap.shared.generated.resources.planes_precio_consultar
+import turismap.shared.generated.resources.planes_titulo_barra
 
 // Paleta Elegante y Sutil
 private val GoldPremium = Color(0xFFD4AF37) // VIP
@@ -54,9 +70,9 @@ fun PlanesComercioScreen(
                 mensaje.contains("PERMISSION_DENIED", ignoreCase = true) ||
                 mensaje.contains("missing or insufficient permissions", ignoreCase = true)
             ) {
-                "Error de permisos en Firestore. Verifica las reglas."
+                getString(Res.string.planes_error_permisos)
             } else {
-                mensaje.ifBlank { "No se pudieron cargar los planes." }
+                mensaje.ifBlank { getString(Res.string.planes_error_cargar) }
             }
         } finally {
             cargando = false
@@ -67,10 +83,19 @@ fun PlanesComercioScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Planes de negocio", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        stringResource(Res.string.planes_titulo_barra),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.planes_cd_volver)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -95,13 +120,13 @@ fun PlanesComercioScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Impulsa tu negocio",
+                    text = stringResource(Res.string.planes_encabezado_titulo),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Elige la membresía que mejor se adapte a ti para atraer turistas en la Ruta de las Flores.",
+                    text = stringResource(Res.string.planes_encabezado_subtitulo),
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 22.sp
@@ -114,10 +139,13 @@ fun PlanesComercioScreen(
                 }
                 errorCarga != null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(errorCarga.orEmpty(), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Button(onClick = { intentoCarga++ }) { Text("Reintentar") }
+                    Button(onClick = { intentoCarga++ }) { Text(stringResource(Res.string.btn_reintentar)) }
                 }
                 planes.isEmpty() -> Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("Aún no hay planes configurados.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(Res.string.planes_estado_vacio),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -188,7 +216,7 @@ private fun TarjetaElegante(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = plan.precioFormateado() ?: "Consultar",
+                        text = plan.precioFormateado() ?: stringResource(Res.string.planes_precio_consultar),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = colorAcento
@@ -204,7 +232,9 @@ private fun TarjetaElegante(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (esPremium) "Recomendado" else "Destacado",
+                            text = stringResource(
+                                if (esPremium) Res.string.planes_badge_recomendado else Res.string.planes_badge_destacado
+                            ),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = colorAcento
@@ -214,7 +244,7 @@ private fun TarjetaElegante(
             }
 
             Text(
-                text = plan.descripcion.ifBlank { "El equipo confirmará los detalles contigo." },
+                text = plan.descripcion.ifBlank { stringResource(Res.string.planes_descripcion_fallback) },
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 20.sp
@@ -256,7 +286,7 @@ private fun TarjetaElegante(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colorAcento)
             ) {
-                Text("Solicitar plan", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.planes_btn_solicitar), fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
