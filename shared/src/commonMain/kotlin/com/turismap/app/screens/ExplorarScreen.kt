@@ -3,8 +3,6 @@ package com.turismap.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,7 +34,6 @@ import turismap.shared.generated.resources.explorar_btn_ver_detalle
 import turismap.shared.generated.resources.explorar_cd_fondo_destino
 import turismap.shared.generated.resources.explorar_descubre_lugar
 import turismap.shared.generated.resources.explorar_error_cargar_destinos
-import turismap.shared.generated.resources.explorar_etiqueta_destino_predeterminada
 import turismap.shared.generated.resources.explorar_experiencias_vacio
 import turismap.shared.generated.resources.explorar_precio_desde
 import turismap.shared.generated.resources.explorar_seccion_experiencias
@@ -207,75 +204,15 @@ fun ExplorarScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Carrusel horizontal con foco central sin el elemento repetido
+            CarruselExploraRuta(
+                destinos = destinosSinDestacado,
+                onLugarClick = onLugarClick
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Carrusel horizontal sin el elemento repetido
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(destinosSinDestacado, key = { it.id }) { lugar ->
-                    Card(
-                        modifier = Modifier
-                            .width(140.dp)
-                            .clickable { onLugarClick(lugar) },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(90.dp)
-                            ) {
-                                val urlImagen = lugar.atractivos.firstOrNull { it.imagenUrl.isNotEmpty() }?.imagenUrl ?: ""
-                                if (urlImagen.isNotEmpty()) {
-                                    RemoteImage(
-                                        url = urlImagen,
-                                        contentDescription = lugar.nombre,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-
-                                Surface(
-                                    modifier = Modifier.padding(8.dp),
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = FondoBlancoAdaptable.copy(alpha = 0.9f)
-                                ) {
-                                    val etiqueta = lugar.atractivos.firstOrNull()?.etiqueta
-                                        ?: stringResource(Res.string.explorar_etiqueta_destino_predeterminada)
-                                    Text(
-                                        text = etiqueta,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = VerdeTextoAdaptable,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = lugar.nombre,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextoPrincipalOscuro
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = lugar.subtitulo,
-                                    fontSize = 12.sp,
-                                    color = GrisTextoSecundario
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = stringResource(Res.string.explorar_seccion_experiencias),
