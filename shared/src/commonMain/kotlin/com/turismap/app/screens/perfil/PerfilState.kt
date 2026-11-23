@@ -21,8 +21,9 @@ import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.theme.GrisBorde
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
@@ -41,23 +42,6 @@ import turismap.shared.generated.resources.perfil_foto_actualizada
 import turismap.shared.generated.resources.perfil_privacidad_enlace_enviado
 import turismap.shared.generated.resources.perfil_privacidad_error_enviar_correo
 import turismap.shared.generated.resources.perfil_usuario_predeterminado
-
-internal enum class CategoriaFavorito {
-    TODOS,
-    DESTINOS,
-    COMERCIOS
-}
-
-internal data class ItemFavoritoUi(
-    val id: String,
-    val idFavoritoOriginal: String,
-    val nombre: String,
-    val categoria: String = "",
-    val categoriaRes: StringResource? = null,
-    val imagenUrl: String,
-    val calificacion: Double?,
-    val esComercio: Boolean
-)
 
 internal data class PerfilPaleta(
     val verdeEsmeralda: Color = Color(0xFF1B4934),
@@ -87,19 +71,23 @@ internal fun rememberPerfilPaleta(): PerfilPaleta {
 internal class PerfilState(
     private val coroutineScope: CoroutineScope,
     val snackbarHostState: SnackbarHostState,
-    private val usuarioBDState: State<UsuarioBD?>
+    private val usuarioBDState: State<UsuarioBD?>,
+    estaCargandoInicial: Boolean,
+    visitasIniciales: Int,
+    favoritosIniciales: List<ItemFavoritoUi>,
+    favoritosSincronizadosInicial: Boolean
 ) {
     val usuarioBD: UsuarioBD?
         get() = usuarioBDState.value
-    var estaCargando by mutableStateOf(true)
-    var visitas by mutableStateOf(0)
+    var estaCargando by mutableStateOf(estaCargandoInicial)
+    var visitas by mutableStateOf(visitasIniciales)
     var errorPerfil by mutableStateOf<String?>(null)
 
     // Control del modal de favoritos y filtro por categoría
     var mostrarVentanaFavoritos by mutableStateOf(false)
     var cargandoFavoritos by mutableStateOf(false)
-    var favoritosSincronizados by mutableStateOf(false)
-    var listaFavoritosDetallados by mutableStateOf<List<ItemFavoritoUi>>(emptyList())
+    var favoritosSincronizados by mutableStateOf(favoritosSincronizadosInicial)
+    var listaFavoritosDetallados by mutableStateOf(favoritosIniciales)
     var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var categoriaFavoritoSeleccionada by mutableStateOf(CategoriaFavorito.TODOS)
 
@@ -146,11 +134,11 @@ internal class PerfilState(
             }
 
     val cantidadFavoritos: String
-        get() = (if (favoritosSincronizados) {
-            listaFavoritosDetallados.size
-        } else {
-            usuarioBD?.favoritos?.size ?: 0
-        }).toString()
+        get() = when {
+            favoritosSincronizados -> listaFavoritosDetallados.size.toString()
+            usuarioBD?.favoritos?.isEmpty() == true -> "0"
+            else -> "—"
+        }
 
     fun actualizarFoto(uriLocal: String) {
         if (subiendoFoto || uriLocal.isBlank()) return
@@ -249,6 +237,7 @@ internal class PerfilState(
             cerrandoSesion = true
             coroutineScope.launch {
                 try {
+                    PerfilCacheSesion.limpiar()
                     AutenticacionRepository.cerrarSesion()
                     onCerrarSesionClick()
                 } catch (error: CancellationException) {
@@ -270,28 +259,42 @@ internal fun rememberPerfilState(): PerfilState {
 
     // 1. Observación reactiva centralizada del usuario desde Firestore (sin mutaciones en composición)
     val usuarioBDState = UsuarioRepository.usuarioActualFlow.collectAsState()
-    val state = remember(coroutineScope, snackbarHostState, usuarioBDState) {
+    val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
+
+    val state = remember(idUsuarioActual, coroutineScope, snackbarHostState, usuarioBDState) {
+        val usuarioInicial = usuarioBDState.value
+        val favoritosEnCache = intentarResolverFavoritosEnCache(
+            uid = idUsuarioActual,
+            favoritosIds = usuarioInicial?.favoritos
+        )
         PerfilState(
             coroutineScope = coroutineScope,
             snackbarHostState = snackbarHostState,
-            usuarioBDState = usuarioBDState
+            usuarioBDState = usuarioBDState,
+            estaCargandoInicial = usuarioInicial == null,
+            visitasIniciales = UsuarioRepository.visitasEnCache(idUsuarioActual) ?: 0,
+            favoritosIniciales = favoritosEnCache?.first.orEmpty(),
+            favoritosSincronizadosInicial = favoritosEnCache?.second == true
         )
     }
 
-    val idUsuarioActual = UsuarioRepository.obtenerIdUsuarioActual()
     val usuarioBD = state.usuarioBD
 
     LaunchedEffect(idUsuarioActual) {
-        state.estaCargando = true
+        if (state.usuarioBD == null) {
+            state.estaCargando = true
+        }
         state.errorPerfil = null
         try {
             if (idUsuarioActual == null) {
                 state.errorPerfil = getString(Res.string.perfil_error_sin_sesion)
             } else {
-                UsuarioRepository.asegurarPerfil(
-                    email = AutenticacionRepository.usuarioActual?.email.orEmpty(),
-                    nombre = AutenticacionRepository.usuarioActual?.displayName.orEmpty()
-                )
+                if (!UsuarioRepository.perfilYaAsegurado(idUsuarioActual)) {
+                    UsuarioRepository.asegurarPerfil(
+                        email = AutenticacionRepository.usuarioActual?.email.orEmpty(),
+                        nombre = AutenticacionRepository.usuarioActual?.displayName.orEmpty()
+                    )
+                }
                 state.visitas = UsuarioRepository.contarVisitas(idUsuarioActual)
             }
         } catch (error: CancellationException) {
@@ -303,8 +306,8 @@ internal fun rememberPerfilState(): PerfilState {
         }
     }
 
-    // Carga y mapeo reactivo de favoritos distinguiendo Lugares (Destinos) y Comercios
-    LaunchedEffect(usuarioBD?.favoritos) {
+    // Carga y mapeo reactivo de favoritos usando caché en memoria primero para 0 parpadeos
+    LaunchedEffect(idUsuarioActual, usuarioBD?.favoritos) {
         val favoritosIds = usuarioBD?.favoritos ?: run {
             state.listaFavoritosDetallados = emptyList()
             state.favoritosSincronizados = false
@@ -314,74 +317,72 @@ internal fun rememberPerfilState(): PerfilState {
             state.listaFavoritosDetallados = emptyList()
             state.favoritosSincronizados = true
             state.cargandoFavoritos = false
+            PerfilCacheSesion.guardar(idUsuarioActual, emptyList(), emptyList(), true)
             return@LaunchedEffect
         }
 
-        state.cargandoFavoritos = true
+        // Resolución síncrona instantánea si los catálogos ya viven en memoria
+        intentarResolverFavoritosEnCache(idUsuarioActual, favoritosIds)?.let { (resueltos, sinc) ->
+            state.listaFavoritosDetallados = resueltos
+            state.favoritosSincronizados = sinc
+            state.cargandoFavoritos = false
+            if (ComercioRepository.categoriasEnCache != null) {
+                return@LaunchedEffect
+            }
+        }
+
+        if (!state.favoritosSincronizados) {
+            state.cargandoFavoritos = true
+        }
         try {
             var lugaresOk = true
-            val todosLugares = try {
-                LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                lugaresOk = false
-                emptyMap()
-            }
             var comerciosOk = true
-            val todosComercios = try {
-                ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                comerciosOk = false
-                emptyMap()
-            }
-            val categoriasMap = try {
-                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                emptyMap()
+            val (todosLugares, todosComercios, categoriasMap) = coroutineScope {
+                val tareaLugares = async {
+                    try {
+                        LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        lugaresOk = false
+                        emptyMap()
+                    }
+                }
+                val tareaComercios = async {
+                    try {
+                        ComercioRepository.obtenerPublicados().associateBy { it.id.trim() }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        comerciosOk = false
+                        emptyMap()
+                    }
+                }
+                val tareaCategorias = async {
+                    try {
+                        ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        emptyMap()
+                    }
+                }
+                Triple(tareaLugares.await(), tareaComercios.await(), tareaCategorias.await())
             }
 
-            val clavesVistas = mutableSetOf<Pair<Boolean, String>>()
-            val resueltos = favoritosIds.mapNotNull { idOriginal ->
-                val idLimpio = idOriginal.trim()
-                val lugar = todosLugares[idLimpio]
-                if (lugar != null) {
-                    if (!clavesVistas.add(false to lugar.id)) return@mapNotNull null
-                    ItemFavoritoUi(
-                        id = lugar.id,
-                        idFavoritoOriginal = idOriginal,
-                        nombre = lugar.nombre,
-                        categoriaRes = lugar.categoriaResuelta.etiquetaRes,
-                        imagenUrl = lugar.imagenPortadaUrl,
-                        calificacion = lugar.calificacion.takeIf { it > 0.0 },
-                        esComercio = false
-                    )
-                } else {
-                    val idComercioSinPrefijo = idLimpio.removePrefix("comercio:")
-                    val comercio = todosComercios[idComercioSinPrefijo] ?: todosComercios[idLimpio]
-                    if (comercio != null) {
-                        if (!clavesVistas.add(true to comercio.id)) return@mapNotNull null
-                        val etiquetaCategoria = categoriasMap[comercio.categoria.trim()]
-                            ?: comercio.categoria
-                        ItemFavoritoUi(
-                            id = comercio.id,
-                            idFavoritoOriginal = idOriginal,
-                            nombre = comercio.nombre,
-                            categoria = etiquetaCategoria,
-                            imagenUrl = comercio.imagenUrls.firstOrNull().orEmpty(),
-                            calificacion = comercio.calificacionPromedio?.takeIf { it > 0.0 },
-                            esComercio = true
-                        )
-                    } else null
-                }
-            }
+            val resueltos = resolverFavoritosDesdeCatalogos(
+                favoritosIds = favoritosIds,
+                todosLugares = todosLugares,
+                todosComercios = todosComercios,
+                categoriasMap = categoriasMap
+            )
             if (lugaresOk || comerciosOk) {
+                val sincronizados = lugaresOk && comerciosOk
                 state.listaFavoritosDetallados = resueltos
-                state.favoritosSincronizados = lugaresOk && comerciosOk
+                state.favoritosSincronizados = sincronizados
+                if (sincronizados) {
+                    PerfilCacheSesion.guardar(idUsuarioActual, favoritosIds, resueltos, true)
+                }
             }
         } catch (error: CancellationException) {
             throw error

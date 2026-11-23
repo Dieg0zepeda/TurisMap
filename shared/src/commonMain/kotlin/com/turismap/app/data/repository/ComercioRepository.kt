@@ -11,8 +11,20 @@ import dev.gitlive.firebase.firestore.Timestamp
 import dev.gitlive.firebase.firestore.firestore
 import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -290,8 +302,74 @@ private data class ResenaFirestoreDto(
     )
 }
 
+sealed class EstadoPublicados {
+    data object Cargando : EstadoPublicados()
+    data class Exito(val comercios: List<Comercio>) : EstadoPublicados()
+    data class Error(
+        val causa: Throwable,
+        val comerciosEnCache: List<Comercio>? = null
+    ) : EstadoPublicados()
+}
+
 object ComercioRepository {
     private val firestore by lazy { Firebase.firestore }
+    private val scopeObservacion by lazy {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+    private val recargaPublicadosTrigger = MutableStateFlow(0)
+
+    val publicadosEnCache: List<Comercio>?
+        get() = ComercioCacheSesion.obtenerPublicados()
+
+    val destacadosEnCache: List<Comercio>?
+        get() = ComercioCacheSesion.obtenerDestacados()
+
+    val categoriasEnCache: List<CategoriaComercio>?
+        get() = ComercioCacheSesion.obtenerCategorias()
+
+    fun obtenerEnCachePorId(id: String): Comercio? = ComercioCacheSesion.obtenerPorId(id)
+
+    /**
+     * Flujo único compartido de comercios publicados ligado a un único listener de Firestore.
+     * Mantiene la suscripción viva 30 s tras quedar sin colectores y preserva el último valor en memoria,
+     * evitando cerrar/reabrir listeners ni mostrar shimmers al cambiar entre Guía, Mapa y Perfil.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val publicadosStateFlow: StateFlow<EstadoPublicados> by lazy {
+        recargaPublicadosTrigger
+            .flatMapLatest {
+                firestore.collection("comercios")
+                    .where { "estado" equalTo "publicado" }
+                    .snapshots
+                    .map { snapshot ->
+                        val lista = snapshot.documents.mapNotNull { documento ->
+                            documento.aComercioSeguro()
+                        }
+                        ComercioCacheSesion.guardarPublicados(lista)
+                        EstadoPublicados.Exito(lista) as EstadoPublicados
+                    }
+                    .catch { error ->
+                        if (error is CancellationException) throw error
+                        emit(
+                            EstadoPublicados.Error(
+                                causa = error,
+                                comerciosEnCache = ComercioCacheSesion.obtenerPublicados()
+                            )
+                        )
+                    }
+            }
+            .stateIn(
+                scope = scopeObservacion,
+                started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 30_000L),
+                initialValue = ComercioCacheSesion.obtenerPublicados()
+                    ?.let { EstadoPublicados.Exito(it) }
+                    ?: EstadoPublicados.Cargando
+            )
+    }
+
+    fun reintentarObservacionPublicados() {
+        recargaPublicadosTrigger.value += 1
+    }
 
     private fun esErrorIndiceFaltante(error: Throwable): Boolean {
         val mensajeCompleto = generateSequence(error as Throwable?) { it.cause }
@@ -332,22 +410,33 @@ object ComercioRepository {
         }
     }
 
-    suspend fun obtenerCategorias(): List<CategoriaComercio> =
-        firestore.collection("categorias_comercio")
-            .where { "activo" equalTo true }
-            .get()
-            .documents
-            .mapNotNull { documento ->
-                try {
-                    documento.data(CategoriaComercioFirestoreDto.serializer()).aCategoriaComercio(documento.id)
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (_: Exception) {
-                    null
-                }
+    suspend fun obtenerCategorias(forzarRecarga: Boolean = false): List<CategoriaComercio> {
+        if (!forzarRecarga) {
+            ComercioCacheSesion.obtenerCategorias()?.let { return it }
+        }
+        return ComercioCacheSesion.mutexCategorias.withLock {
+            if (!forzarRecarga) {
+                ComercioCacheSesion.obtenerCategorias()?.let { return@withLock it }
             }
-            .filter { it.etiqueta.isNotBlank() }
-            .sortedBy(CategoriaComercio::orden)
+            val categorias = firestore.collection("categorias_comercio")
+                .where { "activo" equalTo true }
+                .get()
+                .documents
+                .mapNotNull { documento ->
+                    try {
+                        documento.data(CategoriaComercioFirestoreDto.serializer()).aCategoriaComercio(documento.id)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                .filter { it.etiqueta.isNotBlank() }
+                .sortedBy(CategoriaComercio::orden)
+            ComercioCacheSesion.guardarCategorias(categorias)
+            categorias
+        }
+    }
 
     private inline fun <reified T : Any> DocumentSnapshot.leerCampoSeguro(campo: String): T? =
         try {
@@ -434,19 +523,34 @@ object ComercioRepository {
         }
 
     fun observarPublicados(): Flow<List<Comercio>> =
-        firestore.collection("comercios")
-            .where { "estado" equalTo "publicado" }
-            .snapshots
-            .map { snapshot ->
-                snapshot.documents.mapNotNull { documento -> documento.aComercioSeguro() }
+        publicadosStateFlow.transform { estado ->
+            when (estado) {
+                is EstadoPublicados.Cargando -> Unit
+                is EstadoPublicados.Exito -> emit(estado.comercios)
+                is EstadoPublicados.Error -> {
+                    val cache = estado.comerciosEnCache
+                    if (cache != null) emit(cache) else throw estado.causa
+                }
             }
+        }
 
-    suspend fun obtenerPublicados(): List<Comercio> =
-        firestore.collection("comercios")
-            .where { "estado" equalTo "publicado" }
-            .get()
-            .documents
-            .mapNotNull { documento -> documento.aComercioSeguro() }
+    suspend fun obtenerPublicados(forzarRecarga: Boolean = false): List<Comercio> {
+        if (!forzarRecarga) {
+            ComercioCacheSesion.obtenerPublicados()?.let { return it }
+        }
+        return ComercioCacheSesion.mutexPublicados.withLock {
+            if (!forzarRecarga) {
+                ComercioCacheSesion.obtenerPublicados()?.let { return@withLock it }
+            }
+            val publicados = firestore.collection("comercios")
+                .where { "estado" equalTo "publicado" }
+                .get()
+                .documents
+                .mapNotNull { documento -> documento.aComercioSeguro() }
+            ComercioCacheSesion.guardarPublicados(publicados)
+            publicados
+        }
+    }
 
     suspend fun obtenerPublicadosPorLugar(
         lugarId: String,
@@ -455,6 +559,8 @@ object ComercioRepository {
         val idLimpio = lugarId.trim()
         val nombreLimpio = nombreLugar.trim()
         if (idLimpio.isEmpty() && nombreLimpio.isEmpty()) return emptyList()
+
+        ComercioCacheSesion.obtenerPublicados()?.let { return it }
 
         return try {
             val acumulados = linkedMapOf<String, Comercio>()
@@ -488,33 +594,45 @@ object ComercioRepository {
         }
     }
 
-    suspend fun obtenerDestacados(): List<Comercio> {
-        val documentos = try {
-            firestore.collection("comercios")
-                .where { "estado" equalTo "publicado" }
-                .where { "destacado" equalTo true }
-                .get()
-                .documents
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (esErrorIndiceFaltante(error)) {
+    suspend fun obtenerDestacados(forzarRecarga: Boolean = false): List<Comercio> {
+        if (!forzarRecarga) {
+            ComercioCacheSesion.obtenerDestacados()?.let { return it }
+        }
+        return ComercioCacheSesion.mutexDestacados.withLock {
+            if (!forzarRecarga) {
+                ComercioCacheSesion.obtenerDestacados()?.let { return@withLock it }
+            }
+            val documentos = try {
                 firestore.collection("comercios")
                     .where { "estado" equalTo "publicado" }
+                    .where { "destacado" equalTo true }
                     .get()
                     .documents
-            } else {
+            } catch (error: CancellationException) {
                 throw error
+            } catch (error: Exception) {
+                if (esErrorIndiceFaltante(error)) {
+                    val publicados = obtenerPublicados(forzarRecarga = true)
+                    return@withLock publicados.filter { it.destacado }
+                } else {
+                    throw error
+                }
             }
+            val destacados = documentos
+                .mapNotNull { documento -> documento.aComercioSeguro() }
+                .filter { it.destacado }
+            ComercioCacheSesion.guardarDestacados(destacados)
+            destacados
         }
-        return documentos
-            .mapNotNull { documento -> documento.aComercioSeguro() }
-            .filter { it.destacado }
     }
 
     suspend fun obtenerPorId(id: String): Comercio? {
         val documento = firestore.collection("comercios").document(id.trim()).get()
-        return if (documento.exists) documento.aComercioSeguro() else null
+        val comercio = if (documento.exists) documento.aComercioSeguro() else null
+        if (comercio != null) {
+            ComercioCacheSesion.guardarComercio(comercio)
+        }
+        return comercio
     }
 
     suspend fun enviarSolicitudComercio(

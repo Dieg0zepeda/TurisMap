@@ -3,16 +3,19 @@ package com.turismap.app.screens.guia
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
+import com.turismap.app.data.repository.EstadoPublicados
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.screens.mapa.normalizarTextoMapa
@@ -20,6 +23,8 @@ import com.turismap.app.theme.TerracotaAcento
 import com.turismap.app.theme.VerdePrimario
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
@@ -124,18 +129,33 @@ internal fun coincideConCategoria(categoriaComercio: String?, filtroId: String):
 }
 
 internal class GuiaState(
+    comerciosIniciales: List<Comercio>,
+    municipiosIniciales: Map<String, String>,
+    categoriasIniciales: Map<String, String>,
     cargandoInicial: Boolean,
+    private val searchQueryState: MutableState<String>,
+    private val categoriaSeleccionadaState: MutableState<String>,
+    private val municipioSeleccionadoState: MutableState<String?>,
     private val scope: CoroutineScope,
     val snackbarHostState: SnackbarHostState
 ) {
-    var searchQuery by mutableStateOf("")
-    var categoriaSeleccionada by mutableStateOf(CATEGORIA_FILTRO_TODOS)
-    var municipioSeleccionado by mutableStateOf<String?>(null)
+    var searchQuery: String
+        get() = searchQueryState.value
+        set(value) { searchQueryState.value = value }
+
+    var categoriaSeleccionada: String
+        get() = categoriaSeleccionadaState.value
+        set(value) { categoriaSeleccionadaState.value = value }
+
+    var municipioSeleccionado: String?
+        get() = municipioSeleccionadoState.value
+        set(value) { municipioSeleccionadoState.value = value }
+
     var mostrarSelectorPueblo by mutableStateOf(false)
 
-    var listaComercios by mutableStateOf<List<Comercio>>(emptyList())
-    var mapaMunicipios by mutableStateOf<Map<String, String>>(emptyMap())
-    var mapaCategorias by mutableStateOf<Map<String, String>>(emptyMap())
+    var listaComercios by mutableStateOf(comerciosIniciales)
+    var mapaMunicipios by mutableStateOf(municipiosIniciales)
+    var mapaCategorias by mutableStateOf(categoriasIniciales)
     var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
     var cargando by mutableStateOf(cargandoInicial)
     var errorCarga by mutableStateOf<String?>(null)
@@ -157,27 +177,30 @@ internal class GuiaState(
             ?: mapaMunicipios[item.lugarId]
             ?: item.municipio.trim().ifBlank { item.direccion.trim() }
 
-    // Filtrado reactivo de comercios
+    // Filtrado reactivo de comercios con normalización de consulta/municipio fuera del bucle
     val comerciosFiltrados: List<Comercio> by derivedStateOf {
+        val q = normalizarTexto(searchQuery)
+        val filtroCategoria = categoriaSeleccionada
+        val muniFiltroNorm = municipioSeleccionado?.let(::normalizarTexto).orEmpty()
+
         listaComercios.filter { item ->
             val etiquetaCat = etiquetaCategoria(item.categoria)
-            val coincideCat = coincideConCategoria(item.categoria, categoriaSeleccionada) ||
-                coincideConCategoria(etiquetaCat, categoriaSeleccionada)
+            val coincideCat = coincideConCategoria(item.categoria, filtroCategoria) ||
+                coincideConCategoria(etiquetaCat, filtroCategoria)
+            if (!coincideCat) return@filter false
 
             val nombreMuni = resolverUbicacionComercio(item)
-            val coincideMuni = if (municipioSeleccionado == null) true
-            else normalizarTexto(nombreMuni).contains(normalizarTexto(municipioSeleccionado))
+            val coincideMuni = muniFiltroNorm.isEmpty() ||
+                normalizarTexto(nombreMuni).contains(muniFiltroNorm)
+            if (!coincideMuni) return@filter false
 
-            val q = normalizarTexto(searchQuery)
-            val coincideBusqueda = q.isBlank() ||
+            q.isBlank() ||
                 normalizarTexto(item.nombre).contains(q) ||
                 normalizarTexto(item.direccion).contains(q) ||
                 normalizarTexto(item.descripcion).contains(q) ||
                 normalizarTexto(nombreMuni).contains(q) ||
                 normalizarTexto(etiquetaCat).contains(q) ||
                 normalizarTexto(item.categoria).contains(q)
-
-            coincideCat && coincideMuni && coincideBusqueda
         }.sortedByDescending { it.planInt }
     }
 
@@ -208,33 +231,49 @@ internal class GuiaState(
         }
     }
 
-    suspend fun cargarDatos() {
-        cargando = true
+    suspend fun cargarCatalogosAuxiliares(forzarRecarga: Boolean = false) {
+        coroutineScope {
+            val tareaMunicipios = async {
+                try {
+                    LugaresRepository.obtenerTodos(forzarRecarga = forzarRecarga)
+                        .associate { it.id.trim() to it.nombre.trim() }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            val tareaCategorias = async {
+                try {
+                    ComercioRepository.obtenerCategorias(forzarRecarga = forzarRecarga)
+                        .associate { it.id.trim() to it.etiqueta.trim() }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            tareaMunicipios.await()?.let { mapaMunicipios = it }
+            tareaCategorias.await()?.let { mapaCategorias = it }
+        }
+    }
+
+    suspend fun cargarDatos(forzarRecarga: Boolean = false) {
+        val tieneDatosVisibles = listaComercios.isNotEmpty()
+        if (!tieneDatosVisibles) {
+            cargando = true
+        }
         errorCarga = null
         try {
-            val comerciosCargados = ComercioRepository.obtenerPublicados()
-            val municipiosCargados = try {
-                LugaresRepository.obtenerTodos().associate { it.id.trim() to it.nombre.trim() }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                emptyMap()
-            }
-            val categoriasCargadas = try {
-                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                emptyMap()
-            }
-
+            val comerciosCargados = ComercioRepository.obtenerPublicados(forzarRecarga = forzarRecarga)
             listaComercios = comerciosCargados
-            mapaMunicipios = municipiosCargados
-            mapaCategorias = categoriasCargadas
+            cargarCatalogosAuxiliares(forzarRecarga = forzarRecarga)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
+            if (!tieneDatosVisibles) {
+                errorCarga = e.message ?: getString(Res.string.guia_error_cargar_comercios)
+            }
         } finally {
             cargando = false
         }
@@ -242,7 +281,8 @@ internal class GuiaState(
 
     fun reintentarCarga() {
         scope.launch {
-            cargarDatos()
+            ComercioRepository.reintentarObservacionPublicados()
+            cargarDatos(forzarRecarga = true)
         }
     }
 }
@@ -251,9 +291,26 @@ internal class GuiaState(
 internal fun rememberGuiaState(comerciosExternos: List<Comercio>?): Pair<GuiaState, Set<String>> {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val searchQueryState = rememberSaveable { mutableStateOf("") }
+    val categoriaSeleccionadaState = rememberSaveable { mutableStateOf(CATEGORIA_FILTRO_TODOS) }
+    val municipioSeleccionadoState = rememberSaveable { mutableStateOf<String?>(null) }
+
     val state = remember {
+        val comerciosCache = comerciosExternos ?: ComercioRepository.publicadosEnCache
+        val municipiosCache = LugaresRepository.lugaresEnCache
+            ?.associate { it.id.trim() to it.nombre.trim() }
+            .orEmpty()
+        val categoriasCache = ComercioRepository.categoriasEnCache
+            ?.associate { it.id.trim() to it.etiqueta.trim() }
+            .orEmpty()
         GuiaState(
-            cargandoInicial = comerciosExternos == null,
+            comerciosIniciales = comerciosCache.orEmpty(),
+            municipiosIniciales = municipiosCache,
+            categoriasIniciales = categoriasCache,
+            cargandoInicial = comerciosCache == null,
+            searchQueryState = searchQueryState,
+            categoriaSeleccionadaState = categoriaSeleccionadaState,
+            municipioSeleccionadoState = municipioSeleccionadoState,
             scope = coroutineScope,
             snackbarHostState = snackbarHostState
         )
@@ -264,26 +321,51 @@ internal fun rememberGuiaState(comerciosExternos: List<Comercio>?): Pair<GuiaSta
         usuarioActual?.favoritos?.toSet() ?: emptySet()
     }
 
+    // Catálogos auxiliares (municipios y categorías) desde caché o en segundo plano sin shimmer
+    LaunchedEffect(Unit) {
+        if (state.mapaMunicipios.isEmpty() || state.mapaCategorias.isEmpty()) {
+            state.cargarCatalogosAuxiliares(forzarRecarga = false)
+        }
+    }
+
+    // Suscripción compartida a comercios publicados (sin recrear listeners ni disparar shimmer)
     LaunchedEffect(comerciosExternos) {
         if (comerciosExternos != null) {
             state.listaComercios = comerciosExternos
-            state.mapaMunicipios = try {
-                LugaresRepository.obtenerTodos().associate { it.id.trim() to it.nombre.trim() }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                emptyMap()
-            }
-            state.mapaCategorias = try {
-                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                emptyMap()
-            }
+            state.errorCarga = null
             state.cargando = false
-        } else {
-            state.cargarDatos()
+            return@LaunchedEffect
+        }
+
+        ComercioRepository.publicadosStateFlow.collect { estado ->
+            when (estado) {
+                is EstadoPublicados.Cargando -> {
+                    val cache = ComercioRepository.publicadosEnCache
+                    if (cache != null) {
+                        state.listaComercios = cache
+                        state.cargando = false
+                    } else if (state.listaComercios.isEmpty()) {
+                        state.cargando = true
+                    }
+                }
+                is EstadoPublicados.Exito -> {
+                    state.listaComercios = estado.comercios
+                    state.errorCarga = null
+                    state.cargando = false
+                }
+                is EstadoPublicados.Error -> {
+                    val cache = estado.comerciosEnCache
+                    if (cache != null) {
+                        state.listaComercios = cache
+                        state.errorCarga = null
+                        state.cargando = false
+                    } else if (state.listaComercios.isEmpty()) {
+                        state.cargarDatos(forzarRecarga = false)
+                    } else {
+                        state.cargando = false
+                    }
+                }
+            }
         }
     }
 

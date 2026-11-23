@@ -25,6 +25,8 @@ import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
@@ -48,24 +50,63 @@ fun ExplorarScreen(
     onLugarClick: (Lugar) -> Unit = {},
     onComercioClick: (String) -> Unit = {}
 ) {
-    var lugares by remember { mutableStateOf<List<Lugar>>(emptyList()) }
-    var lugarDestacado by remember { mutableStateOf<Lugar?>(null) }
-    var cargando by remember { mutableStateOf(true) }
+    val lugaresIniciales = remember { LugaresRepository.lugaresEnCache }
+    val destacadosIniciales = remember { ComercioRepository.destacadosEnCache }
+    val tieneCacheInicial = lugaresIniciales != null && destacadosIniciales != null
+
+    var lugares by remember { mutableStateOf(lugaresIniciales.orEmpty()) }
+    var lugarDestacado by remember {
+        mutableStateOf(
+            lugaresIniciales?.let { lista ->
+                lista.firstOrNull { it.id == "ataco" } ?: lista.firstOrNull()
+            }
+        )
+    }
+    var cargando by remember { mutableStateOf(!tieneCacheInicial) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
-    var intentoCarga by remember { mutableStateOf(0) }
-    var experienciasDestacadas by remember { mutableStateOf<List<Comercio>>(emptyList()) }
+    var intentoCarga by remember { mutableIntStateOf(0) }
+    var experienciasDestacadas by remember { mutableStateOf(destacadosIniciales.orEmpty()) }
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(intentoCarga) {
-        cargando = true
+        val esReintentoManual = intentoCarga > 0
+        if (!esReintentoManual) {
+            val cacheLugares = LugaresRepository.lugaresEnCache
+            val cacheDestacados = ComercioRepository.destacadosEnCache
+            if (cacheLugares != null && cacheDestacados != null) {
+                lugares = cacheLugares
+                lugarDestacado = cacheLugares.firstOrNull { it.id == "ataco" } ?: cacheLugares.firstOrNull()
+                experienciasDestacadas = cacheDestacados
+                errorCarga = null
+                cargando = false
+                return@LaunchedEffect
+            }
+        }
+
+        val tieneDatosVisibles = lugares.isNotEmpty()
+        if (!tieneDatosVisibles) {
+            cargando = true
+        }
         errorCarga = null
         try {
-            lugares = LugaresRepository.obtenerTodos()
-            lugarDestacado = lugares.firstOrNull { it.id == "ataco" } ?: lugares.firstOrNull()
-            experienciasDestacadas = ComercioRepository.obtenerDestacados()
+            val (lugaresCargados, destacadosCargados) = coroutineScope {
+                val tareaLugares = async {
+                    LugaresRepository.obtenerTodos(forzarRecarga = esReintentoManual)
+                }
+                val tareaDestacados = async {
+                    ComercioRepository.obtenerDestacados(forzarRecarga = esReintentoManual)
+                }
+                tareaLugares.await() to tareaDestacados.await()
+            }
+            lugares = lugaresCargados
+            lugarDestacado = lugaresCargados.firstOrNull { it.id == "ataco" } ?: lugaresCargados.firstOrNull()
+            experienciasDestacadas = destacadosCargados
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            errorCarga = error.message ?: getString(Res.string.explorar_error_cargar_destinos)
+            if (!tieneDatosVisibles) {
+                errorCarga = error.message ?: getString(Res.string.explorar_error_cargar_destinos)
+            }
         } finally {
             cargando = false
         }
@@ -96,7 +137,7 @@ fun ExplorarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .background(GrisFondo)
                 .padding(bottom = 24.dp)
         ) {

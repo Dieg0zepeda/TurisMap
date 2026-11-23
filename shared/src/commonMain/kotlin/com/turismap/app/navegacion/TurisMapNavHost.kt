@@ -1,5 +1,10 @@
 package com.turismap.app.navegacion
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +47,16 @@ import turismap.shared.generated.resources.nav_error_cargar_lugar
 import turismap.shared.generated.resources.nav_error_guardar_visita
 import turismap.shared.generated.resources.nav_lugar_no_encontrado
 
+private val RUTAS_PESTANAS_PRINCIPALES = listOf(
+    Pantalla.Explorar.ruta,
+    Pantalla.Mapa.ruta,
+    Pantalla.Guia.ruta,
+    Pantalla.Perfil.ruta
+)
+
+private fun esRutaPestanaPrincipal(ruta: String?): Boolean =
+    ruta != null && RUTAS_PESTANAS_PRINCIPALES.any { base -> ruta.startsWith(base) }
+
 @Composable
 fun TurisMapNavHost(
     controladorNavegacion: NavHostController = rememberNavController(),
@@ -59,7 +74,45 @@ fun TurisMapNavHost(
     NavHost(
         navController = controladorNavegacion,
         startDestination = destinoInicial,
-        modifier = modificador
+        modifier = modificador,
+        enterTransition = {
+            if (esRutaPestanaPrincipal(initialState.destination.route) &&
+                esRutaPestanaPrincipal(targetState.destination.route)
+            ) {
+                fadeIn(animationSpec = tween(durationMillis = 120))
+            } else {
+                fadeIn(animationSpec = tween(durationMillis = 190)) +
+                    slideInHorizontally(animationSpec = tween(durationMillis = 200)) { it / 12 }
+            }
+        },
+        exitTransition = {
+            if (esRutaPestanaPrincipal(initialState.destination.route) &&
+                esRutaPestanaPrincipal(targetState.destination.route)
+            ) {
+                fadeOut(animationSpec = tween(durationMillis = 120))
+            } else {
+                fadeOut(animationSpec = tween(durationMillis = 160))
+            }
+        },
+        popEnterTransition = {
+            if (esRutaPestanaPrincipal(initialState.destination.route) &&
+                esRutaPestanaPrincipal(targetState.destination.route)
+            ) {
+                fadeIn(animationSpec = tween(durationMillis = 120))
+            } else {
+                fadeIn(animationSpec = tween(durationMillis = 180))
+            }
+        },
+        popExitTransition = {
+            if (esRutaPestanaPrincipal(initialState.destination.route) &&
+                esRutaPestanaPrincipal(targetState.destination.route)
+            ) {
+                fadeOut(animationSpec = tween(durationMillis = 120))
+            } else {
+                fadeOut(animationSpec = tween(durationMillis = 180)) +
+                    slideOutHorizontally(animationSpec = tween(durationMillis = 180)) { it / 12 }
+            }
+        }
     ) {
         // 1. Explorar
         composable(Pantalla.Explorar.ruta) {
@@ -191,8 +244,9 @@ fun TurisMapNavHost(
         ) { backStackEntry ->
             val lugarId = backStackEntry.arguments?.getString("lugarId") ?: return@composable
 
-            var lugarCompleto by remember { mutableStateOf<Lugar?>(null) }
-            var cargando by remember { mutableStateOf(true) }
+            val lugarEnCache = remember(lugarId) { LugaresRepository.obtenerEnCachePorId(lugarId) }
+            var lugarCompleto by remember(lugarId) { mutableStateOf(lugarEnCache) }
+            var cargando by remember(lugarId) { mutableStateOf(lugarEnCache == null) }
             var errorCarga by remember { mutableStateOf<String?>(null) }
             var intentoCarga by remember { mutableStateOf(0) }
             var favoritoCargando by remember { mutableStateOf(false) }
@@ -205,12 +259,19 @@ fun TurisMapNavHost(
             }
 
             LaunchedEffect(lugarId, intentoCarga) {
-                cargando = true
+                val esReintentoManual = intentoCarga > 0
+                if (lugarCompleto == null || esReintentoManual) {
+                    cargando = true
+                }
                 errorCarga = null
                 mensajeAccion = null
                 try {
-                    lugarCompleto = LugaresRepository.obtenerPorId(lugarId)
-                    if (lugarCompleto != null) {
+                    val lugarResuelto = LugaresRepository.obtenerPorId(
+                        id = lugarId,
+                        forzarRecarga = esReintentoManual
+                    )
+                    lugarCompleto = lugarResuelto
+                    if (lugarResuelto != null) {
                         try {
                             UsuarioRepository.registrarVisita(lugarId)
                         } catch (error: CancellationException) {
@@ -222,7 +283,9 @@ fun TurisMapNavHost(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    errorCarga = error.message ?: getString(Res.string.nav_error_cargar_lugar)
+                    if (lugarCompleto == null) {
+                        errorCarga = error.message ?: getString(Res.string.nav_error_cargar_lugar)
+                    }
                 } finally {
                     cargando = false
                 }

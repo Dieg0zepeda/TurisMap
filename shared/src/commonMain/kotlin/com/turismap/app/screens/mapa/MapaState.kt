@@ -2,22 +2,20 @@ package com.turismap.app.screens.mapa
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import com.turismap.app.EstadoCamaraMapa
+import com.turismap.app.MapaCamaraCache
 import com.turismap.app.data.models.CategoriaLugar
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
-import com.turismap.app.data.repository.ComercioRepository
-import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.esCoordenadaValida
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -29,12 +27,9 @@ import turismap.shared.generated.resources.mapa_capa_destinos_subtitulo
 import turismap.shared.generated.resources.mapa_capa_destinos_titulo
 import turismap.shared.generated.resources.mapa_capa_todos_subtitulo
 import turismap.shared.generated.resources.mapa_capa_todos_titulo
-import turismap.shared.generated.resources.mapa_error_cargar_comercios
-import turismap.shared.generated.resources.mapa_error_cargar_destinos
 import turismap.shared.generated.resources.mapa_filtro_comercios
 import turismap.shared.generated.resources.mapa_filtro_destinos
 import turismap.shared.generated.resources.mapa_filtro_todos
-import turismap.shared.generated.resources.mapa_sin_datos_publicados
 
 internal enum class FiltroMarcadoresMapa {
     TODOS,
@@ -94,29 +89,49 @@ internal class MapaState(
     latInicial: Double?,
     lngInicial: Double?,
     zoomInicial: Float?,
+    private val uidActual: String?,
+    lugaresIniciales: List<Lugar>?,
+    comerciosIniciales: List<Comercio>?,
+    categoriasIniciales: Map<String, String>,
+    val camaraGuardada: EstadoCamaraMapa?,
+    private val textoBusquedaState: MutableState<String>,
+    private val filtroNombreState: MutableState<String>,
     private val scope: CoroutineScope,
     val snackbarHostState: SnackbarHostState
 ) {
-    var textoBusqueda: String by mutableStateOf("")
+    var textoBusqueda: String
+        get() = textoBusquedaState.value
+        set(value) { textoBusquedaState.value = value }
+
+    var filtroTipoMarcadores: FiltroMarcadoresMapa
+        get() = FiltroMarcadoresMapa.entries.firstOrNull { it.name == filtroNombreState.value }
+            ?: FiltroMarcadoresMapa.TODOS
+        set(value) { filtroNombreState.value = value.name }
+
     var mostrarSugerencias: Boolean by mutableStateOf(false)
-    var filtroTipoMarcadores: FiltroMarcadoresMapa by mutableStateOf(FiltroMarcadoresMapa.TODOS)
     var mostrarMenuWaze: Boolean by mutableStateOf(false)
 
-    var lugaresTuristicos: List<Lugar> by mutableStateOf(emptyList())
-    var todosLosComercios: List<Comercio> by mutableStateOf(emptyList())
-    var municipiosMap: Map<String, Lugar> by mutableStateOf(emptyMap())
-    var categoriasMap: Map<String, String> by mutableStateOf(emptyMap())
+    var lugaresTuristicos: List<Lugar> by mutableStateOf(lugaresIniciales.orEmpty())
+    var todosLosComercios: List<Comercio> by mutableStateOf(comerciosIniciales.orEmpty())
+    var municipiosMap: Map<String, Lugar> by mutableStateOf(
+        lugaresIniciales.orEmpty().associateBy { it.id.trim() }
+    )
+    var categoriasMap: Map<String, String> by mutableStateOf(categoriasIniciales)
     var lugarSeleccionado: Lugar? by mutableStateOf(null)
 
     var camaraLatObjetivo: Double? by mutableStateOf(latInicial)
     var camaraLngObjetivo: Double? by mutableStateOf(lngInicial)
     var camaraZoomObjetivo: Float? by mutableStateOf(zoomInicial)
 
-    var lugaresCargados: Boolean by mutableStateOf(false)
-    var comerciosCargados: Boolean by mutableStateOf(false)
+    var lugaresCargados: Boolean by mutableStateOf(lugaresIniciales != null)
+    var comerciosCargados: Boolean by mutableStateOf(comerciosIniciales != null)
     var errorLugares: String? by mutableStateOf(null)
     var errorComercios: String? by mutableStateOf(null)
     var intentoCarga: Int by mutableIntStateOf(0)
+
+    fun guardarEstadoCamara(estado: EstadoCamaraMapa) {
+        MapaCamaraCache.guardar(uidActual, estado)
+    }
 
     val cargando: Boolean by derivedStateOf {
         !lugaresCargados || !comerciosCargados
@@ -160,33 +175,49 @@ internal class MapaState(
         )
     }
 
+    private val comerciosComoLugares: List<Lugar> by derivedStateOf {
+        todosLosComercios.map(::comercioALugar)
+    }
+
+    private val comerciosComoLugaresPorId: Map<String, Lugar> by derivedStateOf {
+        comerciosComoLugares.associateBy { it.id }
+    }
+
     val comerciosFiltrados: List<Comercio> by derivedStateOf {
-        todosLosComercios.filter { comercio ->
-            val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
-            coincideBusquedaMapa(
-                consulta = textoBusqueda,
-                comercio.nombre,
-                comercio.direccion,
-                comercio.categoria,
-                etiquetaCategoria(comercio.categoria),
-                comercio.descripcion,
-                comercio.municipio,
-                comercio.lugarId,
-                nombreMunicipio
-            )
+        if (textoBusqueda.isBlank()) {
+            todosLosComercios
+        } else {
+            todosLosComercios.filter { comercio ->
+                val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
+                coincideBusquedaMapa(
+                    consulta = textoBusqueda,
+                    comercio.nombre,
+                    comercio.direccion,
+                    comercio.categoria,
+                    etiquetaCategoria(comercio.categoria),
+                    comercio.descripcion,
+                    comercio.municipio,
+                    comercio.lugarId,
+                    nombreMunicipio
+                )
+            }
         }
     }
 
     val lugaresFiltrados: List<Lugar> by derivedStateOf {
-        lugaresTuristicos.filter { lugar ->
-            coincideBusquedaMapa(
-                consulta = textoBusqueda,
-                lugar.nombre,
-                lugar.subtitulo,
-                lugar.ubicacionCorta,
-                lugar.ubicacionLarga,
-                lugar.historia
-            )
+        if (textoBusqueda.isBlank()) {
+            lugaresTuristicos
+        } else {
+            lugaresTuristicos.filter { lugar ->
+                coincideBusquedaMapa(
+                    consulta = textoBusqueda,
+                    lugar.nombre,
+                    lugar.subtitulo,
+                    lugar.ubicacionCorta,
+                    lugar.ubicacionLarga,
+                    lugar.historia
+                )
+            }
         }
     }
 
@@ -211,7 +242,7 @@ internal class MapaState(
 
             val comerciosCoincidentes = todosLosComercios
                 .mapNotNull { comercio ->
-                    val marcador = comercioALugar(comercio)
+                    val marcador = comerciosComoLugaresPorId["comercio:${comercio.id}"] ?: comercioALugar(comercio)
                     if (!esCoordenadaValida(marcador.ubicacionCoordenadas)) return@mapNotNull null
                     val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
                     val relevancia = relevanciaBusquedaMapa(
@@ -246,7 +277,13 @@ internal class MapaState(
             emptyList()
         }
         val lugaresComerciales = if (filtroTipoMarcadores != FiltroMarcadoresMapa.DESTINOS) {
-            comerciosFiltrados.map(::comercioALugar)
+            if (textoBusqueda.isBlank()) {
+                comerciosComoLugares
+            } else {
+                comerciosFiltrados.map { comercio ->
+                    comerciosComoLugaresPorId["comercio:${comercio.id}"] ?: comercioALugar(comercio)
+                }
+            }
         } else {
             emptyList()
         }
@@ -342,101 +379,4 @@ internal class MapaState(
             )
         }
     }
-}
-
-@Composable
-internal fun rememberMapaState(
-    latInicial: Double?,
-    lngInicial: Double?,
-    zoomInicial: Float?
-): MapaState {
-    val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val state = remember {
-        MapaState(
-            latInicial = latInicial,
-            lngInicial = lngInicial,
-            zoomInicial = zoomInicial,
-            scope = coroutineScope,
-            snackbarHostState = snackbarHostState
-        )
-    }
-
-    LaunchedEffect(latInicial, lngInicial, zoomInicial) {
-        state.camaraLatObjetivo = latInicial
-        state.camaraLngObjetivo = lngInicial
-        state.camaraZoomObjetivo = zoomInicial
-    }
-
-    LaunchedEffect(state.intentoCarga) {
-        state.lugaresCargados = false
-        state.errorLugares = null
-        try {
-            val lugares = LugaresRepository.obtenerTodos()
-            state.lugaresTuristicos = lugares
-            state.municipiosMap = lugares.associateBy { it.id.trim() }
-            state.categoriasMap = try {
-                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta.trim() }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                emptyMap()
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            state.errorLugares = error.message ?: getString(Res.string.mapa_error_cargar_destinos)
-        } finally {
-            state.lugaresCargados = true
-        }
-    }
-
-    LaunchedEffect(state.intentoCarga) {
-        state.comerciosCargados = false
-        state.errorComercios = null
-        try {
-            ComercioRepository.observarPublicados().collect { comercios ->
-                state.todosLosComercios = comercios
-                state.errorComercios = null
-                state.comerciosCargados = true
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            try {
-                state.todosLosComercios = ComercioRepository.obtenerPublicados()
-                state.errorComercios = null
-            } catch (fallbackError: CancellationException) {
-                throw fallbackError
-            } catch (fallbackError: Exception) {
-                state.errorComercios = fallbackError.message
-                    ?: error.message
-                    ?: getString(Res.string.mapa_error_cargar_comercios)
-            } finally {
-                state.comerciosCargados = true
-            }
-        }
-    }
-
-    // Detección y selección automática del municipio si se ingresa con coordenadas específicas
-    LaunchedEffect(latInicial, lngInicial, state.lugaresTuristicos) {
-        if (latInicial != null && lngInicial != null && state.lugaresTuristicos.isNotEmpty()) {
-            val lugarCoincidente = state.lugaresTuristicos.minByOrNull { lugar ->
-                val dLat = lugar.ubicacionCoordenadas.latitud - latInicial
-                val dLng = lugar.ubicacionCoordenadas.longitud - lngInicial
-                (dLat * dLat) + (dLng * dLng)
-            }
-            if (lugarCoincidente != null) {
-                state.lugarSeleccionado = lugarCoincidente
-            }
-        }
-    }
-
-    LaunchedEffect(state.errorCargaDetalle, state.sinDatosPublicados) {
-        val mensaje = state.errorCargaDetalle
-            ?: if (state.sinDatosPublicados) getString(Res.string.mapa_sin_datos_publicados) else null
-        mensaje?.let { state.snackbarHostState.showSnackbar(it) }
-    }
-
-    return state
 }

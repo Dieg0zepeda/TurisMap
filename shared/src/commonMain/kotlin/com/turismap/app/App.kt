@@ -7,10 +7,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -18,9 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import com.turismap.app.components.FigmaBottomBar
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.NotificacionesRepository
+import com.turismap.app.data.repository.UsuarioRepository
 import com.turismap.app.navegacion.Pantalla
 import com.turismap.app.navegacion.TurisMapNavHost
 import com.turismap.app.screens.LoginScreen
+import com.turismap.app.screens.perfil.PerfilCacheSesion
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 
@@ -61,6 +66,17 @@ fun App(
     val uidAutenticado = usuarioAuth?.uid
     val usuarioAutenticado = uidAutenticado != null
     val cantidadNotificacionesNoLeidas by NotificacionesRepository.cantidadNoLeidasFlow.collectAsState()
+    var ultimoUidObservado by remember { mutableStateOf(uidAutenticado) }
+
+    // Limpia cachés específicas de usuario al cerrar sesión o cambiar de cuenta (UID)
+    LaunchedEffect(uidAutenticado) {
+        if (uidAutenticado != ultimoUidObservado) {
+            UsuarioRepository.limpiarCacheUsuario()
+            PerfilCacheSesion.limpiar()
+            MapaCamaraCache.limpiar()
+            ultimoUidObservado = uidAutenticado
+        }
+    }
 
     MaterialTheme(
         colorScheme = if (esModoOscuro) DarkColorScheme else LightColorScheme
@@ -112,18 +128,17 @@ fun App(
                                         destino
                                     }
 
-                                    if (controladorNavegacion.currentDestination?.route?.startsWith(destino) != true) {
-                                        val volvioAUnaPestanaExistente =
-                                            controladorNavegacion.popBackStack(rutaPatronDestino, inclusive = false)
+                                    val rutaActualNav = controladorNavegacion.currentDestination?.route
+                                    val yaEstaEnPestana = rutaActualNav == rutaPatronDestino ||
+                                        rutaActualNav?.startsWith(destino) == true
 
-                                        if (!volvioAUnaPestanaExistente) {
-                                            controladorNavegacion.navigate(destino) {
-                                                popUpTo(Pantalla.Explorar.ruta) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                    if (!yaEstaEnPestana) {
+                                        controladorNavegacion.navigate(destino) {
+                                            popUpTo(Pantalla.Explorar.ruta) {
+                                                saveState = true
                                             }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
                                     }
                                 }

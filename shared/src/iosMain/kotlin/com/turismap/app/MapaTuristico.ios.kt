@@ -14,6 +14,8 @@ actual fun MapaTuristico(
     latInicial: Double?,
     lngInicial: Double?,
     zoomInicial: Float?,
+    camaraGuardada: EstadoCamaraMapa?,
+    onCamaraCambiada: (EstadoCamaraMapa) -> Unit,
     onLugarClick: (Lugar) -> Unit,
     modifier: Modifier
 ) {

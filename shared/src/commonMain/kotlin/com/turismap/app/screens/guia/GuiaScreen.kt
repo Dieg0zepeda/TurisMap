@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -42,6 +43,7 @@ fun GuiaScreen(
     val esOscuro = isSystemInDarkTheme()
     val paleta = rememberGuiaPaleta(esOscuro)
     val (state, favoritosUsuario) = rememberGuiaState(comerciosExternos)
+    val listState = rememberLazyListState()
     val municipioPredeterminado = stringResource(Res.string.auth_ruta_flores)
 
     Column(
@@ -83,6 +85,7 @@ fun GuiaScreen(
                 )
             } else {
                 LazyColumn(
+                    state = listState,
                     contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()

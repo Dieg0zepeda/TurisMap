@@ -9,6 +9,7 @@ import com.turismap.app.data.models.CategoriaLugar
 import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.Lugar
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -95,45 +96,83 @@ private fun DocumentSnapshot.aLugarSeguro(): Lugar? {
 
 actual object LugaresRepository {
 
-    actual suspend fun obtenerTodos(): List<Lugar> = suspendCancellableCoroutine { continuation ->
-        Firebase.firestore.collection("lugares")
-            .get()
-            .addOnSuccessListener { snapshot ->
-                if (continuation.isActive) {
-                    val lugares = snapshot.documents.mapNotNull { document ->
-                        try {
+    actual val lugaresEnCache: List<Lugar>?
+        get() = LugaresCache.obtenerLista()
+
+    actual fun obtenerEnCachePorId(id: String): Lugar? = LugaresCache.obtenerPorId(id)
+
+    actual suspend fun obtenerTodos(forzarRecarga: Boolean): List<Lugar> {
+        if (!forzarRecarga) {
+            LugaresCache.obtenerLista()?.let { return it }
+        }
+        return LugaresCache.mutex.withLock {
+            if (!forzarRecarga) {
+                LugaresCache.obtenerLista()?.let { return@withLock it }
+            }
+            val lugares = consultarTodosEnFirestore()
+            LugaresCache.guardarLista(lugares)
+            lugares
+        }
+    }
+
+    actual suspend fun obtenerPorId(id: String, forzarRecarga: Boolean): Lugar? {
+        val idLimpio = id.trim()
+        if (idLimpio.isEmpty()) return null
+        if (!forzarRecarga) {
+            LugaresCache.obtenerPorId(idLimpio)?.let { return it }
+        }
+        val lugar = consultarPorIdEnFirestore(idLimpio)
+        if (lugar != null) {
+            LugaresCache.guardarLugar(lugar)
+        }
+        return lugar
+    }
+
+    actual fun limpiarCache() {
+        LugaresCache.limpiar()
+    }
+
+    private suspend fun consultarTodosEnFirestore(): List<Lugar> =
+        suspendCancellableCoroutine { continuation ->
+            Firebase.firestore.collection("lugares")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    if (continuation.isActive) {
+                        val lugares = snapshot.documents.mapNotNull { document ->
+                            try {
+                                document.aLugarSeguro()
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        continuation.resume(lugares)
+                    }
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+        }
+
+    private suspend fun consultarPorIdEnFirestore(id: String): Lugar? =
+        suspendCancellableCoroutine { continuation ->
+            Firebase.firestore.collection("lugares").document(id)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (continuation.isActive) {
+                        val lugar = try {
                             document.aLugarSeguro()
                         } catch (_: Exception) {
                             null
                         }
+                        continuation.resume(lugar)
                     }
-                    continuation.resume(lugares)
                 }
-            }
-            .addOnFailureListener { error ->
-                if (continuation.isActive) {
-                    continuation.resumeWithException(error)
-                }
-            }
-    }
-
-    actual suspend fun obtenerPorId(id: String): Lugar? = suspendCancellableCoroutine { continuation ->
-        Firebase.firestore.collection("lugares").document(id)
-            .get()
-            .addOnSuccessListener { document ->
-                if (continuation.isActive) {
-                    val lugar = try {
-                        document.aLugarSeguro()
-                    } catch (_: Exception) {
-                        null
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(error)
                     }
-                    continuation.resume(lugar)
                 }
-            }
-            .addOnFailureListener { error ->
-                if (continuation.isActive) {
-                    continuation.resumeWithException(error)
-                }
-            }
-    }
+        }
 }
