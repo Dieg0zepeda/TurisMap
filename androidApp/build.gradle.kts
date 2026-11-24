@@ -33,6 +33,9 @@ dependencies {
     // Firebase BOM y Auth (firebase-firestore y coil-compose provienen de :shared)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
 }
 
 android {

@@ -8,6 +8,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -85,7 +89,15 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            App(onSolicitarGoogleSignIn = solicitarGoogleSignIn)
+            var mostrarSplash by remember { mutableStateOf(true) }
+
+            if (mostrarSplash) {
+                SplashVideoScreen(
+                    onSplashFinished = { mostrarSplash = false }
+                )
+            } else {
+                App()
+            }
         }
     }
 }
