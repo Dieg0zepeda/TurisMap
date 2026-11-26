@@ -157,6 +157,9 @@ data class Comercio(
     val esNivelBasico: Boolean
         get() = planInt == 1
 
+    val esExperienciaDestacada: Boolean
+        get() = planInt >= 2 || destacado
+
     // Límite de fotografías por suscripción: 2 (Básico), 4 (Socio), 8 (Premium)
     val maxFotosPermitidas: Int
         get() = when (planInt) {
@@ -328,6 +331,14 @@ object ComercioRepository {
         get() = ComercioCacheSesion.obtenerCategorias()
 
     fun obtenerEnCachePorId(id: String): Comercio? = ComercioCacheSesion.obtenerPorId(id)
+
+    fun filtrarExperienciasDestacadas(comercios: List<Comercio>): List<Comercio> =
+        comercios
+            .filter(Comercio::esExperienciaDestacada)
+            .sortedWith(
+                compareByDescending<Comercio> { it.planInt }
+                    .thenByDescending { it.destacado }
+            )
 
     /**
      * Flujo único compartido de comercios publicados ligado a un único listener de Firestore.
@@ -602,25 +613,8 @@ object ComercioRepository {
             if (!forzarRecarga) {
                 ComercioCacheSesion.obtenerDestacados()?.let { return@withLock it }
             }
-            val documentos = try {
-                firestore.collection("comercios")
-                    .where { "estado" equalTo "publicado" }
-                    .where { "destacado" equalTo true }
-                    .get()
-                    .documents
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                if (esErrorIndiceFaltante(error)) {
-                    val publicados = obtenerPublicados(forzarRecarga = true)
-                    return@withLock publicados.filter { it.destacado }
-                } else {
-                    throw error
-                }
-            }
-            val destacados = documentos
-                .mapNotNull { documento -> documento.aComercioSeguro() }
-                .filter { it.destacado }
+            val publicados = obtenerPublicados(forzarRecarga = forzarRecarga)
+            val destacados = filtrarExperienciasDestacadas(publicados)
             ComercioCacheSesion.guardarDestacados(destacados)
             destacados
         }

@@ -8,11 +8,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -25,23 +26,21 @@ import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
+import com.turismap.app.data.repository.EstadoPublicados
 import com.turismap.app.data.repository.LugaresRepository
+import com.turismap.app.screens.guia.rememberGuiaPaleta
 import com.turismap.app.theme.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.app_name
 import turismap.shared.generated.resources.btn_reintentar
 import turismap.shared.generated.resources.explorar_badge_destino_destacado
-import turismap.shared.generated.resources.explorar_btn_ver_detalle
 import turismap.shared.generated.resources.explorar_cd_fondo_destino
 import turismap.shared.generated.resources.explorar_descubre_lugar
 import turismap.shared.generated.resources.explorar_error_cargar_destinos
 import turismap.shared.generated.resources.explorar_experiencias_vacio
-import turismap.shared.generated.resources.explorar_precio_desde
 import turismap.shared.generated.resources.explorar_seccion_experiencias
 import turismap.shared.generated.resources.explorar_seccion_pueblos_ruta
 import turismap.shared.generated.resources.explorar_titulo
@@ -54,8 +53,6 @@ fun ExplorarScreen(
     onComercioClick: (String) -> Unit = {}
 ) {
     val lugaresIniciales = remember { LugaresRepository.lugaresEnCache }
-    val destacadosIniciales = remember { ComercioRepository.destacadosEnCache }
-    val tieneCacheInicial = lugaresIniciales != null && destacadosIniciales != null
 
     var lugares by remember { mutableStateOf(lugaresIniciales.orEmpty()) }
     var lugarDestacado by remember {
@@ -65,21 +62,39 @@ fun ExplorarScreen(
             }
         )
     }
-    var cargando by remember { mutableStateOf(!tieneCacheInicial) }
+    var cargando by remember { mutableStateOf(lugaresIniciales == null) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     var intentoCarga by remember { mutableIntStateOf(0) }
-    var experienciasDestacadas by remember { mutableStateOf(destacadosIniciales.orEmpty()) }
+    var mapaCategorias by remember {
+        mutableStateOf(
+            ComercioRepository.categoriasEnCache
+                ?.associate { it.id.trim() to it.etiqueta.trim() }
+                .orEmpty()
+        )
+    }
+    var comerciosRespaldo by remember { mutableStateOf<List<Comercio>?>(null) }
     val scrollState = rememberScrollState()
+
+    val estadoPublicados by ComercioRepository.publicadosStateFlow.collectAsState()
+    val comerciosPublicados = when (val estado = estadoPublicados) {
+        is EstadoPublicados.Exito -> estado.comercios
+        is EstadoPublicados.Cargando -> ComercioRepository.publicadosEnCache ?: comerciosRespaldo
+        is EstadoPublicados.Error -> estado.comerciosEnCache ?: ComercioRepository.publicadosEnCache ?: comerciosRespaldo
+    }
+    val cargandoExperiencias = estadoPublicados is EstadoPublicados.Cargando && comerciosPublicados == null
+    val experienciasDestacadas = remember(comerciosPublicados) {
+        comerciosPublicados?.let(ComercioRepository::filtrarExperienciasDestacadas).orEmpty()
+    }
 
     LaunchedEffect(intentoCarga) {
         val esReintentoManual = intentoCarga > 0
-        if (!esReintentoManual) {
+        if (esReintentoManual) {
+            ComercioRepository.reintentarObservacionPublicados()
+        } else {
             val cacheLugares = LugaresRepository.lugaresEnCache
-            val cacheDestacados = ComercioRepository.destacadosEnCache
-            if (cacheLugares != null && cacheDestacados != null) {
+            if (cacheLugares != null) {
                 lugares = cacheLugares
                 lugarDestacado = cacheLugares.firstOrNull { it.id == "ataco" } ?: cacheLugares.firstOrNull()
-                experienciasDestacadas = cacheDestacados
                 errorCarga = null
                 cargando = false
                 return@LaunchedEffect
@@ -92,18 +107,9 @@ fun ExplorarScreen(
         }
         errorCarga = null
         try {
-            val (lugaresCargados, destacadosCargados) = coroutineScope {
-                val tareaLugares = async {
-                    LugaresRepository.obtenerTodos(forzarRecarga = esReintentoManual)
-                }
-                val tareaDestacados = async {
-                    ComercioRepository.obtenerDestacados(forzarRecarga = esReintentoManual)
-                }
-                tareaLugares.await() to tareaDestacados.await()
-            }
+            val lugaresCargados = LugaresRepository.obtenerTodos(forzarRecarga = esReintentoManual)
             lugares = lugaresCargados
             lugarDestacado = lugaresCargados.firstOrNull { it.id == "ataco" } ?: lugaresCargados.firstOrNull()
-            experienciasDestacadas = destacadosCargados
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -115,11 +121,55 @@ fun ExplorarScreen(
         }
     }
 
+    // Respaldo puntual solo si el listener de publicados falla sin datos previos en caché
+    LaunchedEffect(estadoPublicados) {
+        if (estadoPublicados is EstadoPublicados.Error && comerciosPublicados == null) {
+            try {
+                comerciosRespaldo = ComercioRepository.obtenerPublicados(forzarRecarga = false)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Mantiene estado vacío sin interrumpir la vista principal de destinos
+            }
+        }
+    }
+
+    // Catálogo auxiliar de categorías desde caché o en segundo plano sin bloquear el primer frame
+    LaunchedEffect(Unit) {
+        if (mapaCategorias.isEmpty()) {
+            try {
+                mapaCategorias = ComercioRepository.obtenerCategorias(forzarRecarga = false)
+                    .associate { it.id.trim() to it.etiqueta.trim() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Usa el identificador de categoría como respaldo seguro
+            }
+        }
+    }
+
     // Filtra la lista para no duplicar el destino que ya está en el banner superior
     val destinosSinDestacado = remember(lugares, lugarDestacado) {
         lugares.filter { it.id != lugarDestacado?.id }
     }
+    val mapaMunicipios = remember(lugares) {
+        lugares.associate { it.id.trim() to it.nombre.trim() }
+    }
+    val resolverUbicacionComercio: (Comercio) -> String = remember(mapaMunicipios) {
+        { item ->
+            mapaMunicipios[item.lugarId.trim()]
+                ?: mapaMunicipios[item.lugarId]
+                ?: item.municipio.trim().ifBlank { item.direccion.trim() }
+        }
+    }
+    val resolverEtiquetaCategoria: (String) -> String = remember(mapaCategorias) {
+        { categoriaId ->
+            mapaCategorias[categoriaId.trim()]?.takeIf(String::isNotBlank) ?: categoriaId.trim()
+        }
+    }
+
     val esModoOscuro = isSystemInDarkTheme()
+    val paletaGuia = rememberGuiaPaleta(esModoOscuro)
 
     if (cargando) {
         Box(
@@ -151,7 +201,7 @@ fun ExplorarScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(scrollState)
-                .padding(bottom = 24.dp)
+                .padding(bottom = 28.dp)
         ) {
             // Cabecera con título y acceso a notificaciones
             Row(
@@ -293,84 +343,44 @@ fun ExplorarScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = stringResource(Res.string.explorar_seccion_experiencias),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoPrincipalOscuro,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            if (experienciasDestacadas.isEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = paletaGuia.ambarAcento,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    stringResource(Res.string.explorar_experiencias_vacio),
+                    text = stringResource(Res.string.explorar_seccion_experiencias),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoPrincipalOscuro
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (cargandoExperiencias) {
+                CarruselExperienciasDestacadasEsqueleto()
+            } else if (experienciasDestacadas.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.explorar_experiencias_vacio),
                     color = GrisTextoSecundario,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    experienciasDestacadas.forEach { experiencia ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onComercioClick(experiencia.id)
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, GrisBorde),
-                            colors = CardDefaults.cardColors(containerColor = FondoBlancoAdaptable)
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                experiencia.imagenUrls.firstOrNull { it.startsWith("https://") }?.let { url ->
-                                    RemoteImage(
-                                        url = url,
-                                        contentDescription = experiencia.nombre,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(150.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                    )
-                                    Spacer(Modifier.height(12.dp))
-                                }
-                                Text(
-                                    text = experiencia.nombre,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextoPrincipalOscuro
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = experiencia.descripcion,
-                                    color = GrisTextoSecundario
-                                )
-                                experiencia.precioDesde?.let {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        text = stringResource(Res.string.explorar_precio_desde, it.toString()),
-                                        color = TerracotaTextoAdaptable,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                                Spacer(Modifier.height(12.dp))
-                                Button(
-                                    onClick = { onComercioClick(experiencia.id) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                ) {
-                                    Text(stringResource(Res.string.explorar_btn_ver_detalle))
-                                }
-                            }
-                        }
-                    }
-                }
+                CarruselExperienciasDestacadas(
+                    comerciosDestacados = experienciasDestacadas,
+                    resolverUbicacion = resolverUbicacionComercio,
+                    resolverCategoria = resolverEtiquetaCategoria,
+                    onComercioClick = onComercioClick
+                )
             }
         }
     }

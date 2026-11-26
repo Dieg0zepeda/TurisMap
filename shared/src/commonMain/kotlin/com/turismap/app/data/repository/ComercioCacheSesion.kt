@@ -23,7 +23,7 @@ internal object ComercioCacheSesion {
     fun obtenerPorId(id: String): Comercio? = publicadosPorIdFlow.value[id.trim()]
 
     fun obtenerDestacados(): List<Comercio>? =
-        destacadosFlow.value ?: publicadosFlow.value?.filter { it.destacado }
+        destacadosFlow.value ?: publicadosFlow.value?.let(ComercioRepository::filtrarExperienciasDestacadas)
 
     fun obtenerCategorias(): List<CategoriaComercio>? = categoriasFlow.value
 
@@ -31,7 +31,7 @@ internal object ComercioCacheSesion {
         val copia = comercios.toList()
         publicadosFlow.value = copia
         publicadosPorIdFlow.value = copia.associateBy { it.id.trim() }
-        destacadosFlow.value = copia.filter { it.destacado }
+        destacadosFlow.value = ComercioRepository.filtrarExperienciasDestacadas(copia)
     }
 
     fun guardarDestacados(destacados: List<Comercio>) {
