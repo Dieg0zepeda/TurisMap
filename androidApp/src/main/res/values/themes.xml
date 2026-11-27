@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.TurisMap" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@android:color/black</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/splash_empty</item>
+        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
+    </style>
+</resources>
