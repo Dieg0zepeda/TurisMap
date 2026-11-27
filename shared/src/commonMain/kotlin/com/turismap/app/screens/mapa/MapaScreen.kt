@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.turismap.app.MapaTuristico
+import com.turismap.app.components.rememberIniciarRutaExterna
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.screens.mapa.CabeceraMapa
 import com.turismap.app.screens.mapa.ModalCapasMapa
@@ -28,6 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_reintentar
 import turismap.shared.generated.resources.mapa_error_abrir_google_maps
+import turismap.shared.generated.resources.mapa_error_iniciar_ruta
 import turismap.shared.generated.resources.mapa_sin_datos_publicados
 import turismap.shared.generated.resources.mapa_sin_ubicaciones
 
@@ -41,6 +43,7 @@ fun MapaScreen(
     onComercioClick: (String) -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
+    val iniciarRutaExterna = rememberIniciarRutaExterna()
     val paleta = rememberMapaPaleta(isSystemInDarkTheme())
     val state = rememberMapaState(
         latInicial = latInicial,
@@ -112,6 +115,12 @@ fun MapaScreen(
                     uriHandler.openUri(url)
                 } catch (error: Exception) {
                     state.mostrarMensajeError(error.message, Res.string.mapa_error_abrir_google_maps)
+                }
+            },
+            onIniciarRutaAtractivo = { latitud, longitud, nombreDestino ->
+                val abierto = iniciarRutaExterna(latitud, longitud, nombreDestino)
+                if (!abierto) {
+                    state.mostrarMensajeError(null, Res.string.mapa_error_iniciar_ruta)
                 }
             },
             onAbrirDetalle = onAbrirDetalle,
