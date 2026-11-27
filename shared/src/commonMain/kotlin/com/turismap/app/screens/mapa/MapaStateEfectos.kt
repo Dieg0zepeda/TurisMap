@@ -3,10 +3,12 @@ package com.turismap.app.screens.mapa
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.turismap.app.MapaCamaraCache
 import com.turismap.app.data.repository.AtractivosPublicosRepository
 import com.turismap.app.data.repository.ComercioRepository
@@ -206,17 +208,36 @@ internal fun rememberMapaState(
         }
     }
 
-    // Detección y selección automática del municipio si se ingresa con coordenadas específicas
-    LaunchedEffect(latInicial, lngInicial, state.lugaresTuristicos) {
-        if (latInicial != null && lngInicial != null && state.lugaresTuristicos.isNotEmpty()) {
-            val lugarCoincidente = state.lugaresTuristicos.minByOrNull { lugar ->
-                val dLat = lugar.ubicacionCoordenadas.latitud - latInicial
-                val dLng = lugar.ubicacionCoordenadas.longitud - lngInicial
-                (dLat * dLat) + (dLng * dLng)
-            }
-            if (lugarCoincidente != null) {
-                state.marcadorSeleccionado = MarcadorMapa.Destino(lugarCoincidente)
-            }
+    // Auto-selección inteligente al llegar al mapa con coordenadas (pueblo, comercio o atractivo público)
+    var autoseleccionAplicadaPara by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
+    LaunchedEffect(
+        latInicial,
+        lngInicial,
+        state.cargando,
+        state.lugaresTuristicos,
+        state.atractivosPublicos,
+        state.todosLosComercios
+    ) {
+        if (latInicial == null || lngInicial == null) {
+            autoseleccionAplicadaPara = null
+            return@LaunchedEffect
+        }
+        if (state.cargando) return@LaunchedEffect
+
+        val objetivo = latInicial to lngInicial
+        if (autoseleccionAplicadaPara == objetivo) return@LaunchedEffect
+
+        val marcadorCoincidente = buscarMarcadorMasCercanoParaAutoseleccion(
+            latObjetivo = latInicial,
+            lngObjetivo = lngInicial,
+            lugares = state.lugaresTuristicos,
+            atractivosPublicos = state.atractivosPublicos,
+            comerciosConCoordenadaPropia = state.comerciosConCoordenadaPropiaParaAutoseleccion()
+        )
+        autoseleccionAplicadaPara = objetivo
+        if (marcadorCoincidente != null) {
+            state.aplicarAutoseleccion(marcadorCoincidente)
         }
     }
 

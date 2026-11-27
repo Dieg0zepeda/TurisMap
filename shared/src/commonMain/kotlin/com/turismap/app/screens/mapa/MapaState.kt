@@ -245,21 +245,10 @@ internal class MapaState(
     }
 
     val atractivosPorBusqueda: List<AtractivoPublico> by derivedStateOf {
-        if (textoBusqueda.isBlank()) {
-            atractivosPublicos
-        } else {
-            atractivosPublicos.filter { atractivo ->
-                coincideBusquedaMapa(
-                    consulta = textoBusqueda,
-                    atractivo.nombre,
-                    atractivo.categoria,
-                    palabrasClaveCategoriaAtractivo(atractivo.categoriaResuelta),
-                    atractivo.municipio,
-                    atractivo.lugarId,
-                    atractivo.descripcion
-                )
-            }
-        }
+        filtrarAtractivosPublicos(
+            atractivos = atractivosPublicos,
+            consulta = textoBusqueda
+        )
     }
 
     val conteoAtractivosPorCategoria: Map<CategoriaAtractivoPublico, Int> by derivedStateOf {
@@ -269,12 +258,10 @@ internal class MapaState(
     }
 
     val atractivosFiltrados: List<AtractivoPublico> by derivedStateOf {
-        val categoria = categoriaAtractivoSeleccionada
-        if (categoria == null) {
-            atractivosPorBusqueda
-        } else {
-            atractivosPorBusqueda.filter { it.categoriaResuelta == categoria }
-        }
+        filtrarAtractivosPublicos(
+            atractivos = atractivosPorBusqueda,
+            categoriaSeleccionada = categoriaAtractivoSeleccionada
+        )
     }
 
     val resultadosBusqueda: List<MarcadorMapa> by derivedStateOf {
@@ -346,65 +333,33 @@ internal class MapaState(
     }
 
     val marcadoresParaElMapa: List<MarcadorMapa> by derivedStateOf {
-        val incluirDestinos = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
-            filtroTipoMarcadores == FiltroMarcadoresMapa.DESTINOS
-        val incluirComercios = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
-            filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS
-        val incluirAtractivos = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
-            filtroTipoMarcadores == FiltroMarcadoresMapa.ATRACTIVOS
-
-        val destinos = if (incluirDestinos) {
-            lugaresFiltrados.map { MarcadorMapa.Destino(it) }
+        val destinos = lugaresFiltrados.map { MarcadorMapa.Destino(it) }
+        val comercios = if (textoBusqueda.isBlank()) {
+            marcadoresComercio
         } else {
-            emptyList()
-        }
-        val comercios = if (incluirComercios) {
-            if (textoBusqueda.isBlank()) {
-                marcadoresComercio
-            } else {
-                comerciosFiltrados.map { comercio ->
-                    marcadoresComercioPorId["comercio:${comercio.id}"] ?: comercioAMarcador(comercio)
-                }
+            comerciosFiltrados.map { comercio ->
+                marcadoresComercioPorId["comercio:${comercio.id}"] ?: comercioAMarcador(comercio)
             }
-        } else {
-            emptyList()
         }
-        val atractivos = if (incluirAtractivos) {
-            atractivosFiltrados.map { MarcadorMapa.AtractivoPublico(it) }
-        } else {
-            emptyList()
-        }
+        val atractivos = atractivosFiltrados.map { MarcadorMapa.AtractivoPublico(it) }
 
-        val conUbicacionValida = (destinos + comercios + atractivos).filter {
+        val visiblesPorCapa = filtrarMarcadoresPorCapa(
+            destinos = destinos,
+            comercios = comercios,
+            atractivos = atractivos,
+            filtroCapa = filtroTipoMarcadores,
+            categoriaAtractivo = categoriaAtractivoSeleccionada
+        )
+        val conUbicacionValida = visiblesPorCapa.filter {
             esCoordenadaValida(it.coordenadas)
         }
         separarCoordenadasSuperpuestasMarcadores(conUbicacionValida)
     }
 
-    private fun prioridadTipoMarcador(marcador: MarcadorMapa): Int = when (marcador) {
-        is MarcadorMapa.Comercio -> 0
-        is MarcadorMapa.AtractivoPublico -> 1
-        is MarcadorMapa.Destino -> 2
-    }
+    fun comerciosConCoordenadaPropiaParaAutoseleccion(): List<MarcadorMapa.Comercio> =
+        marcadoresComercio.filter { it.comercio.coordenadaPropiaValida() != null }
 
-    fun actualizarBusqueda(nuevoTexto: String) {
-        textoBusqueda = nuevoTexto
-        mostrarSugerencias = nuevoTexto.isNotBlank()
-        marcadorSeleccionado = null
-        if (nuevoTexto.isBlank()) {
-            camaraLatObjetivo = null
-            camaraLngObjetivo = null
-            camaraZoomObjetivo = null
-        }
-    }
-
-    fun abrirSugerenciasSiHayTexto() {
-        if (textoBusqueda.isNotBlank()) {
-            mostrarSugerencias = true
-        }
-    }
-
-    fun seleccionarResultadoBusqueda(marcador: MarcadorMapa) {
+    private fun asegurarFiltroParaMarcador(marcador: MarcadorMapa) {
         when (marcador) {
             is MarcadorMapa.Comercio -> {
                 if (filtroTipoMarcadores != FiltroMarcadoresMapa.TODOS &&
@@ -437,6 +392,39 @@ internal class MapaState(
                 }
             }
         }
+    }
+
+    fun aplicarAutoseleccion(marcador: MarcadorMapa) {
+        asegurarFiltroParaMarcador(marcador)
+        val marcadorEnMapa = marcadoresParaElMapa.firstOrNull { it.idUnico == marcador.idUnico } ?: marcador
+        marcadorSeleccionado = marcadorEnMapa
+    }
+
+    private fun prioridadTipoMarcador(marcador: MarcadorMapa): Int = when (marcador) {
+        is MarcadorMapa.Comercio -> 0
+        is MarcadorMapa.AtractivoPublico -> 1
+        is MarcadorMapa.Destino -> 2
+    }
+
+    fun actualizarBusqueda(nuevoTexto: String) {
+        textoBusqueda = nuevoTexto
+        mostrarSugerencias = nuevoTexto.isNotBlank()
+        marcadorSeleccionado = null
+        if (nuevoTexto.isBlank()) {
+            camaraLatObjetivo = null
+            camaraLngObjetivo = null
+            camaraZoomObjetivo = null
+        }
+    }
+
+    fun abrirSugerenciasSiHayTexto() {
+        if (textoBusqueda.isNotBlank()) {
+            mostrarSugerencias = true
+        }
+    }
+
+    fun seleccionarResultadoBusqueda(marcador: MarcadorMapa) {
+        asegurarFiltroParaMarcador(marcador)
 
         textoBusqueda = marcador.titulo
         mostrarSugerencias = false
