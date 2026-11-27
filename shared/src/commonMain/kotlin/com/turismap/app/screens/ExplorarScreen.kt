@@ -2,12 +2,11 @@ package com.turismap.app.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
@@ -73,7 +72,7 @@ fun ExplorarScreen(
         )
     }
     var comerciosRespaldo by remember { mutableStateOf<List<Comercio>?>(null) }
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
 
     val estadoPublicados by ComercioRepository.publicadosStateFlow.collectAsState()
     val comerciosPublicados = when (val estado = estadoPublicados) {
@@ -196,191 +195,205 @@ fun ExplorarScreen(
             }
         }
     } else {
-        Column(
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 28.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(scrollState)
-                .padding(bottom = 28.dp)
         ) {
             // Cabecera con título y acceso a notificaciones
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.app_name).uppercase(),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = VerdeTextoAdaptable,
-                        letterSpacing = 1.2.sp
-                    )
-                    Text(
-                        text = stringResource(Res.string.explorar_titulo),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoPrincipalOscuro
-                    )
-                }
-
-                BotonNotificaciones(
-                    cantidadNoLeidas = cantidadNotificacionesNoLeidas,
-                    onClick = onAbrirNotificaciones
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Banner superior: Destino Destacado
-            if (lugarDestacado != null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 280.dp)
-                        .padding(horizontal = 16.dp)
-                        .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp))
-                        .clickable { onLugarClick(lugarDestacado!!) },
-                    shape = RoundedCornerShape(24.dp),
-                    border = if (esModoOscuro) BorderStroke(1.dp, GrisBorde) else null,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        val urlImagenDestacado = lugarDestacado!!.imagenPortadaUrl.ifBlank {
-                            lugarDestacado!!.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
-                        }
-                        if (urlImagenDestacado.isNotEmpty()) {
-                            RemoteImage(
-                                url = urlImagenDestacado,
-                                contentDescription = stringResource(Res.string.explorar_cd_fondo_destino, lugarDestacado!!.nombre),
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+            item(key = "cabecera") {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(Res.string.app_name).uppercase(),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = VerdeTextoAdaptable,
+                                letterSpacing = 1.2.sp
+                            )
+                            Text(
+                                text = stringResource(Res.string.explorar_titulo),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextoPrincipalOscuro
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colorStops = arrayOf(
-                                            0.0f to Color.Transparent,
-                                            0.38f to ObsidianaFondo.copy(alpha = 0.14f),
-                                            0.72f to ObsidianaFondo.copy(alpha = 0.66f),
-                                            1.0f to ObsidianaFondo.copy(alpha = 0.90f)
-                                        )
-                                    )
-                                )
+                        BotonNotificaciones(
+                            cantidadNoLeidas = cantidadNotificacionesNoLeidas,
+                            onClick = onAbrirNotificaciones
                         )
+                    }
 
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(20.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = TerracotaAcento
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.explorar_badge_destino_destacado),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp),
-                                    letterSpacing = 0.8.sp
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+
+            // Banner superior: Destino Destacado
+            lugarDestacado?.let { destacado ->
+                item(key = "hero_destino") {
+                    Card(
+                        onClick = { onLugarClick(destacado) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .height(280.dp)
+                            .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp)),
+                        shape = RoundedCornerShape(24.dp),
+                        border = if (esModoOscuro) BorderStroke(1.dp, GrisBorde) else null,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val urlImagenDestacado = destacado.imagenPortadaUrl.ifBlank {
+                                destacado.atractivos.firstOrNull { it.imagenUrl.isNotBlank() }?.imagenUrl.orEmpty()
+                            }
+                            if (urlImagenDestacado.isNotEmpty()) {
+                                RemoteImage(
+                                    url = urlImagenDestacado,
+                                    contentDescription = stringResource(Res.string.explorar_cd_fondo_destino, destacado.nombre),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            val nombreCortoDestacado = lugarDestacado!!.nombre
-                                .trim()
-                                .split(" ")
-                                .lastOrNull { it.isNotBlank() }
-                                ?: lugarDestacado!!.nombre.trim()
-                            Text(
-                                text = stringResource(Res.string.explorar_descubre_lugar, nombreCortoDestacado),
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            colorStops = arrayOf(
+                                                0.0f to Color.Transparent,
+                                                0.38f to ObsidianaFondo.copy(alpha = 0.14f),
+                                                0.72f to ObsidianaFondo.copy(alpha = 0.66f),
+                                                1.0f to ObsidianaFondo.copy(alpha = 0.90f)
+                                            )
+                                        )
+                                    )
                             )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(20.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = TerracotaAcento
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.explorar_badge_destino_destacado),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp),
+                                        letterSpacing = 0.8.sp
+                                    )
+                                }
 
-                            Text(
-                                text = lugarDestacado!!.nombre,
-                                fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.92f)
-                            )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val nombreCortoDestacado = destacado.nombre
+                                    .trim()
+                                    .split(" ")
+                                    .lastOrNull { it.isNotBlank() }
+                                    ?: destacado.nombre.trim()
+                                Text(
+                                    text = stringResource(Res.string.explorar_descubre_lugar, nombreCortoDestacado),
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = destacado.nombre,
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.92f)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            item(key = "pueblos_ruta") {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = stringResource(Res.string.explorar_seccion_pueblos_ruta),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoPrincipalOscuro,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+                    Text(
+                        text = stringResource(Res.string.explorar_seccion_pueblos_ruta),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoPrincipalOscuro,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            // Carrusel horizontal alineado a la izquierda sin el elemento repetido
-            CarruselExploraRuta(
-                destinos = destinosSinDestacado,
-                onLugarClick = onLugarClick
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = null,
-                    tint = paletaGuia.ambarAcento,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = stringResource(Res.string.explorar_seccion_experiencias),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoPrincipalOscuro
-                )
+                    // Carrusel horizontal alineado a la izquierda sin el elemento repetido
+                    CarruselExploraRuta(
+                        destinos = destinosSinDestacado,
+                        onLugarClick = onLugarClick
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            item(key = "experiencias_destacadas") {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            if (cargandoExperiencias) {
-                CarruselExperienciasDestacadasEsqueleto()
-            } else if (experienciasDestacadas.isEmpty()) {
-                Text(
-                    text = stringResource(Res.string.explorar_experiencias_vacio),
-                    color = GrisTextoSecundario,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            } else {
-                CarruselExperienciasDestacadas(
-                    comerciosDestacados = experienciasDestacadas,
-                    resolverUbicacion = resolverUbicacionComercio,
-                    resolverCategoria = resolverEtiquetaCategoria,
-                    onComercioClick = onComercioClick
-                )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            tint = paletaGuia.ambarAcento,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(Res.string.explorar_seccion_experiencias),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextoPrincipalOscuro
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (cargandoExperiencias) {
+                        CarruselExperienciasDestacadasEsqueleto()
+                    } else if (experienciasDestacadas.isEmpty()) {
+                        Text(
+                            text = stringResource(Res.string.explorar_experiencias_vacio),
+                            color = GrisTextoSecundario,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    } else {
+                        CarruselExperienciasDestacadas(
+                            comerciosDestacados = experienciasDestacadas,
+                            resolverUbicacion = resolverUbicacionComercio,
+                            resolverCategoria = resolverEtiquetaCategoria,
+                            onComercioClick = onComercioClick
+                        )
+                    }
+                }
             }
         }
     }
