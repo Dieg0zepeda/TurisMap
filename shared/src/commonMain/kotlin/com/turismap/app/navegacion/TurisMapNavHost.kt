@@ -359,7 +359,15 @@ fun TurisMapNavHost(
             Box(modifier = Modifier.fillMaxSize()) {
                 DetalleExperienciaScreen(
                     comercioId = comercioId,
-                    onVolver = { controladorNavegacion.popBackStack() }
+                    onVolver = { controladorNavegacion.popBackStack() },
+                    onVerEnMapa = { lat, lng, zoom ->
+                        controladorNavegacion.navigate("${Pantalla.Mapa.ruta}?lat=$lat&lng=$lng&zoom=$zoom") {
+                            popUpTo(Pantalla.Mapa.rutaPatron) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }

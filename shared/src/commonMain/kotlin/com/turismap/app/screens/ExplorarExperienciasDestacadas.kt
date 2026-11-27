@@ -58,6 +58,8 @@ private val ESPACIADO_PAGINAS_DESTACADAS = 12.dp
 private val PADDING_SUPERIOR_CARRUSEL = 6.dp
 private val PADDING_INFERIOR_CARRUSEL = 20.dp
 private val DESPLAZAMIENTO_VERTICAL_LATERAL = 12.dp
+private val ALTO_CARRUSEL_DESTACADAS =
+    ALTO_TARJETA_DESTACADA + PADDING_SUPERIOR_CARRUSEL + PADDING_INFERIOR_CARRUSEL
 
 @Composable
 internal fun CarruselExperienciasDestacadas(
@@ -81,7 +83,11 @@ internal fun CarruselExperienciasDestacadas(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ALTO_CARRUSEL_DESTACADAS)
+    ) {
         val anchoTarjeta = (maxWidth * PROPORCION_ANCHO_TARJETA)
             .coerceAtMost(ANCHO_MAXIMO_TARJETA)
         val paddingHorizontal = ((maxWidth - anchoTarjeta) / 2f)
@@ -89,7 +95,10 @@ internal fun CarruselExperienciasDestacadas(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ALTO_CARRUSEL_DESTACADAS),
+            verticalAlignment = Alignment.Top,
             contentPadding = PaddingValues(
                 start = paddingHorizontal,
                 top = PADDING_SUPERIOR_CARRUSEL,
@@ -147,7 +156,11 @@ internal fun CarruselExperienciasDestacadasEsqueleto(
     val forma = RoundedCornerShape(RADIO_TARJETA_DESTACADA)
     val pagerState = rememberPagerState(pageCount = { 2 })
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ALTO_CARRUSEL_DESTACADAS)
+    ) {
         val anchoTarjeta = (maxWidth * PROPORCION_ANCHO_TARJETA)
             .coerceAtMost(ANCHO_MAXIMO_TARJETA)
         val paddingHorizontal = ((maxWidth - anchoTarjeta) / 2f)
@@ -156,7 +169,10 @@ internal fun CarruselExperienciasDestacadasEsqueleto(
         HorizontalPager(
             state = pagerState,
             userScrollEnabled = false,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ALTO_CARRUSEL_DESTACADAS),
+            verticalAlignment = Alignment.Top,
             contentPadding = PaddingValues(
                 start = paddingHorizontal,
                 top = PADDING_SUPERIOR_CARRUSEL,
