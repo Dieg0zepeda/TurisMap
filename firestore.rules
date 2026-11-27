@@ -32,6 +32,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /atractivos_publicos/{atractivoId} {
+      allow read: if resource.data.activo == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /usuarios/{userId} {
       allow read: if ownsUser(userId) || isAdmin();
       allow create: if ownsUser(userId)
