@@ -12,7 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.turismap.app.EstadoCamaraMapa
 import com.turismap.app.MapaCamaraCache
-import com.turismap.app.data.models.CategoriaLugar
+import com.turismap.app.data.models.AtractivoPublico
+import com.turismap.app.data.models.CategoriaAtractivoPublico
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.esCoordenadaValida
@@ -28,12 +29,15 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_capa_atractivos_subtitulo
+import turismap.shared.generated.resources.mapa_capa_atractivos_titulo
 import turismap.shared.generated.resources.mapa_capa_comercios_subtitulo
 import turismap.shared.generated.resources.mapa_capa_comercios_titulo
 import turismap.shared.generated.resources.mapa_capa_destinos_subtitulo
 import turismap.shared.generated.resources.mapa_capa_destinos_titulo
 import turismap.shared.generated.resources.mapa_capa_todos_subtitulo
 import turismap.shared.generated.resources.mapa_capa_todos_titulo
+import turismap.shared.generated.resources.mapa_filtro_atractivos
 import turismap.shared.generated.resources.mapa_filtro_comercios
 import turismap.shared.generated.resources.mapa_filtro_destinos
 import turismap.shared.generated.resources.mapa_filtro_todos
@@ -41,13 +45,15 @@ import turismap.shared.generated.resources.mapa_filtro_todos
 internal enum class FiltroMarcadoresMapa {
     TODOS,
     DESTINOS,
-    COMERCIOS;
+    COMERCIOS,
+    ATRACTIVOS;
 
     val etiquetaRes: StringResource
         get() = when (this) {
             TODOS -> Res.string.mapa_filtro_todos
             DESTINOS -> Res.string.mapa_filtro_destinos
             COMERCIOS -> Res.string.mapa_filtro_comercios
+            ATRACTIVOS -> Res.string.mapa_filtro_atractivos
         }
 
     val tituloCapaRes: StringResource
@@ -55,6 +61,7 @@ internal enum class FiltroMarcadoresMapa {
             TODOS -> Res.string.mapa_capa_todos_titulo
             DESTINOS -> Res.string.mapa_capa_destinos_titulo
             COMERCIOS -> Res.string.mapa_capa_comercios_titulo
+            ATRACTIVOS -> Res.string.mapa_capa_atractivos_titulo
         }
 
     val subtituloCapaRes: StringResource
@@ -62,6 +69,7 @@ internal enum class FiltroMarcadoresMapa {
             TODOS -> Res.string.mapa_capa_todos_subtitulo
             DESTINOS -> Res.string.mapa_capa_destinos_subtitulo
             COMERCIOS -> Res.string.mapa_capa_comercios_subtitulo
+            ATRACTIVOS -> Res.string.mapa_capa_atractivos_subtitulo
         }
 }
 
@@ -102,10 +110,12 @@ internal class MapaState(
     private val uidActual: String?,
     lugaresIniciales: List<Lugar>?,
     comerciosIniciales: List<Comercio>?,
+    atractivosIniciales: List<AtractivoPublico>?,
     categoriasIniciales: Map<String, String>,
     val camaraGuardada: EstadoCamaraMapa?,
     private val textoBusquedaState: MutableState<String>,
     private val filtroNombreState: MutableState<String>,
+    private val categoriaAtractivoNombreState: MutableState<String?>,
     private val scope: CoroutineScope,
     val snackbarHostState: SnackbarHostState
 ) {
@@ -118,16 +128,23 @@ internal class MapaState(
             ?: FiltroMarcadoresMapa.TODOS
         set(value) { filtroNombreState.value = value.name }
 
+    var categoriaAtractivoSeleccionada: CategoriaAtractivoPublico?
+        get() = categoriaAtractivoNombreState.value?.let { nombre ->
+            CategoriaAtractivoPublico.entries.firstOrNull { it.name == nombre }
+        }
+        set(value) { categoriaAtractivoNombreState.value = value?.name }
+
     var mostrarSugerencias: Boolean by mutableStateOf(false)
     var mostrarMenuWaze: Boolean by mutableStateOf(false)
 
     var lugaresTuristicos: List<Lugar> by mutableStateOf(lugaresIniciales.orEmpty())
     var todosLosComercios: List<Comercio> by mutableStateOf(comerciosIniciales.orEmpty())
+    var atractivosPublicos: List<AtractivoPublico> by mutableStateOf(atractivosIniciales.orEmpty())
     var municipiosMap: Map<String, Lugar> by mutableStateOf(
         lugaresIniciales.orEmpty().associateBy { it.id.trim() }
     )
     var categoriasMap: Map<String, String> by mutableStateOf(categoriasIniciales)
-    var lugarSeleccionado: Lugar? by mutableStateOf(null)
+    var marcadorSeleccionado: MarcadorMapa? by mutableStateOf(null)
 
     var camaraLatObjetivo: Double? by mutableStateOf(latInicial)
     var camaraLngObjetivo: Double? by mutableStateOf(lngInicial)
@@ -135,8 +152,10 @@ internal class MapaState(
 
     var lugaresCargados: Boolean by mutableStateOf(lugaresIniciales != null)
     var comerciosCargados: Boolean by mutableStateOf(comerciosIniciales != null)
+    var atractivosCargados: Boolean by mutableStateOf(atractivosIniciales != null)
     var errorLugares: String? by mutableStateOf(null)
     var errorComercios: String? by mutableStateOf(null)
+    var errorAtractivos: String? by mutableStateOf(null)
     var intentoCarga: Int by mutableIntStateOf(0)
 
     fun guardarEstadoCamara(estado: EstadoCamaraMapa) {
@@ -144,11 +163,11 @@ internal class MapaState(
     }
 
     val cargando: Boolean by derivedStateOf {
-        !lugaresCargados || !comerciosCargados
+        !lugaresCargados || !comerciosCargados || !atractivosCargados
     }
 
     val errorCargaDetalle: String? by derivedStateOf {
-        listOfNotNull(errorLugares, errorComercios)
+        listOfNotNull(errorLugares, errorComercios, errorAtractivos)
             .takeIf { it.isNotEmpty() }
             ?.joinToString("\n")
     }
@@ -157,7 +176,8 @@ internal class MapaState(
         !cargando &&
             errorCargaDetalle == null &&
             lugaresTuristicos.isEmpty() &&
-            todosLosComercios.isEmpty()
+            todosLosComercios.isEmpty() &&
+            atractivosPublicos.isEmpty()
     }
 
     val hayErrorOEstadoVacioCarga: Boolean
@@ -167,30 +187,23 @@ internal class MapaState(
         categoriasMap[categoriaId.trim()]?.takeIf(String::isNotBlank)
             ?: categoriaId.trim().replaceFirstChar { it.uppercase() }
 
-    private fun comercioALugar(comercio: Comercio): Lugar {
+    private fun comercioAMarcador(comercio: Comercio): MarcadorMapa.Comercio {
         val municipio = buscarMunicipioDeComercio(comercio, municipiosMap)
         val nombreMunicipio = municipio?.nombre?.ifBlank { null } ?: comercio.municipio
-        return Lugar(
-            id = "comercio:${comercio.id}",
-            nombre = comercio.nombre,
-            subtitulo = etiquetaCategoria(comercio.categoria),
-            categoria = CategoriaLugar.TODOS.name,
-            ubicacionCoordenadas = resolverCoordenadasComercio(comercio, municipiosMap),
-            ubicacionCorta = comercio.direccion,
-            ubicacionLarga = nombreMunicipio,
-            calificacion = comercio.calificacionPromedio ?: 0.0,
-            cantidadResenas = comercio.cantidadResenas ?: 0,
-            historia = comercio.descripcion,
-            imagenPortadaUrl = comercio.imagenUrls.firstOrNull().orEmpty()
+        return MarcadorMapa.Comercio(
+            comercio = comercio,
+            etiquetaCategoria = etiquetaCategoria(comercio.categoria),
+            nombreMunicipio = nombreMunicipio,
+            coordenadas = resolverCoordenadasComercio(comercio, municipiosMap)
         )
     }
 
-    private val comerciosComoLugares: List<Lugar> by derivedStateOf {
-        todosLosComercios.map(::comercioALugar)
+    private val marcadoresComercio: List<MarcadorMapa.Comercio> by derivedStateOf {
+        todosLosComercios.map(::comercioAMarcador)
     }
 
-    private val comerciosComoLugaresPorId: Map<String, Lugar> by derivedStateOf {
-        comerciosComoLugares.associateBy { it.id }
+    private val marcadoresComercioPorId: Map<String, MarcadorMapa.Comercio> by derivedStateOf {
+        marcadoresComercio.associateBy { it.idUnico }
     }
 
     val comerciosFiltrados: List<Comercio> by derivedStateOf {
@@ -231,7 +244,40 @@ internal class MapaState(
         }
     }
 
-    val resultadosBusqueda: List<Lugar> by derivedStateOf {
+    val atractivosPorBusqueda: List<AtractivoPublico> by derivedStateOf {
+        if (textoBusqueda.isBlank()) {
+            atractivosPublicos
+        } else {
+            atractivosPublicos.filter { atractivo ->
+                coincideBusquedaMapa(
+                    consulta = textoBusqueda,
+                    atractivo.nombre,
+                    atractivo.categoria,
+                    palabrasClaveCategoriaAtractivo(atractivo.categoriaResuelta),
+                    atractivo.municipio,
+                    atractivo.lugarId,
+                    atractivo.descripcion
+                )
+            }
+        }
+    }
+
+    val conteoAtractivosPorCategoria: Map<CategoriaAtractivoPublico, Int> by derivedStateOf {
+        CategoriaAtractivoPublico.entries.associateWith { categoria ->
+            atractivosPorBusqueda.count { it.categoriaResuelta == categoria }
+        }
+    }
+
+    val atractivosFiltrados: List<AtractivoPublico> by derivedStateOf {
+        val categoria = categoriaAtractivoSeleccionada
+        if (categoria == null) {
+            atractivosPorBusqueda
+        } else {
+            atractivosPorBusqueda.filter { it.categoriaResuelta == categoria }
+        }
+    }
+
+    val resultadosBusqueda: List<MarcadorMapa> by derivedStateOf {
         if (textoBusqueda.isBlank()) {
             emptyList()
         } else {
@@ -247,13 +293,13 @@ internal class MapaState(
                         lugar.ubicacionLarga,
                         lugar.historia
                     )
-                    if (relevancia == Int.MAX_VALUE) null else relevancia to lugar
+                    if (relevancia == Int.MAX_VALUE) null else relevancia to MarcadorMapa.Destino(lugar)
                 }
 
             val comerciosCoincidentes = todosLosComercios
                 .mapNotNull { comercio ->
-                    val marcador = comerciosComoLugaresPorId["comercio:${comercio.id}"] ?: comercioALugar(comercio)
-                    if (!esCoordenadaValida(marcador.ubicacionCoordenadas)) return@mapNotNull null
+                    val marcador = marcadoresComercioPorId["comercio:${comercio.id}"] ?: comercioAMarcador(comercio)
+                    if (!esCoordenadaValida(marcador.coordenadas)) return@mapNotNull null
                     val nombreMunicipio = buscarMunicipioDeComercio(comercio, municipiosMap)?.nombre.orEmpty()
                     val relevancia = relevanciaBusquedaMapa(
                         consulta = consulta,
@@ -269,51 +315,82 @@ internal class MapaState(
                     if (relevancia == Int.MAX_VALUE) null else relevancia to marcador
                 }
 
-            (comerciosCoincidentes + destinosCoincidentes)
+            val atractivosCoincidentes = atractivosPublicos
+                .filter { esCoordenadaValida(it.coordenadas) }
+                .mapNotNull { atractivo ->
+                    val relevancia = relevanciaBusquedaMapa(
+                        consulta = consulta,
+                        nombre = atractivo.nombre,
+                        atractivo.categoria,
+                        palabrasClaveCategoriaAtractivo(atractivo.categoriaResuelta),
+                        atractivo.municipio,
+                        atractivo.lugarId,
+                        atractivo.descripcion
+                    )
+                    if (relevancia == Int.MAX_VALUE) {
+                        null
+                    } else {
+                        relevancia to MarcadorMapa.AtractivoPublico(atractivo)
+                    }
+                }
+
+            (comerciosCoincidentes + atractivosCoincidentes + destinosCoincidentes)
                 .sortedWith(
-                    compareBy<Pair<Int, Lugar>> { it.first }
-                        .thenBy { !esMarcadorComercio(it.second) }
-                        .thenBy { normalizarTextoMapa(it.second.nombre) }
+                    compareBy<Pair<Int, MarcadorMapa>> { it.first }
+                        .thenBy { prioridadTipoMarcador(it.second) }
+                        .thenBy { normalizarTextoMapa(it.second.titulo) }
                 )
                 .map { it.second }
                 .take(MAX_SUGERENCIAS_BUSQUEDA)
         }
     }
 
-    val lugaresParaElMapa: List<Lugar> by derivedStateOf {
-        val lugaresDestino = if (filtroTipoMarcadores != FiltroMarcadoresMapa.COMERCIOS) {
-            lugaresFiltrados
+    val marcadoresParaElMapa: List<MarcadorMapa> by derivedStateOf {
+        val incluirDestinos = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
+            filtroTipoMarcadores == FiltroMarcadoresMapa.DESTINOS
+        val incluirComercios = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
+            filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS
+        val incluirAtractivos = filtroTipoMarcadores == FiltroMarcadoresMapa.TODOS ||
+            filtroTipoMarcadores == FiltroMarcadoresMapa.ATRACTIVOS
+
+        val destinos = if (incluirDestinos) {
+            lugaresFiltrados.map { MarcadorMapa.Destino(it) }
         } else {
             emptyList()
         }
-        val lugaresComerciales = if (filtroTipoMarcadores != FiltroMarcadoresMapa.DESTINOS) {
+        val comercios = if (incluirComercios) {
             if (textoBusqueda.isBlank()) {
-                comerciosComoLugares
+                marcadoresComercio
             } else {
                 comerciosFiltrados.map { comercio ->
-                    comerciosComoLugaresPorId["comercio:${comercio.id}"] ?: comercioALugar(comercio)
+                    marcadoresComercioPorId["comercio:${comercio.id}"] ?: comercioAMarcador(comercio)
                 }
             }
         } else {
             emptyList()
         }
-        val conUbicacionValida = (lugaresDestino + lugaresComerciales).filter {
-            esCoordenadaValida(it.ubicacionCoordenadas)
+        val atractivos = if (incluirAtractivos) {
+            atractivosFiltrados.map { MarcadorMapa.AtractivoPublico(it) }
+        } else {
+            emptyList()
         }
-        separarCoordenadasSuperpuestas(conUbicacionValida)
+
+        val conUbicacionValida = (destinos + comercios + atractivos).filter {
+            esCoordenadaValida(it.coordenadas)
+        }
+        separarCoordenadasSuperpuestasMarcadores(conUbicacionValida)
     }
 
-    val comercioSeleccionado: Comercio? by derivedStateOf {
-        lugarSeleccionado?.id
-            ?.takeIf { it.startsWith("comercio:") }
-            ?.removePrefix("comercio:")
-            ?.let { id -> todosLosComercios.firstOrNull { it.id == id } }
+    private fun prioridadTipoMarcador(marcador: MarcadorMapa): Int = when (marcador) {
+        is MarcadorMapa.Comercio -> 0
+        is MarcadorMapa.AtractivoPublico -> 1
+        is MarcadorMapa.Destino -> 2
     }
 
     fun actualizarBusqueda(nuevoTexto: String) {
         textoBusqueda = nuevoTexto
         mostrarSugerencias = nuevoTexto.isNotBlank()
-        lugarSeleccionado = null
+        marcadorSeleccionado = null
         if (nuevoTexto.isBlank()) {
             camaraLatObjetivo = null
             camaraLngObjetivo = null
@@ -327,20 +404,47 @@ internal class MapaState(
         }
     }
 
-    fun seleccionarResultadoBusqueda(lugar: Lugar) {
-        if (esMarcadorComercio(lugar) && filtroTipoMarcadores == FiltroMarcadoresMapa.DESTINOS) {
-            filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
-        } else if (!esMarcadorComercio(lugar) && filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS) {
-            filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
+    fun seleccionarResultadoBusqueda(marcador: MarcadorMapa) {
+        when (marcador) {
+            is MarcadorMapa.Comercio -> {
+                if (filtroTipoMarcadores != FiltroMarcadoresMapa.TODOS &&
+                    filtroTipoMarcadores != FiltroMarcadoresMapa.COMERCIOS
+                ) {
+                    filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
+                    categoriaAtractivoSeleccionada = null
+                }
+            }
+
+            is MarcadorMapa.Destino -> {
+                if (filtroTipoMarcadores != FiltroMarcadoresMapa.TODOS &&
+                    filtroTipoMarcadores != FiltroMarcadoresMapa.DESTINOS
+                ) {
+                    filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
+                    categoriaAtractivoSeleccionada = null
+                }
+            }
+
+            is MarcadorMapa.AtractivoPublico -> {
+                if (filtroTipoMarcadores != FiltroMarcadoresMapa.TODOS &&
+                    filtroTipoMarcadores != FiltroMarcadoresMapa.ATRACTIVOS
+                ) {
+                    filtroTipoMarcadores = FiltroMarcadoresMapa.TODOS
+                    categoriaAtractivoSeleccionada = null
+                } else if (categoriaAtractivoSeleccionada != null &&
+                    categoriaAtractivoSeleccionada != marcador.categoria
+                ) {
+                    categoriaAtractivoSeleccionada = null
+                }
+            }
         }
 
-        textoBusqueda = lugar.nombre
+        textoBusqueda = marcador.titulo
         mostrarSugerencias = false
 
-        val marcadorEnMapa = lugaresParaElMapa.firstOrNull { it.id == lugar.id } ?: lugar
-        lugarSeleccionado = marcadorEnMapa
-        camaraLatObjetivo = marcadorEnMapa.ubicacionCoordenadas.latitud
-        camaraLngObjetivo = marcadorEnMapa.ubicacionCoordenadas.longitud
+        val marcadorEnMapa = marcadoresParaElMapa.firstOrNull { it.idUnico == marcador.idUnico } ?: marcador
+        marcadorSeleccionado = marcadorEnMapa
+        camaraLatObjetivo = marcadorEnMapa.coordenadas.latitud
+        camaraLngObjetivo = marcadorEnMapa.coordenadas.longitud
         camaraZoomObjetivo = if (camaraZoomObjetivo == ZOOM_SELECCION_BUSQUEDA) {
             ZOOM_SELECCION_BUSQUEDA_ALT
         } else {
@@ -357,15 +461,15 @@ internal class MapaState(
         }
     }
 
-    fun seleccionarMarcadorEnMapa(lugar: Lugar) {
+    fun seleccionarMarcadorEnMapa(marcador: MarcadorMapa) {
         mostrarSugerencias = false
-        lugarSeleccionado = lugar
+        marcadorSeleccionado = marcador
     }
 
     fun limpiarBusqueda() {
         textoBusqueda = ""
         mostrarSugerencias = false
-        lugarSeleccionado = null
+        marcadorSeleccionado = null
         camaraLatObjetivo = null
         camaraLngObjetivo = null
         camaraZoomObjetivo = null
@@ -373,7 +477,20 @@ internal class MapaState(
 
     fun seleccionarFiltro(filtro: FiltroMarcadoresMapa) {
         filtroTipoMarcadores = filtro
-        lugarSeleccionado = null
+        categoriaAtractivoSeleccionada = null
+        marcadorSeleccionado = null
+        mostrarSugerencias = false
+        mostrarMenuWaze = false
+    }
+
+    fun seleccionarCategoriaAtractivo(categoria: CategoriaAtractivoPublico?) {
+        filtroTipoMarcadores = FiltroMarcadoresMapa.ATRACTIVOS
+        categoriaAtractivoSeleccionada = if (categoria != null && categoria == categoriaAtractivoSeleccionada) {
+            null
+        } else {
+            categoria
+        }
+        marcadorSeleccionado = null
         mostrarSugerencias = false
         mostrarMenuWaze = false
     }

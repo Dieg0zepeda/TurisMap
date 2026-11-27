@@ -2,7 +2,7 @@ package com.turismap.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.turismap.app.data.models.Lugar
+import com.turismap.app.screens.mapa.MarcadorMapa
 import kotlinx.coroutines.flow.MutableStateFlow
 
 data class EstadoCamaraMapa(
@@ -36,12 +36,12 @@ internal object MapaCamaraCache {
 
 @Composable
 expect fun MapaTuristico(
-    lugares: List<Lugar>,
+    marcadores: List<MarcadorMapa>,
     latInicial: Double? = null,
     lngInicial: Double? = null,
     zoomInicial: Float? = null,
     camaraGuardada: EstadoCamaraMapa? = null,
     onCamaraCambiada: (EstadoCamaraMapa) -> Unit = {},
-    onLugarClick: (Lugar) -> Unit,
+    onMarcadorClick: (MarcadorMapa) -> Unit,
     modifier: Modifier = Modifier
 )

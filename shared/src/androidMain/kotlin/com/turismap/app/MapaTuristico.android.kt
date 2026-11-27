@@ -47,7 +47,7 @@ import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.turismap.app.data.models.Lugar
+import com.turismap.app.screens.mapa.MarcadorMapa
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -59,24 +59,24 @@ private var permisoUbicacionSolicitadoEnSesion: Boolean = false
 @Composable
 @OptIn(MapsComposeExperimentalApi::class)
 actual fun MapaTuristico(
-    lugares: List<Lugar>,
+    marcadores: List<MarcadorMapa>,
     latInicial: Double?,
     lngInicial: Double?,
     zoomInicial: Float?,
     camaraGuardada: EstadoCamaraMapa?,
     onCamaraCambiada: (EstadoCamaraMapa) -> Unit,
-    onLugarClick: (Lugar) -> Unit,
+    onMarcadorClick: (MarcadorMapa) -> Unit,
     modifier: Modifier
 ) {
-    val centroRuta = remember(lugares) {
-        if (lugares.isNotEmpty()) {
+    val centroRuta = remember(marcadores) {
+        if (marcadores.isNotEmpty()) {
             var sumaLat = 0.0
             var sumaLng = 0.0
-            lugares.forEach { lugar ->
-                sumaLat += lugar.ubicacionCoordenadas.latitud
-                sumaLng += lugar.ubicacionCoordenadas.longitud
+            marcadores.forEach { marcador ->
+                sumaLat += marcador.coordenadas.latitud
+                sumaLng += marcador.coordenadas.longitud
             }
-            LatLng(sumaLat / lugares.size, sumaLng / lugares.size)
+            LatLng(sumaLat / marcadores.size, sumaLng / marcadores.size)
         } else {
             CENTRO_RUTA_PREDETERMINADO
         }
@@ -262,7 +262,7 @@ actual fun MapaTuristico(
         )
     }
 
-    val clusterItems = remember(lugares) { lugares.map(::LugarClusterItem) }
+    val clusterItems = remember(marcadores) { marcadores.map(::MarcadorClusterItem) }
 
     GoogleMap(
         modifier = modifier.fillMaxSize(),
@@ -329,7 +329,7 @@ actual fun MapaTuristico(
             },
             onClusterItemClick = { item ->
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                onLugarClick(item.lugar)
+                onMarcadorClick(item.marcador)
                 coroutineScope.launch {
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(

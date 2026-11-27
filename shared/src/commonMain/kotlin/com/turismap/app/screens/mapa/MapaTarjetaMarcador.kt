@@ -48,10 +48,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turismap.app.components.RemoteImage
 import com.turismap.app.data.models.Lugar
-import com.turismap.app.data.repository.Comercio
 import com.turismap.app.theme.FondoBlancoAdaptable
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_atractivo_acceso_publico
+import turismap.shared.generated.resources.mapa_atractivo_sin_descripcion
 import turismap.shared.generated.resources.mapa_btn_como_llegar
 import turismap.shared.generated.resources.mapa_btn_ver_comercio
 import turismap.shared.generated.resources.mapa_btn_ver_destino
@@ -60,8 +61,7 @@ import turismap.shared.generated.resources.mapa_cd_cerrar_detalles
 
 @Composable
 internal fun TarjetaMarcadorMapa(
-    lugarSeleccionado: Lugar?,
-    comercioSeleccionado: Comercio?,
+    marcadorSeleccionado: MarcadorMapa?,
     municipiosMap: Map<String, Lugar>,
     categoriasMap: Map<String, String> = emptyMap(),
     alturaMaximaTarjeta: Dp,
@@ -73,21 +73,61 @@ internal fun TarjetaMarcadorMapa(
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
-        visible = lugarSeleccionado != null,
+        visible = marcadorSeleccionado != null,
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .navigationBarsPadding(),
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
     ) {
-        lugarSeleccionado?.let { lugar ->
-            val comercio = comercioSeleccionado
-            val municipio = comercio?.let {
-                municipiosMap[it.lugarId.trim()]?.nombre
-                    ?: it.municipio.trim().ifBlank { null }
-            } ?: lugar.ubicacionLarga
-            val imagenUrl = comercio?.imagenUrls?.firstOrNull().orEmpty()
-                .ifBlank { lugar.imagenPortadaUrl }
+        marcadorSeleccionado?.let { marcador ->
+            val imagenUrl = when (marcador) {
+                is MarcadorMapa.Comercio -> marcador.comercio.imagenUrls.firstOrNull().orEmpty()
+                is MarcadorMapa.Destino -> marcador.lugar.imagenPortadaUrl
+                is MarcadorMapa.AtractivoPublico -> marcador.atractivo.imagenPrincipal
+            }
+            val colorEtiqueta = when (marcador) {
+                is MarcadorMapa.AtractivoPublico -> colorCategoriaAtractivo(marcador.categoria)
+                is MarcadorMapa.Comercio,
+                is MarcadorMapa.Destino -> paleta.turismapPrimario
+            }
+            val textoEtiqueta = when (marcador) {
+                is MarcadorMapa.Comercio -> categoriasMap[marcador.comercio.categoria.trim()]
+                    ?.takeIf(String::isNotBlank)
+                    ?: marcador.etiquetaCategoria.ifBlank {
+                        marcador.comercio.categoria.replaceFirstChar { c -> c.uppercase() }
+                    }
+
+                is MarcadorMapa.Destino -> stringResource(marcador.lugar.categoriaResuelta.etiquetaRes)
+                is MarcadorMapa.AtractivoPublico -> stringResource(marcador.categoria.etiquetaRes)
+            }
+            val direccion = when (marcador) {
+                is MarcadorMapa.Comercio -> {
+                    val municipio = municipiosMap[marcador.comercio.lugarId.trim()]?.nombre
+                        ?: marcador.nombreMunicipio.ifBlank { null }
+                    listOf(marcador.comercio.direccion, municipio.orEmpty())
+                        .filter(String::isNotBlank)
+                        .distinct()
+                        .joinToString(" · ")
+                }
+
+                is MarcadorMapa.Destino -> listOf(
+                    marcador.lugar.ubicacionCorta,
+                    marcador.lugar.ubicacionLarga
+                ).filter(String::isNotBlank).distinct().joinToString(" · ")
+
+                is MarcadorMapa.AtractivoPublico -> listOf(
+                    marcador.atractivo.municipio,
+                    stringResource(Res.string.mapa_atractivo_acceso_publico)
+                ).filter(String::isNotBlank).distinct().joinToString(" · ")
+            }
+            val descripcion = when (marcador) {
+                is MarcadorMapa.Comercio -> marcador.comercio.descripcion
+                is MarcadorMapa.Destino -> marcador.lugar.historia
+                is MarcadorMapa.AtractivoPublico -> marcador.atractivo.descripcion.ifBlank {
+                    stringResource(Res.string.mapa_atractivo_sin_descripcion)
+                }
+            }
 
             Card(
                 shape = RoundedCornerShape(24.dp),
@@ -116,7 +156,7 @@ internal fun TarjetaMarcadorMapa(
                             ) {
                                 RemoteImage(
                                     url = imagenUrl,
-                                    contentDescription = lugar.nombre,
+                                    contentDescription = marcador.titulo,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -125,19 +165,14 @@ internal fun TarjetaMarcadorMapa(
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
-                            val etiquetaCategoriaComercio = comercio?.let {
-                                categoriasMap[it.categoria.trim()]?.takeIf(String::isNotBlank)
-                                    ?: it.categoria.replaceFirstChar { c -> c.uppercase() }
-                            }
                             Text(
-                                text = etiquetaCategoriaComercio
-                                    ?: stringResource(lugar.categoriaResuelta.etiquetaRes),
-                                color = paleta.turismapPrimario,
+                                text = textoEtiqueta,
+                                color = colorEtiqueta,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = lugar.nombre,
+                                text = marcador.titulo,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = paleta.airbnbOscuro
@@ -156,15 +191,13 @@ internal fun TarjetaMarcadorMapa(
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    val direccion = listOf(lugar.ubicacionCorta, municipio)
-                        .filter(String::isNotBlank)
-                        .distinct()
-                        .joinToString(" · ")
                     if (direccion.isNotBlank()) {
                         Text(direccion, fontSize = 13.sp, color = paleta.airbnbGris)
                     }
 
-                    if (comercio != null && (comercio.calificacionPromedio ?: 0.0) > 0.0) {
+                    if (marcador is MarcadorMapa.Comercio &&
+                        (marcador.comercio.calificacionPromedio ?: 0.0) > 0.0
+                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Star,
@@ -176,8 +209,8 @@ internal fun TarjetaMarcadorMapa(
                             Text(
                                 text = stringResource(
                                     Res.string.mapa_calificacion_resenas,
-                                    comercio.calificacionPromedio.toString(),
-                                    comercio.cantidadResenas ?: 0
+                                    marcador.comercio.calificacionPromedio.toString(),
+                                    marcador.comercio.cantidadResenas ?: 0
                                 ),
                                 fontSize = 13.sp,
                                 color = paleta.airbnbGris
@@ -185,8 +218,6 @@ internal fun TarjetaMarcadorMapa(
                         }
                     }
 
-                    val descripcion = comercio?.descripcion?.takeIf(String::isNotBlank)
-                        ?: lugar.historia
                     if (descripcion.isNotBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(descripcion, fontSize = 14.sp, color = paleta.airbnbGris)
@@ -200,7 +231,9 @@ internal fun TarjetaMarcadorMapa(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { onAbrirGoogleMaps(urlGoogleMaps(comercio, lugar, municipio)) },
+                            onClick = {
+                                onAbrirGoogleMaps(urlGoogleMapsMarcador(marcador, municipiosMap))
+                            },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = paleta.turismapPrimario,
@@ -215,26 +248,40 @@ internal fun TarjetaMarcadorMapa(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(Res.string.mapa_btn_como_llegar), color = paleta.sobrePrimario)
+                            Text(
+                                text = stringResource(Res.string.mapa_btn_como_llegar),
+                                color = paleta.sobrePrimario
+                            )
                         }
 
-                        if (comercio != null) {
-                            OutlinedButton(
-                                onClick = { onComercioClick(comercio.id) },
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, paleta.airbnbBorde),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(stringResource(Res.string.mapa_btn_ver_comercio))
+                        when (marcador) {
+                            is MarcadorMapa.Comercio -> {
+                                OutlinedButton(
+                                    onClick = { onComercioClick(marcador.comercio.id) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, paleta.airbnbBorde),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(stringResource(Res.string.mapa_btn_ver_comercio))
+                                }
                             }
-                        } else {
-                            Button(
-                                onClick = { onAbrirDetalle(lugar) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = paleta.airbnbOscuro),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(stringResource(Res.string.mapa_btn_ver_destino), color = FondoBlancoAdaptable)
+
+                            is MarcadorMapa.Destino -> {
+                                Button(
+                                    onClick = { onAbrirDetalle(marcador.lugar) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = paleta.airbnbOscuro),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.mapa_btn_ver_destino),
+                                        color = FondoBlancoAdaptable
+                                    )
+                                }
+                            }
+
+                            is MarcadorMapa.AtractivoPublico -> {
+                                // Sin botón de detalle de municipio: la experiencia completa de galería y ruta se añade en Bloque 3
                             }
                         }
                     }

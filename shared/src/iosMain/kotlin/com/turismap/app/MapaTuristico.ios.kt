@@ -6,17 +6,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.turismap.app.data.models.Lugar // Importación del nuevo modelo
+import com.turismap.app.screens.mapa.MarcadorMapa
 
 @Composable
 actual fun MapaTuristico(
-    lugares: List<Lugar>,
+    marcadores: List<MarcadorMapa>,
     latInicial: Double?,
     lngInicial: Double?,
     zoomInicial: Float?,
     camaraGuardada: EstadoCamaraMapa?,
     onCamaraCambiada: (EstadoCamaraMapa) -> Unit,
-    onLugarClick: (Lugar) -> Unit,
+    onMarcadorClick: (MarcadorMapa) -> Unit,
     modifier: Modifier
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

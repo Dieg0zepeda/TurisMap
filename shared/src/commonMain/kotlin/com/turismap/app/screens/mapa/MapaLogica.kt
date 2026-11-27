@@ -1,6 +1,7 @@
 package com.turismap.app.screens.mapa
 
 import com.turismap.app.data.CoordenadasRuta
+import com.turismap.app.data.models.CategoriaAtractivoPublico
 import com.turismap.app.data.models.Coordenada
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.Comercio
@@ -210,6 +211,86 @@ internal fun separarCoordenadasSuperpuestas(lugares: List<Lugar>): List<Lugar> {
     return resultado
 }
 
+internal fun separarCoordenadasSuperpuestasMarcadores(
+    marcadores: List<MarcadorMapa>
+): List<MarcadorMapa> {
+    if (marcadores.size <= 1) return marcadores
+
+    val gruposPorPosicion = marcadores.withIndex().groupBy { (_, marcador) ->
+        Pair(
+            round(marcador.coordenadas.latitud * PRECISION_COLISION_COORDENADAS).toLong(),
+            round(marcador.coordenadas.longitud * PRECISION_COLISION_COORDENADAS).toLong()
+        )
+    }
+
+    val resultado = marcadores.toMutableList()
+
+    gruposPorPosicion.values.forEach { grupo ->
+        if (grupo.size <= 1) return@forEach
+
+        val destinosOrdenados = grupo
+            .filter { it.value is MarcadorMapa.Destino }
+            .sortedBy { it.value.idUnico }
+        val atractivosOrdenados = grupo
+            .filter { it.value is MarcadorMapa.AtractivoPublico }
+            .sortedBy { it.value.idUnico }
+        val comerciosOrdenados = grupo
+            .filter { it.value is MarcadorMapa.Comercio }
+            .sortedBy { it.value.idUnico }
+
+        when {
+            destinosOrdenados.isNotEmpty() -> {
+                val centroAncla = destinosOrdenados.first().value.coordenadas
+                val elementosADistribuir = comerciosOrdenados + atractivosOrdenados + destinosOrdenados.drop(1)
+                elementosADistribuir.forEachIndexed { posicion, item ->
+                    val coordenadaSeparada = desplazarEnAnillo(
+                        base = centroAncla,
+                        indiceEnGrupo = posicion,
+                        totalEnGrupo = elementosADistribuir.size
+                    )
+                    resultado[item.index] = item.value.conCoordenadas(coordenadaSeparada)
+                }
+            }
+
+            atractivosOrdenados.isNotEmpty() -> {
+                val centroAncla = atractivosOrdenados.first().value.coordenadas
+                val elementosADistribuir = comerciosOrdenados + atractivosOrdenados.drop(1)
+                elementosADistribuir.forEachIndexed { posicion, item ->
+                    val coordenadaSeparada = desplazarEnAnillo(
+                        base = centroAncla,
+                        indiceEnGrupo = posicion,
+                        totalEnGrupo = elementosADistribuir.size
+                    )
+                    resultado[item.index] = item.value.conCoordenadas(coordenadaSeparada)
+                }
+            }
+
+            comerciosOrdenados.size > 1 -> {
+                val centroBase = comerciosOrdenados.first().value.coordenadas
+                comerciosOrdenados.forEachIndexed { posicion, item ->
+                    val coordenadaSeparada = desplazarEnAnillo(
+                        base = centroBase,
+                        indiceEnGrupo = posicion,
+                        totalEnGrupo = comerciosOrdenados.size
+                    )
+                    resultado[item.index] = item.value.conCoordenadas(coordenadaSeparada)
+                }
+            }
+        }
+    }
+
+    return resultado
+}
+
+internal fun palabrasClaveCategoriaAtractivo(categoria: CategoriaAtractivoPublico): String =
+    when (categoria) {
+        CategoriaAtractivoPublico.MONTANA -> "montana montanas mountain cordillera atractivo natural"
+        CategoriaAtractivoPublico.MIRADOR -> "mirador miradores viewpoint vista atractivo natural"
+        CategoriaAtractivoPublico.LAGUNA -> "laguna lagunas lagoon lago atractivo natural"
+        CategoriaAtractivoPublico.RIO -> "rio rios river cascada chorro atractivo natural"
+        CategoriaAtractivoPublico.CERRO -> "cerro cerros hill cumbre atractivo natural"
+    }
+
 internal fun codificarParametroMaps(valor: String): String =
     valor.encodeToByteArray().joinToString("") { byte ->
         val caracter = byte.toInt() and 0xFF
@@ -239,4 +320,51 @@ internal fun urlGoogleMaps(comercio: Comercio?, lugar: Lugar, municipio: String?
     }.filterNotNull().filter(String::isNotBlank).joinToString(", ")
 
     return "https://www.google.com/maps/dir/?api=1&destination=${codificarParametroMaps(destino)}"
+}
+
+internal fun urlGoogleMapsMarcador(
+    marcador: MarcadorMapa,
+    municipiosMap: Map<String, Lugar>
+): String = when (marcador) {
+    is MarcadorMapa.Comercio -> {
+        val coordenadaValida = marcador.comercio.coordenadaPropiaValida()
+            ?: marcador.coordenadas.takeIf(::esCoordenadaValida)
+        if (coordenadaValida != null) {
+            "https://www.google.com/maps/dir/?api=1&destination=${coordenadaValida.latitud},${coordenadaValida.longitud}"
+        } else {
+            val municipio = municipiosMap[marcador.comercio.lugarId.trim()]?.nombre
+                ?: marcador.nombreMunicipio.ifBlank { null }
+            val destino = listOf(marcador.comercio.nombre, marcador.comercio.direccion, municipio, "El Salvador")
+                .filterNotNull()
+                .filter(String::isNotBlank)
+                .joinToString(", ")
+            "https://www.google.com/maps/dir/?api=1&destination=${codificarParametroMaps(destino)}"
+        }
+    }
+
+    is MarcadorMapa.Destino -> {
+        val coordenadaValida = marcador.lugar.ubicacionCoordenadas.takeIf(::esCoordenadaValida)
+            ?: marcador.coordenadas.takeIf(::esCoordenadaValida)
+        if (coordenadaValida != null) {
+            "https://www.google.com/maps/dir/?api=1&destination=${coordenadaValida.latitud},${coordenadaValida.longitud}"
+        } else {
+            val destino = listOf(marcador.lugar.nombre, marcador.lugar.ubicacionCorta, "El Salvador")
+                .filter(String::isNotBlank)
+                .joinToString(", ")
+            "https://www.google.com/maps/dir/?api=1&destination=${codificarParametroMaps(destino)}"
+        }
+    }
+
+    is MarcadorMapa.AtractivoPublico -> {
+        val coordenadaValida = marcador.atractivo.coordenadas.takeIf(::esCoordenadaValida)
+            ?: marcador.coordenadas.takeIf(::esCoordenadaValida)
+        if (coordenadaValida != null) {
+            "https://www.google.com/maps/dir/?api=1&destination=${coordenadaValida.latitud},${coordenadaValida.longitud}"
+        } else {
+            val destino = listOf(marcador.atractivo.nombre, marcador.atractivo.municipio, "El Salvador")
+                .filter(String::isNotBlank)
+                .joinToString(", ")
+            "https://www.google.com/maps/dir/?api=1&destination=${codificarParametroMaps(destino)}"
+        }
+    }
 }

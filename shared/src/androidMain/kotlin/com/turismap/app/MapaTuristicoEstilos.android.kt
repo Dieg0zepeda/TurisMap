@@ -16,11 +16,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterHdr
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Water
+import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +48,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.clustering.ClusterItem
-import com.turismap.app.data.models.Lugar
+import com.turismap.app.data.models.CategoriaAtractivoPublico
+import com.turismap.app.screens.mapa.MarcadorMapa
 
 internal val CENTRO_RUTA_PREDETERMINADO = LatLng(13.8697, -89.8486)
 
@@ -81,7 +87,7 @@ internal const val ESTILO_MAPA_CLARO = """
 ]
 """
 
-internal data class MarcadorComercio(
+internal data class EstiloPinMapa(
     val icono: ImageVector,
     val color: Color,
     val semanticaCategoria: String
@@ -92,13 +98,19 @@ private val PALABRAS_CAFE = listOf("cafe", "café", "cafeter")
 private val PALABRAS_HOTEL = listOf("hotel", "hostal", "hosped", "alojamiento", "cabaña", "cabana")
 private val PALABRAS_TIENDA = listOf("tienda", "artesan", "mercado", "ropa", "souvenir")
 
-private val MARCADOR_RESTAURANTE = MarcadorComercio(Icons.Default.Restaurant, Color(0xFFD96B52), "Restaurante")
-private val MARCADOR_CAFE = MarcadorComercio(Icons.Default.LocalCafe, Color(0xFF795548), "Cafetería")
-private val MARCADOR_HOTEL = MarcadorComercio(Icons.Default.Hotel, Color(0xFF3977A8), "Alojamiento")
-private val MARCADOR_TIENDA = MarcadorComercio(Icons.Default.ShoppingCart, Color(0xFF7651A8), "Tienda o Mercado")
-private val MARCADOR_GENERICO = MarcadorComercio(Icons.Default.Store, Color(0xFFE18A3B), "Comercio")
+private val MARCADOR_RESTAURANTE = EstiloPinMapa(Icons.Default.Restaurant, Color(0xFFD96B52), "Restaurante")
+private val MARCADOR_CAFE = EstiloPinMapa(Icons.Default.LocalCafe, Color(0xFF795548), "Cafetería")
+private val MARCADOR_HOTEL = EstiloPinMapa(Icons.Default.Hotel, Color(0xFF3977A8), "Alojamiento")
+private val MARCADOR_TIENDA = EstiloPinMapa(Icons.Default.ShoppingCart, Color(0xFF7651A8), "Tienda o Mercado")
+private val MARCADOR_GENERICO = EstiloPinMapa(Icons.Default.Store, Color(0xFFE18A3B), "Comercio")
 
-internal fun estiloMarcadorComercio(categoria: String): MarcadorComercio {
+private val MARCADOR_MONTANA = EstiloPinMapa(Icons.Default.Terrain, Color(0xFF2D6A4F), "Montaña")
+private val MARCADOR_MIRADOR = EstiloPinMapa(Icons.Default.Visibility, Color(0xFFC88A1E), "Mirador")
+private val MARCADOR_LAGUNA = EstiloPinMapa(Icons.Default.Water, Color(0xFF0E7490), "Laguna")
+private val MARCADOR_RIO = EstiloPinMapa(Icons.Default.Waves, Color(0xFF0284C7), "Río")
+private val MARCADOR_CERRO = EstiloPinMapa(Icons.Default.FilterHdr, Color(0xFF9A5B25), "Cerro")
+
+internal fun estiloMarcadorComercio(categoria: String): EstiloPinMapa {
     val tipo = categoria.lowercase()
     return when {
         PALABRAS_RESTAURANTE.any(tipo::contains) -> MARCADOR_RESTAURANTE
@@ -109,28 +121,42 @@ internal fun estiloMarcadorComercio(categoria: String): MarcadorComercio {
     }
 }
 
-data class LugarClusterItem(val lugar: Lugar) : ClusterItem {
+internal fun estiloMarcadorAtractivo(categoria: CategoriaAtractivoPublico): EstiloPinMapa =
+    when (categoria) {
+        CategoriaAtractivoPublico.MONTANA -> MARCADOR_MONTANA
+        CategoriaAtractivoPublico.MIRADOR -> MARCADOR_MIRADOR
+        CategoriaAtractivoPublico.LAGUNA -> MARCADOR_LAGUNA
+        CategoriaAtractivoPublico.RIO -> MARCADOR_RIO
+        CategoriaAtractivoPublico.CERRO -> MARCADOR_CERRO
+    }
+
+data class MarcadorClusterItem(val marcador: MarcadorMapa) : ClusterItem {
     private val posicionCalculada: LatLng = LatLng(
-        lugar.ubicacionCoordenadas.latitud,
-        lugar.ubicacionCoordenadas.longitud
+        marcador.coordenadas.latitud,
+        marcador.coordenadas.longitud
     )
-    internal val esComercio: Boolean = lugar.id.startsWith("comercio:")
-    internal val estiloComercio: MarcadorComercio? =
-        if (esComercio) estiloMarcadorComercio(lugar.subtitulo) else null
+    internal val estiloPin: EstiloPinMapa? = when (marcador) {
+        is MarcadorMapa.Destino -> null
+        is MarcadorMapa.Comercio -> estiloMarcadorComercio(marcador.etiquetaCategoria)
+        is MarcadorMapa.AtractivoPublico -> estiloMarcadorAtractivo(marcador.categoria)
+    }
 
     override fun getPosition(): LatLng = posicionCalculada
-    override fun getTitle(): String = lugar.nombre
-    override fun getSnippet(): String = lugar.subtitulo
+    override fun getTitle(): String = marcador.titulo
+    override fun getSnippet(): String = marcador.subtitulo
     override fun getZIndex(): Float? = null
 }
 
 @Composable
-internal fun ContenidoMarcadorMapa(item: LugarClusterItem) {
-    val estiloComercio = item.estiloComercio
-    val descripcionAccesible = if (item.esComercio) {
-        "${estiloComercio?.semanticaCategoria ?: "Comercio"}: ${item.lugar.nombre}. Toca para abrir información."
-    } else {
-        "Destino turístico: ${item.lugar.nombre}. Toca para explorar."
+internal fun ContenidoMarcadorMapa(item: MarcadorClusterItem) {
+    val estiloPin = item.estiloPin
+    val descripcionAccesible = when (val marcador = item.marcador) {
+        is MarcadorMapa.Comercio ->
+            "${estiloPin?.semanticaCategoria ?: "Comercio"}: ${marcador.titulo}. Toca para abrir información."
+        is MarcadorMapa.AtractivoPublico ->
+            "${estiloPin?.semanticaCategoria ?: "Atractivo natural"}: ${marcador.titulo}. Toca para ver información."
+        is MarcadorMapa.Destino ->
+            "Destino turístico: ${marcador.titulo}. Toca para explorar."
     }
 
     Column(
@@ -147,14 +173,14 @@ internal fun ContenidoMarcadorMapa(item: LugarClusterItem) {
                     .shadow(6.dp, CircleShape)
                     .border(3.dp, Color.White, CircleShape)
                     .background(
-                        estiloComercio?.color ?: Color(0xFF1B4934),
+                        estiloPin?.color ?: Color(0xFF1B4934),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (estiloComercio != null) {
+                if (estiloPin != null) {
                     Icon(
-                        imageVector = estiloComercio.icono,
+                        imageVector = estiloPin.icono,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
