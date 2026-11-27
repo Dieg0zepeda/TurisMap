@@ -187,16 +187,33 @@
     <string name="guia_cd_favorito">Favorite</string>
     <string name="guia_cd_llamar">Call</string>
 
+    <!-- Public natural attraction categories -->
+    <string name="atractivo_categoria_todas">All</string>
+    <string name="atractivo_categoria_montana">Mountain</string>
+    <string name="atractivo_categoria_mirador">Viewpoint</string>
+    <string name="atractivo_categoria_laguna">Lagoon</string>
+    <string name="atractivo_categoria_rio">River</string>
+    <string name="atractivo_categoria_cerro">Hill</string>
+    <string name="atractivo_categoria_montanas">Mountains</string>
+    <string name="atractivo_categoria_miradores">Viewpoints</string>
+    <string name="atractivo_categoria_lagunas">Lagoons</string>
+    <string name="atractivo_categoria_rios">Rivers</string>
+    <string name="atractivo_categoria_cerros">Hills</string>
+
     <!-- Map Screen -->
     <string name="mapa_filtro_todos">All</string>
     <string name="mapa_filtro_destinos">Destinations</string>
     <string name="mapa_filtro_comercios">Businesses</string>
+    <string name="mapa_filtro_atractivos">Attractions</string>
     <string name="mapa_sin_datos_publicados">No published tourist destinations or businesses to display.</string>
     <string name="mapa_error_cargar_destinos">Could not load tourist destinations.</string>
     <string name="mapa_error_cargar_comercios">Could not load published businesses.</string>
+    <string name="mapa_error_cargar_atractivos">Could not load natural attractions.</string>
     <string name="mapa_error_abrir_google_maps">Could not open Google Maps.</string>
+    <string name="mapa_error_iniciar_ruta">Could not start navigation to this point.</string>
     <string name="mapa_sin_ubicaciones">No destinations or businesses with a location to display.</string>
     <string name="mapa_buscar_placeholder">Search destinations and businesses...</string>
+    <string name="mapa_buscar_placeholder_completo">Search towns, businesses, and attractions...</string>
     <string name="mapa_cd_limpiar_busqueda">Clear search</string>
     <string name="mapa_cd_opciones_capas">Map options and layers</string>
     <string name="mapa_busqueda_sin_resultados">No results for “%1$s”</string>
@@ -204,19 +221,26 @@
     <string name="mapa_tipo_comercio">Business</string>
     <string name="mapa_tipo_destino_turistico">Tourist destination</string>
     <string name="mapa_tipo_destino">Destination</string>
+    <string name="mapa_tipo_atractivo_natural">Natural attraction</string>
     <string name="mapa_cd_mascota">TurisMap Coffee Mascot</string>
     <string name="mapa_saludo_viajero">Hello, Traveler!</string>
     <string name="mapa_subtitulo_gps">Ruta de las Flores · GPS</string>
     <string name="mapa_capas_encabezado">MAP LAYERS &amp; POINTS</string>
     <string name="mapa_capa_todos_titulo">All points</string>
-    <string name="mapa_capa_todos_subtitulo">Registered towns and businesses</string>
-    <string name="mapa_capa_destinos_titulo">Towns &amp; Attractions</string>
-    <string name="mapa_capa_destinos_subtitulo">Ataco, Apaneca, Juayúa, and viewpoints</string>
+    <string name="mapa_capa_todos_subtitulo">Towns, businesses, and natural attractions</string>
+    <string name="mapa_capa_destinos_titulo">Towns &amp; Destinations</string>
+    <string name="mapa_capa_destinos_subtitulo">Ataco, Apaneca, Juayúa, Salcoatitán, and Nahuizalco</string>
     <string name="mapa_capa_comercios_titulo">Businesses &amp; Services</string>
     <string name="mapa_capa_comercios_subtitulo">Restaurants, hotels, cafés, and shops</string>
+    <string name="mapa_capa_atractivos_titulo">Natural Attractions</string>
+    <string name="mapa_capa_atractivos_subtitulo">Mountains, viewpoints, lagoons, rivers, and hills</string>
+    <string name="mapa_atractivo_acceso_publico">Public access · Nature</string>
+    <string name="mapa_atractivo_sin_descripcion">Featured natural landmark along Ruta de las Flores.</string>
+    <string name="mapa_atractivo_galeria_contador">%1$d/%2$d photos</string>
     <string name="mapa_cd_cerrar_detalles">Close details</string>
     <string name="mapa_calificacion_resenas">%1$s · %2$d reviews</string>
     <string name="mapa_btn_como_llegar">Get directions with Google Maps</string>
+    <string name="mapa_btn_iniciar_ruta">Start route</string>
     <string name="mapa_btn_ver_comercio">View business details</string>
     <string name="mapa_btn_ver_destino">View destination details</string>
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.turismap.app.MapaTuristico
+import com.turismap.app.components.rememberIniciarRutaExterna
 import com.turismap.app.data.models.Lugar
 import com.turismap.app.screens.mapa.CabeceraMapa
 import com.turismap.app.screens.mapa.ModalCapasMapa
@@ -28,6 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.btn_reintentar
 import turismap.shared.generated.resources.mapa_error_abrir_google_maps
+import turismap.shared.generated.resources.mapa_error_iniciar_ruta
 import turismap.shared.generated.resources.mapa_sin_datos_publicados
 import turismap.shared.generated.resources.mapa_sin_ubicaciones
 
@@ -41,6 +43,7 @@ fun MapaScreen(
     onComercioClick: (String) -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
+    val iniciarRutaExterna = rememberIniciarRutaExterna()
     val paleta = rememberMapaPaleta(isSystemInDarkTheme())
     val state = rememberMapaState(
         latInicial = latInicial,
@@ -51,15 +54,15 @@ fun MapaScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val alturaMaximaTarjeta = maxHeight * 0.65f
 
-        // 1. Google Maps / Mapa Turístico con centrado reactivo y preservación de cámara
+        // 1. Google Maps / Mapa Turístico con marcadores tipados y preservación de cámara
         MapaTuristico(
-            lugares = state.lugaresParaElMapa,
+            marcadores = state.marcadoresParaElMapa,
             latInicial = state.camaraLatObjetivo,
             lngInicial = state.camaraLngObjetivo,
             zoomInicial = state.camaraZoomObjetivo,
             camaraGuardada = state.camaraGuardada,
             onCamaraCambiada = state::guardarEstadoCamara,
-            onLugarClick = state::seleccionarMarcadorEnMapa,
+            onMarcadorClick = state::seleccionarMarcadorEnMapa,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -69,7 +72,8 @@ fun MapaScreen(
             resultadosBusqueda = state.resultadosBusqueda,
             mostrarSugerencias = state.mostrarSugerencias,
             filtroTipoMarcadores = state.filtroTipoMarcadores,
-            cantidadLugaresEnMapa = state.lugaresParaElMapa.size,
+            categoriaAtractivoSeleccionada = state.categoriaAtractivoSeleccionada,
+            cantidadLugaresEnMapa = state.marcadoresParaElMapa.size,
             paleta = paleta,
             onBusquedaChange = state::actualizarBusqueda,
             onFocoBusqueda = state::abrirSugerenciasSiHayTexto,
@@ -82,32 +86,41 @@ fun MapaScreen(
             }
         )
 
-        // 3. Modal estilo Waze con la mascota
+        // 3. Modal estilo Waze con la mascota y filtros de capa
         if (state.mostrarMenuWaze) {
             ModalCapasMapa(
                 filtroTipoMarcadores = state.filtroTipoMarcadores,
+                categoriaAtractivoSeleccionada = state.categoriaAtractivoSeleccionada,
                 cantidadLugares = state.lugaresFiltrados.size,
                 cantidadComercios = state.comerciosFiltrados.size,
+                cantidadAtractivos = state.atractivosPorBusqueda.size,
+                conteoPorCategoriaAtractivo = state.conteoAtractivosPorCategoria,
                 paleta = paleta,
                 onSeleccionarFiltro = state::seleccionarFiltro,
+                onSeleccionarCategoriaAtractivo = state::seleccionarCategoriaAtractivo,
                 onDismiss = { state.mostrarMenuWaze = false }
             )
         }
 
         // 4. Tarjeta flotante inferior al seleccionar un marcador
         TarjetaMarcadorMapa(
-            lugarSeleccionado = state.lugarSeleccionado,
-            comercioSeleccionado = state.comercioSeleccionado,
+            marcadorSeleccionado = state.marcadorSeleccionado,
             municipiosMap = state.municipiosMap,
             categoriasMap = state.categoriasMap,
             alturaMaximaTarjeta = alturaMaximaTarjeta,
             paleta = paleta,
-            onCerrar = { state.lugarSeleccionado = null },
+            onCerrar = { state.marcadorSeleccionado = null },
             onAbrirGoogleMaps = { url ->
                 try {
                     uriHandler.openUri(url)
                 } catch (error: Exception) {
                     state.mostrarMensajeError(error.message, Res.string.mapa_error_abrir_google_maps)
+                }
+            },
+            onIniciarRutaAtractivo = { latitud, longitud, nombreDestino ->
+                val abierto = iniciarRutaExterna(latitud, longitud, nombreDestino)
+                if (!abierto) {
+                    state.mostrarMensajeError(null, Res.string.mapa_error_iniciar_ruta)
                 }
             },
             onAbrirDetalle = onAbrirDetalle,
@@ -120,7 +133,7 @@ fun MapaScreen(
                 modifier = Modifier.align(Alignment.Center),
                 color = paleta.turismapPrimario
             )
-        } else if (state.lugaresParaElMapa.isEmpty() && state.textoBusqueda.isBlank()) {
+        } else if (state.marcadoresParaElMapa.isEmpty() && state.textoBusqueda.isBlank()) {
             val mensajeEstado = state.errorCargaDetalle
                 ?: if (state.sinDatosPublicados) {
                     stringResource(Res.string.mapa_sin_datos_publicados)

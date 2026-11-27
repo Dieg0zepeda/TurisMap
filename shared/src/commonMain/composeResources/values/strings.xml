@@ -187,16 +187,33 @@
     <string name="guia_cd_favorito">Favorito</string>
     <string name="guia_cd_llamar">Llamar</string>
 
+    <!-- Categorías de atractivos públicos naturales -->
+    <string name="atractivo_categoria_todas">Todos</string>
+    <string name="atractivo_categoria_montana">Montaña</string>
+    <string name="atractivo_categoria_mirador">Mirador</string>
+    <string name="atractivo_categoria_laguna">Laguna</string>
+    <string name="atractivo_categoria_rio">Río</string>
+    <string name="atractivo_categoria_cerro">Cerro</string>
+    <string name="atractivo_categoria_montanas">Montañas</string>
+    <string name="atractivo_categoria_miradores">Miradores</string>
+    <string name="atractivo_categoria_lagunas">Lagunas</string>
+    <string name="atractivo_categoria_rios">Ríos</string>
+    <string name="atractivo_categoria_cerros">Cerros</string>
+
     <!-- Pantalla Mapa -->
     <string name="mapa_filtro_todos">Todos</string>
     <string name="mapa_filtro_destinos">Destinos</string>
     <string name="mapa_filtro_comercios">Comercios</string>
+    <string name="mapa_filtro_atractivos">Atractivos</string>
     <string name="mapa_sin_datos_publicados">No hay destinos turísticos ni comercios publicados para mostrar.</string>
     <string name="mapa_error_cargar_destinos">No se pudieron cargar los destinos turísticos.</string>
     <string name="mapa_error_cargar_comercios">No se pudieron cargar los comercios publicados.</string>
+    <string name="mapa_error_cargar_atractivos">No se pudieron cargar los atractivos naturales.</string>
     <string name="mapa_error_abrir_google_maps">No se pudo abrir Google Maps.</string>
+    <string name="mapa_error_iniciar_ruta">No se pudo iniciar la navegación hacia este punto.</string>
     <string name="mapa_sin_ubicaciones">No hay destinos ni comercios con ubicación para mostrar.</string>
     <string name="mapa_buscar_placeholder">Buscar destinos y comercios...</string>
+    <string name="mapa_buscar_placeholder_completo">Buscar pueblos, comercios y atractivos...</string>
     <string name="mapa_cd_limpiar_busqueda">Limpiar búsqueda</string>
     <string name="mapa_cd_opciones_capas">Opciones y Capas del Mapa</string>
     <string name="mapa_busqueda_sin_resultados">Sin resultados para «%1$s»</string>
@@ -204,19 +221,26 @@
     <string name="mapa_tipo_comercio">Comercio</string>
     <string name="mapa_tipo_destino_turistico">Destino turístico</string>
     <string name="mapa_tipo_destino">Destino</string>
+    <string name="mapa_tipo_atractivo_natural">Atractivo natural</string>
     <string name="mapa_cd_mascota">Mascota Café TurisMap</string>
     <string name="mapa_saludo_viajero">¡Hola, Viajero!</string>
     <string name="mapa_subtitulo_gps">Ruta de las Flores · GPS</string>
     <string name="mapa_capas_encabezado">CAPAS Y PUNTOS EN EL MAPA</string>
     <string name="mapa_capa_todos_titulo">Todos los puntos</string>
-    <string name="mapa_capa_todos_subtitulo">Pueblos y comercios registrados</string>
-    <string name="mapa_capa_destinos_titulo">Pueblos y Atractivos</string>
-    <string name="mapa_capa_destinos_subtitulo">Ataco, Apaneca, Juayúa y miradores</string>
+    <string name="mapa_capa_todos_subtitulo">Pueblos, comercios y atractivos naturales</string>
+    <string name="mapa_capa_destinos_titulo">Pueblos y Destinos</string>
+    <string name="mapa_capa_destinos_subtitulo">Ataco, Apaneca, Juayúa, Salcoatitán y Nahuizalco</string>
     <string name="mapa_capa_comercios_titulo">Comercios y Servicios</string>
     <string name="mapa_capa_comercios_subtitulo">Restaurantes, hoteles, cafés y tiendas</string>
+    <string name="mapa_capa_atractivos_titulo">Atractivos Naturales</string>
+    <string name="mapa_capa_atractivos_subtitulo">Montañas, miradores, lagunas, ríos y cerros</string>
+    <string name="mapa_atractivo_acceso_publico">Acceso público · Naturaleza</string>
+    <string name="mapa_atractivo_sin_descripcion">Espacio natural destacado en la Ruta de las Flores.</string>
+    <string name="mapa_atractivo_galeria_contador">%1$d/%2$d fotos</string>
     <string name="mapa_cd_cerrar_detalles">Cerrar detalles</string>
     <string name="mapa_calificacion_resenas">%1$s · %2$d reseñas</string>
     <string name="mapa_btn_como_llegar">Cómo llegar con Google Maps</string>
+    <string name="mapa_btn_iniciar_ruta">Iniciar ruta</string>
     <string name="mapa_btn_ver_comercio">Ver detalles del comercio</string>
     <string name="mapa_btn_ver_destino">Ver detalles del destino</string>
 

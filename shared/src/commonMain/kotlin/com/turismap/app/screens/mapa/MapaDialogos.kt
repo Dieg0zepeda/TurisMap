@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,11 +17,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,15 +33,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turismap.app.data.models.CategoriaAtractivoPublico
 import com.turismap.app.theme.FondoBlancoAdaptable
 import com.turismap.app.theme.PinoContenedor
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.atractivo_categoria_todas
 import turismap.shared.generated.resources.logo_turismap
 import turismap.shared.generated.resources.mapa_capas_encabezado
 import turismap.shared.generated.resources.mapa_cd_mascota
@@ -47,13 +55,18 @@ import turismap.shared.generated.resources.mapa_subtitulo_gps
 @Composable
 internal fun ModalCapasMapa(
     filtroTipoMarcadores: FiltroMarcadoresMapa,
+    categoriaAtractivoSeleccionada: CategoriaAtractivoPublico?,
     cantidadLugares: Int,
     cantidadComercios: Int,
+    cantidadAtractivos: Int,
+    conteoPorCategoriaAtractivo: Map<CategoriaAtractivoPublico, Int>,
     paleta: MapaPaleta,
     onSeleccionarFiltro: (FiltroMarcadoresMapa) -> Unit,
+    onSeleccionarCategoriaAtractivo: (CategoriaAtractivoPublico?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val totalPuntos = cantidadLugares + cantidadComercios
+    val totalPuntos = cantidadLugares + cantidadComercios + cantidadAtractivos
+    val capaAtractivosActiva = filtroTipoMarcadores == FiltroMarcadoresMapa.ATRACTIVOS
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -64,6 +77,7 @@ internal fun ModalCapasMapa(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp)
                 .navigationBarsPadding()
@@ -160,6 +174,92 @@ internal fun ModalCapasMapa(
                 seleccionado = filtroTipoMarcadores == FiltroMarcadoresMapa.COMERCIOS,
                 paleta = paleta,
                 onClick = { onSeleccionarFiltro(FiltroMarcadoresMapa.COMERCIOS) }
+            )
+
+            ItemFiltroWaze(
+                icono = "⛰️",
+                titulo = stringResource(FiltroMarcadoresMapa.ATRACTIVOS.tituloCapaRes),
+                subtitulo = stringResource(FiltroMarcadoresMapa.ATRACTIVOS.subtituloCapaRes),
+                cantidad = cantidadAtractivos,
+                seleccionado = capaAtractivosActiva,
+                paleta = paleta,
+                onClick = { onSeleccionarFiltro(FiltroMarcadoresMapa.ATRACTIVOS) }
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Chips opcionales por categoría de atractivo natural (activan la capa Atractivos Naturales)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ChipCategoriaAtractivo(
+                    etiqueta = stringResource(Res.string.atractivo_categoria_todas),
+                    cantidad = cantidadAtractivos,
+                    icono = null,
+                    colorAcento = paleta.turismapPrimario,
+                    seleccionado = capaAtractivosActiva && categoriaAtractivoSeleccionada == null,
+                    paleta = paleta,
+                    onClick = { onSeleccionarCategoriaAtractivo(null) }
+                )
+
+                CategoriaAtractivoPublico.entries.forEach { categoria ->
+                    ChipCategoriaAtractivo(
+                        etiqueta = stringResource(categoria.etiquetaPluralRes),
+                        cantidad = conteoPorCategoriaAtractivo[categoria] ?: 0,
+                        icono = iconoCategoriaAtractivo(categoria),
+                        colorAcento = colorCategoriaAtractivo(categoria),
+                        seleccionado = capaAtractivosActiva && categoriaAtractivoSeleccionada == categoria,
+                        paleta = paleta,
+                        onClick = { onSeleccionarCategoriaAtractivo(categoria) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipCategoriaAtractivo(
+    etiqueta: String,
+    cantidad: Int,
+    icono: ImageVector?,
+    colorAcento: Color,
+    seleccionado: Boolean,
+    paleta: MapaPaleta,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = if (seleccionado) colorAcento else paleta.airbnbFondo,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (seleccionado) colorAcento else paleta.airbnbBorde
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (icono != null) {
+                Icon(
+                    imageVector = icono,
+                    contentDescription = null,
+                    tint = if (seleccionado) Color.White else colorAcento,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = if (cantidad > 0) "$etiqueta ($cantidad)" else etiqueta,
+                color = if (seleccionado) Color.White else paleta.airbnbOscuro,
+                fontSize = 12.5.sp,
+                fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium
             )
         }
     }

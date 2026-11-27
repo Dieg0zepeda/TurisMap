@@ -3,11 +3,14 @@ package com.turismap.app.screens.mapa
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.turismap.app.MapaCamaraCache
+import com.turismap.app.data.repository.AtractivosPublicosRepository
 import com.turismap.app.data.repository.ComercioRepository
 import com.turismap.app.data.repository.EstadoPublicados
 import com.turismap.app.data.repository.LugaresRepository
@@ -17,6 +20,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
+import turismap.shared.generated.resources.mapa_error_cargar_atractivos
 import turismap.shared.generated.resources.mapa_error_cargar_comercios
 import turismap.shared.generated.resources.mapa_error_cargar_destinos
 import turismap.shared.generated.resources.mapa_sin_datos_publicados
@@ -32,10 +36,12 @@ internal fun rememberMapaState(
     val uidActual = UsuarioRepository.obtenerIdUsuarioActual()
     val textoBusquedaState = rememberSaveable { mutableStateOf("") }
     val filtroNombreState = rememberSaveable { mutableStateOf(FiltroMarcadoresMapa.TODOS.name) }
+    val categoriaAtractivoNombreState = rememberSaveable { mutableStateOf<String?>(null) }
 
     val state = remember(uidActual) {
         val lugaresCache = LugaresRepository.lugaresEnCache
         val comerciosCache = ComercioRepository.publicadosEnCache
+        val atractivosCache = AtractivosPublicosRepository.atractivosEnCache
         val categoriasCache = ComercioRepository.categoriasEnCache
             ?.associate { it.id.trim() to it.etiqueta.trim() }
             .orEmpty()
@@ -46,10 +52,12 @@ internal fun rememberMapaState(
             uidActual = uidActual,
             lugaresIniciales = lugaresCache,
             comerciosIniciales = comerciosCache,
+            atractivosIniciales = atractivosCache,
             categoriasIniciales = categoriasCache,
             camaraGuardada = MapaCamaraCache.obtener(uidActual),
             textoBusquedaState = textoBusquedaState,
             filtroNombreState = filtroNombreState,
+            categoriaAtractivoNombreState = categoriaAtractivoNombreState,
             scope = coroutineScope,
             snackbarHostState = snackbarHostState
         )
@@ -116,6 +124,36 @@ internal fun rememberMapaState(
         }
     }
 
+    // Carga independiente de atractivos naturales públicos (con fallback seed si Firestore está vacío/sin permisos)
+    LaunchedEffect(state.intentoCarga) {
+        val esReintentoManual = state.intentoCarga > 0
+        if (!esReintentoManual && AtractivosPublicosRepository.atractivosEnCache != null) {
+            state.atractivosPublicos = AtractivosPublicosRepository.atractivosEnCache.orEmpty()
+            state.errorAtractivos = null
+            state.atractivosCargados = true
+            return@LaunchedEffect
+        }
+
+        val tieneDatosVisibles = state.atractivosPublicos.isNotEmpty()
+        if (!tieneDatosVisibles) {
+            state.atractivosCargados = false
+        }
+        state.errorAtractivos = null
+        try {
+            state.atractivosPublicos = AtractivosPublicosRepository.obtenerActivos(
+                forzarRecarga = esReintentoManual
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (!tieneDatosVisibles) {
+                state.errorAtractivos = error.message ?: getString(Res.string.mapa_error_cargar_atractivos)
+            }
+        } finally {
+            state.atractivosCargados = true
+        }
+    }
+
     // Suscripción al StateFlow compartido de comercios publicados (sin recrear listener al volver a Mapa)
     LaunchedEffect(state.intentoCarga) {
         val esReintentoManual = state.intentoCarga > 0
@@ -170,17 +208,36 @@ internal fun rememberMapaState(
         }
     }
 
-    // Detección y selección automática del municipio si se ingresa con coordenadas específicas
-    LaunchedEffect(latInicial, lngInicial, state.lugaresTuristicos) {
-        if (latInicial != null && lngInicial != null && state.lugaresTuristicos.isNotEmpty()) {
-            val lugarCoincidente = state.lugaresTuristicos.minByOrNull { lugar ->
-                val dLat = lugar.ubicacionCoordenadas.latitud - latInicial
-                val dLng = lugar.ubicacionCoordenadas.longitud - lngInicial
-                (dLat * dLat) + (dLng * dLng)
-            }
-            if (lugarCoincidente != null) {
-                state.lugarSeleccionado = lugarCoincidente
-            }
+    // Auto-selección inteligente al llegar al mapa con coordenadas (pueblo, comercio o atractivo público)
+    var autoseleccionAplicadaPara by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
+    LaunchedEffect(
+        latInicial,
+        lngInicial,
+        state.cargando,
+        state.lugaresTuristicos,
+        state.atractivosPublicos,
+        state.todosLosComercios
+    ) {
+        if (latInicial == null || lngInicial == null) {
+            autoseleccionAplicadaPara = null
+            return@LaunchedEffect
+        }
+        if (state.cargando) return@LaunchedEffect
+
+        val objetivo = latInicial to lngInicial
+        if (autoseleccionAplicadaPara == objetivo) return@LaunchedEffect
+
+        val marcadorCoincidente = buscarMarcadorMasCercanoParaAutoseleccion(
+            latObjetivo = latInicial,
+            lngObjetivo = lngInicial,
+            lugares = state.lugaresTuristicos,
+            atractivosPublicos = state.atractivosPublicos,
+            comerciosConCoordenadaPropia = state.comerciosConCoordenadaPropiaParaAutoseleccion()
+        )
+        autoseleccionAplicadaPara = objetivo
+        if (marcadorCoincidente != null) {
+            state.aplicarAutoseleccion(marcadorCoincidente)
         }
     }
 
