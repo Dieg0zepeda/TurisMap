@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     onSplashFinished = { mostrarSplash = false }
                 )
             } else {
-                App()
+                App(solicitarGoogleSignIn)
             }
         }
     }
