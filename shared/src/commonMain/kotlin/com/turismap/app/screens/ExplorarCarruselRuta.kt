@@ -50,6 +50,8 @@ private val ESPACIADO_TARJETAS = 12.dp
 private val PADDING_SUPERIOR_CARRUSEL = 8.dp
 private val PADDING_INFERIOR_CARRUSEL = 16.dp
 private val ALTURA_TARJETA_RUTA = 260.dp
+private val ALTURA_CARRUSEL_RUTA =
+    ALTURA_TARJETA_RUTA + PADDING_SUPERIOR_CARRUSEL + PADDING_INFERIOR_CARRUSEL
 private val ALTURA_IMAGEN_TARJETA = 140.dp
 private val RADIO_TARJETA_RUTA = 20.dp
 private val ELEVACION_TARJETA_RUTA = 4.dp
@@ -68,14 +70,20 @@ internal fun CarruselExploraRuta(
         snapPosition = SnapPosition.Start
     )
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ALTURA_CARRUSEL_RUTA)
+    ) {
         val anchoDisponible = (maxWidth - MARGEN_HORIZONTAL_CARRUSEL * 2).coerceAtLeast(0.dp)
         val anchoTarjeta = (anchoDisponible * PROPORCION_ANCHO_TARJETA)
             .coerceAtMost(ANCHO_MAXIMO_TARJETA)
 
         LazyRow(
             state = listState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ALTURA_CARRUSEL_RUTA),
             contentPadding = PaddingValues(
                 start = MARGEN_HORIZONTAL_CARRUSEL,
                 top = PADDING_SUPERIOR_CARRUSEL,

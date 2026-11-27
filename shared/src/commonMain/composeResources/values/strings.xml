@@ -238,7 +238,8 @@
     <string name="detalle_exp_menu_establecimiento">Establecimiento: %1$s</string>
     <string name="detalle_exp_menu_descripcion">Como beneficio de Socio Premium, este comercio cuenta con carta digitalizada en alta resolución y catálogo de productos.</string>
     <string name="detalle_exp_badge_premium">PREMIUM</string>
-    <string name="detalle_exp_premium_subtitulo">★ Experiencia recomendada en la Ruta de las Flores:</string>
+    <string name="detalle_exp_premium_subtitulo">Experiencia recomendada en la Ruta de las Flores</string>
+    <string name="detalle_exp_premium_franja_titulo">Experiencia destacada en la Ruta</string>
     <string name="detalle_exp_premium_descripcion">Este comercio cuenta con atención prioritaria, especialidades insignia y promociones exclusivas para turistas.</string>
     <string name="detalle_exp_btn_ver_catalogo">Ver Experiencias y Catálogo</string>
     <string name="detalle_exp_ubicacion_titulo">UBICACIÓN EN LA RUTA</string>
@@ -249,6 +250,9 @@
     <string name="detalle_exp_canal_oficial">CANAL OFICIAL</string>
     <string name="detalle_exp_btn_whatsapp_directo">WhatsApp Directo</string>
     <string name="detalle_exp_btn_redes_web">Redes / Web</string>
+    <string name="detalle_exp_accion_whatsapp">WhatsApp</string>
+    <string name="detalle_exp_accion_llamar">Llamar</string>
+    <string name="detalle_exp_accion_web_redes">Web / Redes</string>
     <string name="detalle_exp_acerca_titulo">ACERCA DE ESTE LUGAR</string>
     <string name="detalle_exp_descripcion_fallback">Un espacio acogedor en la Ruta de las Flores preparado para atenderte.</string>
     <string name="detalle_exp_servicios_titulo">SERVICIOS Y COMODIDADES</string>
@@ -256,18 +260,28 @@
     <string name="detalle_exp_abierto_ahora">Abierto ahora</string>
     <string name="detalle_exp_horario_fallback">Lun a Dom: 7:00 AM - 8:00 PM</string>
     <string name="detalle_exp_galeria_titulo">VISTA DE GALERÍA (%1$d FOTOS)</string>
+    <string name="detalle_exp_cd_foto_galeria">Foto %1$d de %2$d</string>
     <string name="detalle_exp_resenas_titulo">Reseñas de Visitantes</string>
+    <string name="detalle_exp_resenas_cargando">Cargando reseñas...</string>
+    <string name="detalle_exp_error_cargar_resenas">No se pudieron cargar las reseñas.</string>
     <string name="detalle_exp_resenas_vacio">Aún no hay comentarios para este lugar. ¡Sé el primero en compartir tu experiencia!</string>
     <string name="detalle_exp_resena_fallback">Excelente lugar recomendado.</string>
     <string name="detalle_exp_resena_iniciar_sesion">Inicia sesión para reseñar</string>
     <string name="detalle_exp_resena_propio_comercio">No puedes reseñar tu propio comercio</string>
     <string name="detalle_exp_resena_escribir">Escribe tu reseña</string>
+    <string name="detalle_exp_resena_editar">Actualiza tu reseña</string>
     <string name="detalle_exp_resena_comentario_label">Comentario (opcional)</string>
     <string name="detalle_exp_resena_guardada_exito">¡Tu reseña se ha publicado correctamente!</string>
     <string name="detalle_exp_btn_publicar_resena">Publicar reseña</string>
+    <string name="detalle_exp_btn_actualizar_resena">Actualizar reseña</string>
+    <string name="detalle_exp_cd_calificacion_estrella">Calificar con %1$d estrellas</string>
     <string name="detalle_exp_por_consumo">por consumo</string>
     <string name="detalle_exp_precio_desde_usd">Desde %1$s USD</string>
     <string name="detalle_exp_precio_consultar">Consultar</string>
+    <string name="detalle_exp_barra_label_horario">Horario</string>
+    <string name="detalle_exp_barra_label_ubicacion">Ubicación</string>
+    <string name="detalle_exp_barra_label_precio">Desde</string>
+    <string name="detalle_exp_barra_label_categoria">Categoría</string>
     <string name="detalle_exp_btn_iniciar_ruta">Iniciar ruta</string>
 
     <!-- Flujo Comercial: Planes -->

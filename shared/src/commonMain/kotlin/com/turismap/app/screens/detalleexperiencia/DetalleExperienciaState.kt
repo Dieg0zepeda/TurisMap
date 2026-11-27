@@ -10,194 +10,73 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.UriHandler
+import com.turismap.app.data.models.Lugar
 import com.turismap.app.data.repository.AutenticacionRepository
 import com.turismap.app.data.repository.Comercio
 import com.turismap.app.data.repository.ComercioRepository
+import com.turismap.app.data.repository.EstadoPublicados
+import com.turismap.app.data.repository.LugaresRepository
 import com.turismap.app.data.repository.Resena
 import com.turismap.app.data.repository.UsuarioRepository
-import com.turismap.app.screens.mapa.codificarParametroMaps
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import turismap.shared.generated.resources.Res
 import turismap.shared.generated.resources.detalle_exp_error_abrir_enlace
-import turismap.shared.generated.resources.detalle_exp_error_calificacion_invalida
 import turismap.shared.generated.resources.detalle_exp_error_cargar
+import turismap.shared.generated.resources.detalle_exp_error_cargar_resenas
 import turismap.shared.generated.resources.detalle_exp_error_guardar_resena
 import turismap.shared.generated.resources.detalle_exp_error_no_disponible
 import turismap.shared.generated.resources.guia_error_actualizar_favorito
 
-internal data class DetalleExperienciaPaleta(
-    val esOscuro: Boolean,
-    val verdeTurisMap: Color = Color(0xFF10B981),
-    val verdeOscuroTurisMap: Color = Color(0xFF047857),
-    val doradoCorona: Color = Color(0xFFF59E0B),
-    val colorFondoPantalla: Color,
-    val colorTextoPrincipal: Color,
-    val colorTextoSecundario: Color,
-    val colorBordeSuave: Color,
-    val colorBarraInferior: Color,
-    val colorFondoInput: Color
-)
-
-@Composable
-internal fun rememberDetalleExperienciaPaleta(esOscuro: Boolean): DetalleExperienciaPaleta =
-    remember(esOscuro) {
-        DetalleExperienciaPaleta(
-            esOscuro = esOscuro,
-            colorFondoPantalla = if (esOscuro) Color(0xFF0B0F17) else Color(0xFFF8FAFC),
-            colorTextoPrincipal = if (esOscuro) Color(0xFFF8FAFC) else Color(0xFF0F172A),
-            colorTextoSecundario = if (esOscuro) Color(0xFF94A3B8) else Color(0xFF64748B),
-            colorBordeSuave = if (esOscuro) Color.White.copy(alpha = 0.08f) else Color(0xFFE2E8F0),
-            colorBarraInferior = if (esOscuro) Color(0xFF0F172A) else Color.White,
-            colorFondoInput = if (esOscuro) Color(0xFF1E293B) else Color(0xFFF1F5F9)
-        )
-    }
-
-internal data class DetalleExperienciaDatosUi(
-    val comercio: Comercio,
-    val categoriaEtiqueta: String,
-    val esPropietario: Boolean,
-    val esPremium: Boolean,
-    val esSocio: Boolean,
-    val esBasico: Boolean,
-    val fotos: List<String>,
-    val telefonoLimpio: String,
-    val telefonoUrl: String,
-    val whatsappUrl: String,
-    val mapsUrl: String,
-    val sitioWebUrl: String?,
-    val precioTexto: String?,
-    val promedioNumericoTexto: String?,
-    val totalResenas: Int
-) {
-    companion object {
-        fun desde(
-            datos: Comercio,
-            resenas: List<Resena>,
-            usuarioActualUid: String?,
-            categoriasMap: Map<String, String> = emptyMap()
-        ): DetalleExperienciaDatosUi {
-            val esPropietario = datos.propietarioUid == usuarioActualUid
-            val categoriaEtiqueta = categoriasMap[datos.categoria.trim()]
-                ?.takeIf(String::isNotBlank)
-                ?: datos.categoria.trim()
-
-            val esPremium = datos.planInt == 3
-            val esSocio = datos.planInt == 2
-            val esBasico = datos.planInt == 1
-
-            // Límite de fotos: 8 para Premium, 4 para Socio, 2 para Básico
-            val fotosReales = datos.imagenUrls.filter {
-                it.startsWith("http://") || it.startsWith("https://")
-            }
-            val fotos = fotosReales.take(datos.maxFotosPermitidas)
-
-            val telefonoLimpio = datos.telefono.filter { it.isDigit() }
-            val telefonoUrl = "tel:${datos.telefono.filter { it.isDigit() || it == '+' }}"
-            val whatsappUrl = if (telefonoLimpio.startsWith("503")) {
-                "https://wa.me/$telefonoLimpio"
-            } else {
-                "https://wa.me/503$telefonoLimpio"
-            }
-            val coordenadaPropia = datos.coordenadaPropiaValida()
-            val consultaMaps = if (coordenadaPropia != null) {
-                "${coordenadaPropia.latitud},${coordenadaPropia.longitud}"
-            } else {
-                datos.direccion.trim().ifBlank {
-                    listOf(datos.nombre, datos.municipio.ifBlank { datos.lugarId })
-                        .map(String::trim)
-                        .filter(String::isNotEmpty)
-                        .joinToString(", ")
-                }
-            }
-            val mapsUrl = "https://www.google.com/maps/search/?api=1&query=" +
-                codificarParametroMaps(consultaMaps)
-            val sitioWebUrl = validarSitioWebSeguro(datos.sitioWeb)
-
-            val precioTexto = if (datos.precioDesde != null && datos.precioDesde > 0.0) {
-                val pStr = datos.precioDesde.toString()
-                if (pStr.contains(".")) {
-                    val partes = pStr.split(".")
-                    "$${partes[0]}.${partes[1].padEnd(2, '0').take(2)}"
-                } else {
-                    "$$pStr.00"
-                }
-            } else {
-                null
-            }
-
-            val totalResenasReal = if (resenas.isNotEmpty()) resenas.size else (datos.cantidadResenas ?: 0)
-            val promedioReal = if (resenas.isNotEmpty()) {
-                resenas.map { it.calificacion }.average()
-            } else {
-                datos.calificacionPromedio?.takeIf { it > 0.0 } ?: 0.0
-            }
-
-            val promedioNumericoTexto = if (promedioReal > 0.0) {
-                val red = kotlin.math.round(promedioReal * 10) / 10
-                "$red"
-            } else {
-                null
-            }
-
-            return DetalleExperienciaDatosUi(
-                comercio = datos,
-                categoriaEtiqueta = categoriaEtiqueta,
-                esPropietario = esPropietario,
-                esPremium = esPremium,
-                esSocio = esSocio,
-                esBasico = esBasico,
-                fotos = fotos,
-                telefonoLimpio = telefonoLimpio,
-                telefonoUrl = telefonoUrl,
-                whatsappUrl = whatsappUrl,
-                mapsUrl = mapsUrl,
-                sitioWebUrl = sitioWebUrl,
-                precioTexto = precioTexto,
-                promedioNumericoTexto = promedioNumericoTexto,
-                totalResenas = totalResenasReal
-            )
-        }
-    }
+private sealed class ResultadoRefrescoComercio {
+    data class Disponible(val comercio: Comercio) : ResultadoRefrescoComercio()
+    data object NoDisponible : ResultadoRefrescoComercio()
+    data class ErrorRed(val excepcion: Exception) : ResultadoRefrescoComercio()
 }
 
-internal fun validarSitioWebSeguro(sitioWeb: String): String? {
-    val webLimpia = sitioWeb.trim()
-    if (!webLimpia.startsWith("https://", ignoreCase = true)) return null
-    if (webLimpia.any(Char::isWhitespace)) return null
-    val sinEsquema = webLimpia.drop(8)
-    val host = sinEsquema
-        .substringBefore('/')
-        .substringBefore('?')
-        .substringBefore('#')
-    if (host.isBlank() || !host.contains('.')) return null
-    return "https://$sinEsquema"
+private fun buscarComercioEnCache(comercioId: String): Comercio? {
+    val idLimpio = comercioId.trim()
+    val directo = ComercioRepository.obtenerEnCachePorId(idLimpio)
+    val desdeFlujo = (ComercioRepository.publicadosStateFlow.value as? EstadoPublicados.Exito)
+        ?.comercios
+        ?.firstOrNull { it.id.trim() == idLimpio }
+    return (directo ?: desdeFlujo)?.takeIf { it.estado == "publicado" }
 }
 
-internal fun validarCalificacionResena(calificacion: Int): StringResource? =
-    if (calificacion !in 1..5) Res.string.detalle_exp_error_calificacion_invalida else null
-
-internal fun sanitizarComentarioResena(comentario: String): String = comentario.take(1000)
+private fun ordenarResenasPorFecha(resenas: List<Resena>): List<Resena> =
+    resenas.sortedWith(
+        compareByDescending<Resena> { (it.actualizadoEn ?: it.creadoEn)?.seconds ?: Long.MIN_VALUE }
+            .thenByDescending { (it.actualizadoEn ?: it.creadoEn)?.nanoseconds ?: Int.MIN_VALUE }
+    )
 
 internal class DetalleExperienciaState(
     private val comercioId: String,
+    comercioInicial: Comercio?,
+    categoriasIniciales: Map<String, String>,
+    municipiosIniciales: Map<String, Lugar>,
     private val scope: CoroutineScope,
     val snackbarHostState: SnackbarHostState
 ) {
-    var comercio by mutableStateOf<Comercio?>(null)
+    var comercio by mutableStateOf(comercioInicial)
     var resenas by mutableStateOf<List<Resena>>(emptyList())
-    var categoriasMap by mutableStateOf<Map<String, String>>(emptyMap())
+    var cargandoResenas by mutableStateOf(true)
+    var errorResenas by mutableStateOf<String?>(null)
+    var categoriasMap by mutableStateOf(categoriasIniciales)
+    var municipiosMap by mutableStateOf(municipiosIniciales)
     var favoritosEnProceso by mutableStateOf<Set<String>>(emptySet())
-    var cargando by mutableStateOf(true)
+    var cargando by mutableStateOf(comercioInicial == null)
     var error by mutableStateOf<String?>(null)
     var intento by mutableIntStateOf(0)
     var calificacion by mutableIntStateOf(0)
     var comentario by mutableStateOf("")
+    var tieneResenaPropia by mutableStateOf(false)
+    var usuarioEditoResena by mutableStateOf(false)
     var enviando by mutableStateOf(false)
     var mensaje by mutableStateOf<String?>(null)
     var resenaGuardadaExito by mutableStateOf(false)
@@ -237,14 +116,53 @@ internal class DetalleExperienciaState(
         intento++
     }
 
+    fun reintentarResenas() {
+        if (cargandoResenas) return
+        scope.launch {
+            cargarResenas()
+        }
+    }
+
+    internal suspend fun cargarResenas() {
+        cargandoResenas = true
+        errorResenas = null
+        try {
+            val cargadas = ordenarResenasPorFecha(ComercioRepository.obtenerResenas(comercioId))
+            aplicarResenasCargadas(cargadas)
+        } catch (cancelacion: CancellationException) {
+            throw cancelacion
+        } catch (ex: Exception) {
+            errorResenas = ex.message ?: getString(Res.string.detalle_exp_error_cargar_resenas)
+        } finally {
+            cargandoResenas = false
+        }
+    }
+
+    internal fun aplicarResenasCargadas(resenasCargadas: List<Resena>) {
+        resenas = resenasCargadas
+        val uidActual = AutenticacionRepository.usuarioActual?.uid
+        val propia = if (!uidActual.isNullOrBlank()) {
+            resenasCargadas.firstOrNull { it.usuarioUid == uidActual }
+        } else {
+            null
+        }
+        tieneResenaPropia = propia != null
+        if (!usuarioEditoResena) {
+            calificacion = propia?.calificacion ?: 0
+            comentario = propia?.comentario.orEmpty()
+        }
+    }
+
     fun actualizarCalificacion(nuevaCalificacion: Int) {
         calificacion = nuevaCalificacion
+        usuarioEditoResena = true
         mensaje = null
         resenaGuardadaExito = false
     }
 
     fun actualizarComentario(nuevoComentario: String) {
         comentario = sanitizarComentarioResena(nuevoComentario)
+        usuarioEditoResena = true
         mensaje = null
         resenaGuardadaExito = false
     }
@@ -262,7 +180,9 @@ internal class DetalleExperienciaState(
             } catch (cancelacion: CancellationException) {
                 throw cancelacion
             } catch (e: Exception) {
-                mensaje = e.message ?: getString(Res.string.guia_error_actualizar_favorito)
+                snackbarHostState.showSnackbar(
+                    e.message ?: getString(Res.string.guia_error_actualizar_favorito)
+                )
             } finally {
                 favoritosEnProceso = favoritosEnProceso - comercioId
             }
@@ -270,36 +190,38 @@ internal class DetalleExperienciaState(
     }
 
     fun publicarResena(datosId: String) {
+        val uidActual = usuarioActualUid
+        val propietarioUid = comercio?.propietarioUid.orEmpty()
+        if (enviando || uidActual.isNullOrBlank() || (propietarioUid.isNotBlank() && propietarioUid == uidActual)) {
+            return
+        }
+
         val errorValidacion = validarCalificacionResena(calificacion)
         if (errorValidacion != null) {
             resenaGuardadaExito = false
             scope.launch {
                 mensaje = getString(errorValidacion)
             }
-        } else {
-            enviando = true
-            mensaje = null
-            resenaGuardadaExito = false
-            scope.launch {
-                try {
-                    ComercioRepository.enviarResena(datosId, calificacion, comentario.trim())
-                    val resenasActualizadas = ComercioRepository.obtenerResenas(datosId)
-                    resenas = resenasActualizadas
-                    val propia = resenasActualizadas.firstOrNull {
-                        it.usuarioUid == AutenticacionRepository.usuarioActual?.uid
-                    }
-                    if (propia != null) {
-                        calificacion = propia.calificacion
-                        comentario = propia.comentario
-                    }
-                    resenaGuardadaExito = true
-                } catch (cancelacion: CancellationException) {
-                    throw cancelacion
-                } catch (ex: Exception) {
-                    mensaje = ex.message ?: getString(Res.string.detalle_exp_error_guardar_resena)
-                } finally {
-                    enviando = false
-                }
+            return
+        }
+
+        enviando = true
+        mensaje = null
+        resenaGuardadaExito = false
+        scope.launch {
+            try {
+                ComercioRepository.enviarResena(datosId, calificacion, comentario.trim())
+                val actualizadas = ordenarResenasPorFecha(ComercioRepository.obtenerResenas(datosId))
+                usuarioEditoResena = false
+                errorResenas = null
+                aplicarResenasCargadas(actualizadas)
+                resenaGuardadaExito = true
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
+            } catch (ex: Exception) {
+                mensaje = ex.message ?: getString(Res.string.detalle_exp_error_guardar_resena)
+            } finally {
+                enviando = false
             }
         }
     }
@@ -310,7 +232,21 @@ internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleEx
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val state = remember(comercioId, scope, snackbarHostState) {
-        DetalleExperienciaState(comercioId, scope, snackbarHostState)
+        val comercioInicial = buscarComercioEnCache(comercioId)
+        val categoriasIniciales = ComercioRepository.categoriasEnCache
+            ?.associate { it.id.trim() to it.etiqueta.trim() }
+            .orEmpty()
+        val municipiosIniciales = LugaresRepository.lugaresEnCache
+            ?.associateBy { it.id.trim() }
+            .orEmpty()
+        DetalleExperienciaState(
+            comercioId = comercioId,
+            comercioInicial = comercioInicial,
+            categoriasIniciales = categoriasIniciales,
+            municipiosIniciales = municipiosIniciales,
+            scope = scope,
+            snackbarHostState = snackbarHostState
+        )
     }
 
     val usuarioActual by UsuarioRepository.usuarioActualFlow.collectAsState()
@@ -319,31 +255,93 @@ internal fun rememberDetalleExperienciaState(comercioId: String): Pair<DetalleEx
     }
 
     LaunchedEffect(comercioId, state.intento) {
-        state.cargando = true
+        val teniaComercio = state.comercio != null
+        val esReintento = state.intento > 0
+        if (!teniaComercio) {
+            state.cargando = true
+        }
+        state.cargandoResenas = true
         state.error = null
+        state.errorResenas = null
         try {
-            state.comercio = ComercioRepository.obtenerPorId(comercioId)
-                ?.takeIf { it.estado == "publicado" }
-                ?: throw IllegalStateException(getString(Res.string.detalle_exp_error_no_disponible))
-            state.categoriasMap = try {
-                ComercioRepository.obtenerCategorias().associate { it.id.trim() to it.etiqueta }
-            } catch (cancelacion: CancellationException) {
-                throw cancelacion
-            } catch (_: Exception) {
-                emptyMap()
+            coroutineScope {
+                val tareaComercio = async {
+                    try {
+                        val remoto = ComercioRepository.obtenerPorId(comercioId)
+                        if (remoto != null && remoto.estado == "publicado") {
+                            ResultadoRefrescoComercio.Disponible(remoto)
+                        } else {
+                            ResultadoRefrescoComercio.NoDisponible
+                        }
+                    } catch (cancelacion: CancellationException) {
+                        throw cancelacion
+                    } catch (ex: Exception) {
+                        ResultadoRefrescoComercio.ErrorRed(ex)
+                    }
+                }
+                val tareaCategorias = async {
+                    if (state.categoriasMap.isNotEmpty() && !esReintento) return@async null
+                    try {
+                        ComercioRepository.obtenerCategorias()
+                            .associate { it.id.trim() to it.etiqueta.trim() }
+                    } catch (cancelacion: CancellationException) {
+                        throw cancelacion
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                val tareaMunicipios = async {
+                    if (state.municipiosMap.isNotEmpty() && !esReintento) return@async null
+                    try {
+                        LugaresRepository.obtenerTodos().associateBy { it.id.trim() }
+                    } catch (cancelacion: CancellationException) {
+                        throw cancelacion
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                val tareaResenas = async {
+                    try {
+                        Result.success(ordenarResenasPorFecha(ComercioRepository.obtenerResenas(comercioId)))
+                    } catch (cancelacion: CancellationException) {
+                        throw cancelacion
+                    } catch (ex: Exception) {
+                        Result.failure(ex)
+                    }
+                }
+
+                when (val resultadoComercio = tareaComercio.await()) {
+                    is ResultadoRefrescoComercio.Disponible -> {
+                        state.comercio = resultadoComercio.comercio
+                    }
+                    ResultadoRefrescoComercio.NoDisponible -> {
+                        state.comercio = null
+                        state.error = getString(Res.string.detalle_exp_error_no_disponible)
+                    }
+                    is ResultadoRefrescoComercio.ErrorRed -> {
+                        if (!teniaComercio) {
+                            state.error = resultadoComercio.excepcion.message
+                                ?: getString(Res.string.detalle_exp_error_cargar)
+                        }
+                    }
+                }
+
+                tareaCategorias.await()?.let { state.categoriasMap = it }
+                tareaMunicipios.await()?.let { state.municipiosMap = it }
+
+                val resultadoResenas = tareaResenas.await()
+                resultadoResenas.onSuccess { resenasCargadas ->
+                    state.aplicarResenasCargadas(resenasCargadas)
+                }.onFailure { errorCarga ->
+                    state.errorResenas = errorCarga.message
+                        ?: getString(Res.string.detalle_exp_error_cargar_resenas)
+                }
             }
-            state.resenas = ComercioRepository.obtenerResenas(comercioId)
-            val propia = state.resenas.firstOrNull {
-                it.usuarioUid == AutenticacionRepository.usuarioActual?.uid
-            }
-            state.calificacion = propia?.calificacion ?: 0
-            state.comentario = propia?.comentario.orEmpty()
         } catch (cancelacion: CancellationException) {
             throw cancelacion
-        } catch (excepcion: Exception) {
-            state.error = excepcion.message ?: getString(Res.string.detalle_exp_error_cargar)
         } finally {
             state.cargando = false
+            state.cargandoResenas = false
         }
     }
 

@@ -232,11 +232,6 @@ internal class GuiaState(
         }.sortedByDescending { it.planInt }
     }
 
-    // Experiencias destacadas para el carrusel superior (Socios y Premium)
-    val comerciosDestacados: List<Comercio> by derivedStateOf {
-        comerciosFiltrados.filter { it.planInt >= 2 }
-    }
-
     fun toggleFavorito(idComercio: String, guardar: Boolean) {
         if (idComercio in favoritosEnProceso) return
         favoritosEnProceso = favoritosEnProceso + idComercio

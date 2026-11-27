@@ -24,7 +24,6 @@ import com.turismap.app.screens.guia.EncabezadoFeedGuia
 import com.turismap.app.screens.guia.EstadoErrorGuia
 import com.turismap.app.screens.guia.EstadoVacioGuia
 import com.turismap.app.screens.guia.FilaFiltrosCategoria
-import com.turismap.app.screens.guia.SeccionExperienciasDestacadas
 import com.turismap.app.screens.guia.SelectorPuebloBottomSheet
 import com.turismap.app.screens.guia.TarjetaComercioGuia
 import com.turismap.app.screens.guia.TarjetaEsqueletoFeed
@@ -66,7 +65,7 @@ fun GuiaScreen(
             thickness = 0.8.dp
         )
 
-        // 2. Contenido desplazable: filtros de categoría + destacados + listado principal
+        // 2. Contenido desplazable: filtros de categoría + listado principal
         Box(modifier = Modifier.fillMaxSize()) {
             if (state.cargando) {
                 LazyColumn(
@@ -107,19 +106,6 @@ fun GuiaScreen(
                             )
                         }
                     } else {
-                        // Carrusel panorámico de destacados
-                        if (state.comerciosDestacados.isNotEmpty() && state.searchQuery.isBlank()) {
-                            item(key = "destacados") {
-                                SeccionExperienciasDestacadas(
-                                    comerciosDestacados = state.comerciosDestacados,
-                                    resolverUbicacion = state::resolverUbicacionComercio,
-                                    resolverCategoria = state::etiquetaCategoria,
-                                    paleta = paleta,
-                                    onComercioClick = onComercioClick
-                                )
-                            }
-                        }
-
                         // Encabezado del listado con total
                         item(key = "encabezado_feed") {
                             EncabezadoFeedGuia(

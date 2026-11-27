@@ -238,7 +238,8 @@
     <string name="detalle_exp_menu_establecimiento">Establishment: %1$s</string>
     <string name="detalle_exp_menu_descripcion">As a Premium Partner benefit, this business offers a high-resolution digital menu and product catalog.</string>
     <string name="detalle_exp_badge_premium">PREMIUM</string>
-    <string name="detalle_exp_premium_subtitulo">★ Recommended experience along Ruta de las Flores:</string>
+    <string name="detalle_exp_premium_subtitulo">Recommended experience along Ruta de las Flores</string>
+    <string name="detalle_exp_premium_franja_titulo">Featured experience on the Route</string>
     <string name="detalle_exp_premium_descripcion">This business offers priority service, signature specialties, and exclusive promotions for travelers.</string>
     <string name="detalle_exp_btn_ver_catalogo">View Experiences &amp; Catalog</string>
     <string name="detalle_exp_ubicacion_titulo">LOCATION ON THE ROUTE</string>
@@ -249,6 +250,9 @@
     <string name="detalle_exp_canal_oficial">OFFICIAL CHANNEL</string>
     <string name="detalle_exp_btn_whatsapp_directo">Direct WhatsApp</string>
     <string name="detalle_exp_btn_redes_web">Social / Web</string>
+    <string name="detalle_exp_accion_whatsapp">WhatsApp</string>
+    <string name="detalle_exp_accion_llamar">Call</string>
+    <string name="detalle_exp_accion_web_redes">Web / Social</string>
     <string name="detalle_exp_acerca_titulo">ABOUT THIS PLACE</string>
     <string name="detalle_exp_descripcion_fallback">A welcoming space along Ruta de las Flores ready to host you.</string>
     <string name="detalle_exp_servicios_titulo">SERVICES &amp; AMENITIES</string>
@@ -256,18 +260,28 @@
     <string name="detalle_exp_abierto_ahora">Open now</string>
     <string name="detalle_exp_horario_fallback">Mon to Sun: 7:00 AM - 8:00 PM</string>
     <string name="detalle_exp_galeria_titulo">GALLERY VIEW (%1$d PHOTOS)</string>
+    <string name="detalle_exp_cd_foto_galeria">Photo %1$d of %2$d</string>
     <string name="detalle_exp_resenas_titulo">Visitor Reviews</string>
+    <string name="detalle_exp_resenas_cargando">Loading reviews...</string>
+    <string name="detalle_exp_error_cargar_resenas">Could not load reviews.</string>
     <string name="detalle_exp_resenas_vacio">There are no reviews for this place yet. Be the first to share your experience!</string>
     <string name="detalle_exp_resena_fallback">Excellent recommended place.</string>
     <string name="detalle_exp_resena_iniciar_sesion">Sign in to leave a review</string>
     <string name="detalle_exp_resena_propio_comercio">You cannot review your own business</string>
     <string name="detalle_exp_resena_escribir">Write your review</string>
+    <string name="detalle_exp_resena_editar">Update your review</string>
     <string name="detalle_exp_resena_comentario_label">Comment (optional)</string>
     <string name="detalle_exp_resena_guardada_exito">Your review has been posted successfully!</string>
     <string name="detalle_exp_btn_publicar_resena">Post review</string>
+    <string name="detalle_exp_btn_actualizar_resena">Update review</string>
+    <string name="detalle_exp_cd_calificacion_estrella">Rate %1$d stars</string>
     <string name="detalle_exp_por_consumo">per visit</string>
     <string name="detalle_exp_precio_desde_usd">From %1$s USD</string>
     <string name="detalle_exp_precio_consultar">Contact for price</string>
+    <string name="detalle_exp_barra_label_horario">Hours</string>
+    <string name="detalle_exp_barra_label_ubicacion">Location</string>
+    <string name="detalle_exp_barra_label_precio">From</string>
+    <string name="detalle_exp_barra_label_categoria">Category</string>
     <string name="detalle_exp_btn_iniciar_ruta">Start route</string>
 
     <!-- Business Flow: Plans -->
